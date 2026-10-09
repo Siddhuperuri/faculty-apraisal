@@ -1,0 +1,18 @@
+[
+  {
+    "id": "GHSA-j9f9-w8pj-32f8",
+    "alias": "CVE-2026-47890",
+    "library": "org.springframework:spring-webmvc",
+    "version": "6.2.19",
+    "reviewBy": "2026-12-31",
+    "reason": "Server-Sent Events stream corruption when rendering view fragments. The backend has only @RestController classes that return JSON; it has no view technology, no SseEmitter and no text/event-stream response, so the affected code is never reached. Fixed only in Spring Framework 7.0.9 (Spring Boot 4); there is no 6.2.x fix."
+  },
+  {
+    "id": "GHSA-pc63-qcmh-9cmg",
+    "alias": "CVE-2026-47884",
+    "library": "org.springframework:spring-webmvc",
+    "version": "6.2.19",
+    "reviewBy": "2026-12-31",
+    "reason": "SSRF/RCE through XsltView with a catch-all view mapping. The backend has no view resolver, no XSLT resource and no view rendering at all (JSON only), so XsltView cannot be reached. Fixed only in Spring Framework 7.0.9 (Spring Boot 4); there is no 6.2.x fix."
+  }
+]

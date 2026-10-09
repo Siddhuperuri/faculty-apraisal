@@ -114,4 +114,4 @@ Every setting is listed in `docs/deployment.md`.
 | Static analysis | SpotBugs with Find Security Bugs | any finding not excluded with a reason in `backend/config/spotbugs-exclude.xml` |
 | Types | `tsc --noEmit` | any error |
 | Build | `mvn verify` packages the jar; `next build` | failure |
-| Known vulnerabilities | `scripts/audit-dependencies.mjs` (OSV database); `npm audit --omit=dev` | any advisory |
+| Known vulnerabilities | `scripts/audit-dependencies.mjs` (OSV database; reviewed exceptions in `scripts/accepted-advisories.json`); `npm audit --omit=dev` | any advisory not accepted there |

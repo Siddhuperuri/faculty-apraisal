@@ -103,7 +103,8 @@ against guessing, and the administrator and reviewer areas are still enforced on
 - **Dependencies:** Spring Boot 3.5.16 with Tomcat, Jackson and the Log4j bridge raised to their patched releases
   (`backend/pom.xml` says which and why). Hibernate and Spring Data JPA were removed (one query used them), which took
   the runtime libraries from 81 to 60. All 60 are checked against the OSV database by `scripts/audit-dependencies.mjs`
-  (no known advisory on 4 October 2026). `npm audit --omit=dev` reports none for what is shipped to browsers.
+  (on 9 October 2026 the only advisories were the two Spring Framework ones accepted under "Known gaps"). `npm audit --omit=dev`
+  reports none for what is shipped to browsers.
 
 - **Image optimizer:** Next's `/_next/image` may read only the application's own logo (`images.localPatterns`). It
   fetches what it is given from this server and caches the result for everyone, so it must never reach `/api`.
@@ -122,6 +123,14 @@ against guessing, and the administrator and reviewer areas are still enforced on
   form-based version of that. Giving the application a host name whose parent domain carries no untrusted sites, or a
   `__Host-` cookie prefix once HTTPS is in place, would remove the cookie planting itself.
 
+- **Two Spring Framework advisories are accepted, not fixed.** `spring-webmvc 6.2.19` (the version Spring Boot 3.5.16 manages)
+  is listed for GHSA-j9f9-w8pj-32f8 / CVE-2026-47890 (Server-Sent Events with view fragments) and GHSA-pc63-qcmh-9cmg /
+  CVE-2026-47884 (`XsltView`), both rated critical. The 6.2 line has no fix; it comes in Spring Framework 7.0.9, that is Spring
+  Boot 4. Neither feature is used here: the backend has only `@RestController` classes that return JSON, no view technology,
+  no `SseEmitter`, no `text/event-stream` and no XSLT. They are recorded with that reason in `scripts/accepted-advisories.json`,
+  which `scripts/audit-dependencies.mjs` honours only for that library version and only until the entry's `reviewBy` date
+  (31 December 2026); after that, or when the version changes, the audit fails again until someone decides. The real fix is the
+  Spring Boot 4 upgrade. Do not add an entry for an advisory in a feature the application does use.
 - **Frontend dev dependencies** report 5 npm audit findings, all in the ESLint toolchain (`braces` via `eslint-config-next`); they are not shipped to browsers. Do not apply `npm audit fix --force`: it would downgrade Next.
 
 - **The sign-in limits can be used to inconvenience people.** 25 wrong passwords from five or more addresses close an
