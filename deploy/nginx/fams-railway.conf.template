@@ -1,0 +1,56 @@
+# FAMS reverse proxy on Railway (see docs/railway-deployment.md). The nginx image fills the ${...} names below from the
+# container's environment when it starts. Railway's edge terminates TLS and delivers the request to this container on $PORT.
+
+server_tokens off;
+
+# Railway's own DNS (read from /etc/resolv.conf by the image), asked again every few seconds: a redeployed service gets a new
+# private address.
+resolver ${NGINX_LOCAL_RESOLVERS} valid=10s;
+
+# The client's address. Railway's edge puts it in X-Real-IP; use it only when it looks like an address, else the peer.
+# The backend is told this one address in X-Forwarded-For (what the client sent there is dropped), and the sign-in limits
+# count per client from it. Nothing but Railway's edge and this project's own services can reach this container.
+map $http_x_real_ip $fams_client {
+    default                            $remote_addr;
+    "~^[0-9A-Fa-f:.]{3,45}$"           $http_x_real_ip;
+}
+
+server {
+    listen ${PORT} default_server;
+    server_name _;
+
+    # Browsers that have seen this stop trying plain HTTP (the edge only serves HTTPS). The backend sends its own on /api;
+    # hiding it leaves one header, this one.
+    proxy_hide_header Strict-Transport-Security;
+    add_header Strict-Transport-Security "max-age=15552000" always;
+
+    client_max_body_size 2m;
+
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $fams_client;
+    proxy_set_header X-Forwarded-For   $fams_client;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-Host  $host;
+    proxy_set_header Connection        "";
+    proxy_redirect off;
+    proxy_connect_timeout 5s;
+    proxy_send_timeout    60s;
+    proxy_read_timeout    60s;
+
+    location = /nginx-health {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    location /api/ {
+        set $backend ${FAMS_BACKEND_URL};
+        proxy_pass $backend;
+    }
+
+    location / {
+        set $frontend ${FAMS_FRONTEND_URL};
+        proxy_pass $frontend;
+    }
+}

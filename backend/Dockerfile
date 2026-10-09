@@ -9,8 +9,7 @@ COPY pom.xml ./
 COPY config ./config
 COPY src/main ./src/main
 # Tests need a MySQL and run in CI / scripts/verify.ps1, not while an image is built.
-RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B -ntp -Dmaven.test.skip=true package \
+RUN mvn -B -ntp -Dmaven.test.skip=true package \
  && cp target/fams-backend-*.jar /build/app.jar
 
 FROM eclipse-temurin:25-jre-noble
