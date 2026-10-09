@@ -2,6 +2,7 @@ package edu.svec.fams.section;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,7 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class SectionMetaController {
 
     public record FieldMeta(String name, String label, String type, boolean required, boolean submitRequired, Integer maxLength,
-                            BigDecimal min, BigDecimal max, Integer scale, List<String> allowed) {}
+                            BigDecimal min, BigDecimal max, Integer scale, List<String> allowed,
+                            String dependsOn, Map<String, List<String>> allowedBy, boolean derived, boolean inAcademicYear) {}
 
     public record DateRangeMeta(String startField, String endField) {}
 
@@ -34,7 +36,11 @@ public class SectionMetaController {
                 f.type() == FieldSpec.Type.INT || f.type() == FieldSpec.Type.DECIMAL ? f.min() : null,
                 f.type() == FieldSpec.Type.INT || f.type() == FieldSpec.Type.DECIMAL ? f.max() : null,
                 f.type() == FieldSpec.Type.DECIMAL ? f.scale() : null,
-                f.type() == FieldSpec.Type.ENUM ? f.allowed() : null)).toList();
+                f.type() == FieldSpec.Type.ENUM ? f.allowed() : null,
+                s.dependentChoice() != null && s.dependentChoice().field().equals(f.name()) ? s.dependentChoice().onField() : null,
+                s.dependentChoice() != null && s.dependentChoice().field().equals(f.name()) ? s.dependentChoice().allowedBy() : null,
+                s.derivedDays() != null && s.derivedDays().daysField().equals(f.name()),
+                s.inAcademicYear().contains(f.name()))).toList();
         return new SectionMeta(s.key(), s.singleton(), fields,
                 s.dateRanges().stream().map(r -> new DateRangeMeta(r.startField(), r.endField())).toList(),
                 s.uniqueField());

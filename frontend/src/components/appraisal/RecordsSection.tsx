@@ -6,7 +6,7 @@ import { ConfirmDialog, Dialog } from "@/components/ui/Dialog";
 import { formatCell } from "@/lib/format";
 import type { Column, SectionUi } from "@/lib/formStructure";
 import type { FieldMeta, Rec, SectionMeta } from "@/lib/types";
-import { toApiRecord, toFormValues, validate, serverErrorsFor, type FieldErrors, type FormValues } from "@/lib/validate";
+import { applyDependencies, toApiRecord, toFormValues, validate, serverErrorsFor, type FieldErrors, type FormValues } from "@/lib/validate";
 import { useAppraisal } from "./AppraisalProvider";
 import { RecordFields } from "./RecordFields";
 import { SummaryStrip } from "./SummaryStrip";
@@ -35,6 +35,8 @@ export function RecordsSection({ ui }: { ui: SectionUi }) {
   }, [st.data, ui.scope]);
 
   const columns = useMemo(() => (meta ? resolveColumns(meta, ui) : []), [meta, ui]);
+  /** The most that can be added (the courses of a year) has been reached: no more Add or Duplicate. */
+  const atLimit = ui.maxRecords != null && records.length >= ui.maxRecords;
 
   // Filters: a search box over everything the table shows, and a drop-down for each field whose records differ.
   const [query, setQuery] = useState("");
@@ -46,7 +48,7 @@ export function RecordsSection({ ui }: { ui: SectionUi }) {
     () =>
       records.filter(
         (r) =>
-          filterFields.every((f) => !chosen[f.name] || String(r[f.name] ?? "") === chosen[f.name]) &&
+          filterFields.every((f) => !chosen[f.name] || (f.of ? f.of(r) : String(r[f.name] ?? "")) === chosen[f.name]) &&
           (q === "" || columns.some((c) => c.cell(r).toLowerCase().includes(q))),
       ),
     [records, filterFields, chosen, q, columns],
@@ -172,7 +174,7 @@ export function RecordsSection({ ui }: { ui: SectionUi }) {
                         ))}
                         {editable && (
                           <td className="whitespace-nowrap px-1 py-2 text-right">
-                            <RowActions record={r} onEdit={() => setDialog({ mode: "edit", record: r })} onDuplicate={() => setDialog({ mode: "duplicate", record: r })} onDelete={() => { setDeleteError(null); setDeleting(r); }} />
+                            <RowActions canDuplicate={!atLimit} record={r} onEdit={() => setDialog({ mode: "edit", record: r })} onDuplicate={() => setDialog({ mode: "duplicate", record: r })} onDelete={() => { setDeleteError(null); setDeleting(r); }} />
                           </td>
                         )}
                       </tr>
@@ -199,7 +201,7 @@ export function RecordsSection({ ui }: { ui: SectionUi }) {
                     </dl>
                     {editable && (
                       <div className="mt-3 flex justify-end border-t border-line pt-2">
-                        <RowActions record={r} onEdit={() => setDialog({ mode: "edit", record: r })} onDuplicate={() => setDialog({ mode: "duplicate", record: r })} onDelete={() => { setDeleteError(null); setDeleting(r); }} />
+                        <RowActions canDuplicate={!atLimit} record={r} onEdit={() => setDialog({ mode: "edit", record: r })} onDuplicate={() => setDialog({ mode: "duplicate", record: r })} onDelete={() => { setDeleteError(null); setDeleting(r); }} />
                       </div>
                     )}
                   </li>
@@ -208,10 +210,13 @@ export function RecordsSection({ ui }: { ui: SectionUi }) {
             </section>
           ))}
 
-          {editable && (
+          {editable && !atLimit && (
             <Button id={`add-${ui.key}`} variant="secondary" onClick={() => setDialog({ mode: "add" })}>
               + {ui.addLabel ?? "Add"}
             </Button>
+          )}
+          {editable && atLimit && (
+            <p className="text-sm text-muted">The most that can be added here ({ui.maxRecords}) have been added. Delete one to add another.</p>
           )}
         </>
       )}
@@ -245,11 +250,11 @@ export function RecordsSection({ ui }: { ui: SectionUi }) {
   );
 }
 
-function RowActions({ record, onEdit, onDuplicate, onDelete }: { record: Rec; onEdit: () => void; onDuplicate: () => void; onDelete: () => void }) {
+function RowActions({ record, canDuplicate, onEdit, onDuplicate, onDelete }: { record: Rec; canDuplicate: boolean; onEdit: () => void; onDuplicate: () => void; onDelete: () => void }) {
   return (
     <span className="inline-flex" data-record={record.id}>
       <Button variant="ghost" size="sm" className="px-2" onClick={onEdit}>Edit</Button>
-      <Button variant="ghost" size="sm" className="px-2" onClick={onDuplicate}>Duplicate</Button>
+      {canDuplicate && <Button variant="ghost" size="sm" className="px-2" onClick={onDuplicate}>Duplicate</Button>}
       <Button variant="ghost" size="sm" className="px-2 text-bad hover:bg-bad-soft" onClick={onDelete}>Delete</Button>
     </span>
   );
@@ -268,7 +273,7 @@ function RecordDialog({
   allRecords: Rec[];
   onClose: () => void;
 }) {
-  const { saveSection } = useAppraisal();
+  const { saveSection, appraisal } = useAppraisal();
   const preset = ui.scope ? { [ui.scope.field]: ui.scope.value } : undefined;
   const [values, setValues] = useState<FormValues>(() => toFormValues(meta, state.record, preset));
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -279,7 +284,7 @@ function RecordDialog({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const found = validate(meta, values, hidden);
+    const found = validate(meta, values, hidden, appraisal ? { name: appraisal.academicYear, start: appraisal.academicYearStart, end: appraisal.academicYearEnd } : undefined);
     setErrors(found);
     setFormError(null);
     if (Object.keys(found).length > 0) {
@@ -314,7 +319,7 @@ function RecordDialog({
           errors={errors}
           hidden={hidden}
           suggestions={ui.suggestions}
-          onChange={(name, v) => setValues((cur) => ({ ...cur, [name]: v }))}
+          onChange={(name, v) => setValues((cur) => applyDependencies(meta, { ...cur, [name]: v }, name))}
           autoFocusFirst
         />
         {formError && <p role="alert" className="text-sm font-medium text-bad">{formError}</p>}
@@ -331,6 +336,8 @@ interface FilterField {
   name: string;
   label: string;
   options: { value: string; label: string }[];
+  /** For a filter on something worked out from a record (odd or even semester) rather than stored in it. */
+  of?: (r: Rec) => string;
 }
 
 /**
@@ -349,6 +356,7 @@ function resolveFilters(meta: SectionMeta, ui: SectionUi, records: Rec[]): Filte
     values.sort((a, b) => (f.type === "INT" || f.type === "DECIMAL" ? Number(a) - Number(b) : a.localeCompare(b)));
     out.push({ name, label: ui.headers?.[name] ?? f.label, options: values.map((v) => ({ value: v, label: formatCell(f, v) })) });
   }
+  for (const d of ui.derivedFilters ?? []) out.push({ name: d.name, label: d.label, options: d.options, of: d.of });
   return out;
 }
 

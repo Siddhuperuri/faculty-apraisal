@@ -22,8 +22,12 @@ final class ReportLabels {
     static {
         String[][] pairs = {
                 {"INST", "Inst"}, {"STATE", "State"}, {"NAT", "Nat"}, {"INTL", "Intl"},
-                {"THEORY", "Theory"}, {"LAB", "Lab"}, {"DIPLOMA", "Diploma"}, {"UG", "UG"}, {"PG", "PG"},
-                {"PAPER", "Paper"}, {"PATENT", "Patent"}, {"PROTOTYPE", "Prototype"}, {"COMPETITION", "Competition"},
+                {"THEORY", "Theory"}, {"LAB", "Lab"}, {"B_TECH", "B.Tech"}, {"PHARMACY", "Pharmacy"}, {"DIPLOMA", "Diploma"},
+                {"CSE", "CSE"}, {"AIML", "AI & ML"}, {"ECE", "ECE"}, {"EEE", "EEE"}, {"ME", "ME"}, {"CE", "CE"}, {"BSH", "BSH"},
+                {"PHARMACEUTICS", "Pharmaceutics"}, {"PHARMACEUTICAL_CHEMISTRY", "Pharmaceutical Chemistry"},
+                {"1", "1"}, {"2", "2"}, {"3", "3"}, {"4", "4"}, {"5", "5"}, {"6", "6"}, {"7", "7"}, {"8", "8"},
+                {"PHARMACOLOGY", "Pharmacology"}, {"PHARMACOGNOSY", "Pharmacognosy"}, {"PHARMACY_PRACTICE", "Pharmacy Practice"}, {"UG", "UG"}, {"PG", "PG"},
+                {"PAPER", "Paper"}, {"PATENT", "Patent"}, {"PROTOTYPE", "Prototype"}, {"COMPETITION", "Competition"}, {"NONE", "None"},
                 {"OFFLINE", "Offline"}, {"ONLINE", "Online"}, {"BLENDED", "Blended"},
                 {"NPTEL", "NPTEL"}, {"SWAYAM", "Swayam"}, {"COURSERA", "Coursera"}, {"OTHER", "Other"},
                 {"INSTITUTE", "Institute level"}, {"DEPARTMENT", "Department level"},

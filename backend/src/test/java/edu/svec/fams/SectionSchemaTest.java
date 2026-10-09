@@ -56,7 +56,7 @@ class SectionSchemaTest {
                 "teachingExperienceYears", 8.5, "industryExperienceYears", 1, "researchExperienceYears", 3.5,
                 "researchIds", "ORCID 0000-0001-2345-6789"));
         m.put("teaching-courses", rec("courseCode", "CS101", "courseName", "Intro to Programming",
-                "courseType", "THEORY", "program", "B.Tech", "branch", "CSE", "semester", 3, "sections", 2,
+                "courseType", "THEORY", "program", "B_TECH", "branch", "CSE", "semester", 3,
                 "hoursPerWeek", 4, "passPercentage", 92.5, "phase1Feedback", 80, "phase2Feedback", 85));
         m.put("mentoring-summary", rec("totalStudentsMentored", 25));
         m.put("student-achievements", rec("studentName", "A. Student", "rollNo", "21A91A0501",
@@ -64,17 +64,17 @@ class SectionSchemaTest {
         m.put("student-projects", rec("level", "UG", "title", "Smart attendance", "studentCount", 4,
                 "outcome", "PAPER"));
         m.put("fdps", rec("title", "AI for Educators", "mode", "ONLINE", "institutionVenue", "IIT Madras",
-                "startDate", "2026-07-01", "endDate", "2026-07-05", "days", 5));
+                "startDate", "2026-01-05", "endDate", "2026-01-09", "days", 5));
         m.put("certifications", rec("platform", "NPTEL", "title", "Data Structures", "startDate", "2026-01-10",
                 "endDate", "2026-04-10", "durationWeeksHours", "12 weeks", "gradeScore", "Elite"));
         m.put("administrative-roles", rec("scope", "DEPARTMENT", "role", "Timetable Coordinator",
-                "description", "Prepares the timetable", "period", "2026-27"));
+                "description", "Prepares the timetable", "fromDate", "2025-07-01", "toDate", "2026-05-31"));
         m.put("events", rec("activityType", "Guest lecture", "role", "Organizer", "title", "Cloud workshop",
-                "startDate", "2026-08-01", "endDate", "2026-08-02", "beneficiaries", 120));
-        m.put("journal-publications", rec("title", "A study of X", "authorPosition", "First", "journal", "J. of Y",
+                "startDate", "2026-02-01", "endDate", "2026-02-02", "beneficiaries", 120));
+        m.put("journal-publications", rec("title", "A study of X", "authorPosition", "1", "journal", "J. of Y",
                 "volumeIssuePage", "12(3):45-60", "monthYear", "2026-05", "indexing", "SCOPUS", "doiIssn", "10.1000/xyz"));
         m.put("conference-papers", rec("title", "Paper Z", "conference", "ICML", "level", "INTL",
-                "monthYear", "2026-06", "venue", "Vienna", "doiIndexedIn", "IEEE Xplore", "citations", 2));
+                "monthYear", "2026-03", "venue", "Vienna", "doiIndexedIn", "IEEE Xplore", "citations", 2));
         m.put("research-metrics", rec("platform", "SCOPUS", "totalPublications", 10, "totalCitations", 100,
                 "hIndex", 5, "i10Index", 3));
         m.put("research-scholars", rec("name", "R. Scholar", "degree", "PHD", "universityRegNo", "JNTU/123",
@@ -89,7 +89,7 @@ class SectionSchemaTest {
         m.put("books", rec("authors", "A, B", "title", "Algorithms", "publisher", "Pearson", "isbn", "9780000000000",
                 "monthYear", "2026-04", "type", "BOOK"));
         m.put("outreach", rec("role", "RESOURCE_PERSON", "eventActivity", "FDP on ML", "organization", "ABC College",
-                "venue", "Hyderabad", "eventDate", "2026-09-09"));
+                "venue", "Hyderabad", "eventDate", "2026-03-09"));
         m.put("memberships-awards", rec("item", "IEEE Member", "awardingBody", "IEEE", "level", "INTL", "year", 2026));
         m.put("other-contributions", rec("departmentContribution", "Lab setup", "instituteContribution", "NAAC data"));
         return m;
@@ -173,6 +173,12 @@ class SectionSchemaTest {
                 for (String value : f.allowed()) {
                     Map<String, Object> variant = new LinkedHashMap<>(sample);
                     variant.put(f.name(), value);
+                    SectionSpec.DependentChoice dep = spec.dependentChoice();   // a branch only goes with its program
+                    if (dep != null && f.name().equals(dep.field())) {
+                        variant.put(dep.onField(), dep.allowedBy().entrySet().stream().filter(e -> e.getValue().contains(value)).findFirst().orElseThrow().getKey());
+                    } else if (dep != null && f.name().equals(dep.onField())) {
+                        variant.put(dep.field(), dep.allowedBy().get(value).get(0));
+                    }
                     SectionService.SectionView v = sections.save(appraisalId, key, faculty, List.of(variant));
                     assertEquals(value, v.records().get(0).get(f.name()), key + "." + f.name());
                 }

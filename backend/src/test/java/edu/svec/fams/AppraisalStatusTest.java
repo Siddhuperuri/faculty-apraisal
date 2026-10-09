@@ -32,16 +32,23 @@ class AppraisalStatusTest {
     @Test
     void everyStatusHasExactlyOneWayForwardAndApprovedIsTerminal() {
         for (int i = 0; i + 1 < CHAIN.size(); i++) {
-            assertEquals(EnumSet.of(CHAIN.get(i + 1)), CHAIN.get(i).allowedNext(), CHAIN.get(i) + " leads only to " + CHAIN.get(i + 1));
+            // The one exception: under the HoD's review the faculty member may send the appraisal again (see the next test).
+            Set<AppraisalStatus> expected = CHAIN.get(i) == AppraisalStatus.HOD_REVIEW
+                    ? EnumSet.of(AppraisalStatus.HOD_APPROVED, AppraisalStatus.SUBMITTED) : EnumSet.of(CHAIN.get(i + 1));
+            assertEquals(expected, CHAIN.get(i).allowedNext(), CHAIN.get(i) + " leads only to " + expected);
         }
         assertTrue(AppraisalStatus.APPROVED.allowedNext().isEmpty());
     }
 
     @Test
-    void nothingEverMovesBackwards() {
-        // There is no return or revert: from any status, no earlier status (and not the status itself) can follow.
+    void onlyOneStepEverMovesBackwardsAndThatIsTheFacultyMemberSendingItAgainUnderReview() {
+        // There is no return or revert by a reviewer: from any status, no earlier status (and not the status itself) can
+        // follow, except HOD_REVIEW back to SUBMITTED, which only the faculty member's RESUBMIT takes.
+        assertTrue(AppraisalStatus.HOD_REVIEW.canTransitionTo(AppraisalStatus.SUBMITTED));
+        assertEquals(Role.FACULTY, WorkflowAction.RESUBMIT.role());
         for (int i = 0; i < CHAIN.size(); i++) {
             for (int j = 0; j <= i; j++) {
+                if (CHAIN.get(i) == AppraisalStatus.HOD_REVIEW && CHAIN.get(j) == AppraisalStatus.SUBMITTED) continue;
                 assertFalse(CHAIN.get(i).canTransitionTo(CHAIN.get(j)), CHAIN.get(i) + " must not lead back to " + CHAIN.get(j));
             }
         }
@@ -64,8 +71,8 @@ class AppraisalStatusTest {
     }
 
     @Test
-    void theOnlyStepsAreSubmitStartAndApprove() {
-        assertEquals(List.of(WorkflowAction.SUBMIT, WorkflowAction.START_HOD_REVIEW, WorkflowAction.HOD_APPROVE,
+    void theOnlyStepsAreSubmitResubmitStartAndApprove() {
+        assertEquals(List.of(WorkflowAction.SUBMIT, WorkflowAction.RESUBMIT, WorkflowAction.START_HOD_REVIEW, WorkflowAction.HOD_APPROVE,
                 WorkflowAction.START_PRINCIPAL_REVIEW, WorkflowAction.PRINCIPAL_APPROVE,
                 WorkflowAction.START_DIRECTOR_REVIEW, WorkflowAction.DIRECTOR_APPROVE), List.of(WorkflowAction.values()));
         assertEquals(List.of(WorkflowAction.Verb.SUBMIT, WorkflowAction.Verb.START, WorkflowAction.Verb.APPROVE),

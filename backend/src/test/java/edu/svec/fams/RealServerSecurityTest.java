@@ -169,7 +169,7 @@ class RealServerSecurityTest {
         String xsrfCookie = cookieHeader(csrf.headers().allValues("Set-Cookie"), "XSRF-TOKEN").split(";")[0];
         String token = token(csrf.body());
         String body = "{\"email\":\"spoof-" + java.util.UUID.randomUUID() + "@test.edu\",\"password\":\"wrong\"}";
-        // Claiming a different address on every guess buys nothing: the sixth is refused.
+        // Sign-in attempts are not limited, so the sixth wrong password is answered like the first.
         for (int i = 0; i < 5; i++) {
             HttpResponse<String> r = send(req("/api/auth/login").header("Cookie", xsrfCookie).header("X-XSRF-TOKEN", token)
                     .header("X-Forwarded-For", "203.0.113." + i).header("Content-Type", "application/json")
@@ -179,7 +179,7 @@ class RealServerSecurityTest {
         HttpResponse<String> sixth = send(req("/api/auth/login").header("Cookie", xsrfCookie).header("X-XSRF-TOKEN", token)
                 .header("X-Forwarded-For", "203.0.113.99").header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body)));
-        assertEquals(429, sixth.statusCode(), sixth.body());
+        assertEquals(401, sixth.statusCode(), sixth.body());
     }
 
     @Test

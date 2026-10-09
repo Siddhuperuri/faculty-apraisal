@@ -157,4 +157,3 @@ variable is documented in [deployment.md](deployment.md#settings-environment-var
 | `FrontendContractTest` fails | `Sections.java` changed; regenerate the snapshot (recipe above) |
 | Everything is down after a reboot | Run `scripts\start-all.ps1` again |
 | Flyway warns MySQL 8.4 is newer than tested | Known and harmless; production on 8.0 avoids the warning |
-| A login says too many attempts | The sign-in limit; counters live in `sign_in_attempts` and expire after ten minutes |

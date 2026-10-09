@@ -300,32 +300,18 @@ class WorkflowIntegrationTest {
                 + "joining_date_institution = NULL, joining_date_designation = NULL WHERE appraisal_id = ?").param(id).update();
 
         // everything is missing, and the owner is told exactly what
-        call(faculty, "GET", base, null).andExpect(jsonPath("$.submitBlockers.length()").value(3))
-                .andExpect(jsonPath("$.submitBlockers[0]").value(org.hamcrest.Matchers.startsWith("General Information")))
-                .andExpect(jsonPath("$.submitBlockers[1]").value("Teaching & Learning: at least 8 courses handled (you have 0)"))
-                .andExpect(jsonPath("$.submitBlockers[2]").value(org.hamcrest.Matchers.startsWith("Self-scores for: Student Mentoring")));
+        call(faculty, "GET", base, null).andExpect(jsonPath("$.submitBlockers.length()").value(1))
+                .andExpect(jsonPath("$.submitBlockers[0]").value(org.hamcrest.Matchers.startsWith("General Information")));
         call(faculty, "POST", base + "/submit", DECLARATION).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.startsWith("Not ready to submit. Still needed: General Information")));
         call(faculty, "GET", base, null).andExpect(jsonPath("$.status").value("DRAFT"));
 
-        // fill in one thing at a time: each is checked on its own
-        db.complete(id);
-        jdbc.sql("DELETE FROM teaching_courses WHERE appraisal_id = ? LIMIT 1").param(id).update();
-        call(faculty, "GET", base, null).andExpect(jsonPath("$.submitBlockers.length()").value(1))
-                .andExpect(jsonPath("$.submitBlockers[0]").value("Teaching & Learning: at least 8 courses handled (you have 7)"));
-        // 2.5 marks a course are awarded to the workload component, up to its maximum
-        call(faculty, "GET", base, null).andExpect(jsonPath("$.scores[0].components[0].awarded").value(17.5));
-        jdbc.sql("UPDATE appraisal_scores SET self_score = NULL WHERE appraisal_id = ? AND criterion = 'STUDENT_MENTORING'").param(id).update();
-        call(faculty, "GET", base, null).andExpect(jsonPath("$.submitBlockers.length()").value(2))
-                .andExpect(jsonPath("$.submitBlockers[1]").value("Self-scores for: Student Mentoring, Guidance & Achievements"));
-        call(faculty, "POST", base + "/submit", DECLARATION).andExpect(status().isBadRequest());
-
-        // complete: nothing missing, and it goes through
-        db.complete(id);
-        jdbc.sql("UPDATE appraisal_scores SET self_score = 0 WHERE appraisal_id = ?").param(id).update();
+        // the details are filled in: nothing is missing (no number of courses and no typed score is required any more)
+        jdbc.sql("UPDATE general_information SET contact_no = '9000000000', qualification_specialization = 'M.Tech', "
+                + "joining_date_institution = '2015-06-01', joining_date_designation = '2020-06-01' WHERE appraisal_id = ?").param(id).update();
         call(faculty, "GET", base, null).andExpect(jsonPath("$.submitBlockers.length()").value(0));
         call(faculty, "POST", base + "/submit", DECLARATION).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("SUBMITTED"));
-        // a criterion worth 0 to the cadre needs no score, and once submitted nothing is listed
+        // once submitted nothing is listed
         call(faculty, "GET", base, null).andExpect(jsonPath("$.submitBlockers.length()").value(0));
     }
 

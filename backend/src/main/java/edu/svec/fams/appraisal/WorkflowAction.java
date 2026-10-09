@@ -12,6 +12,7 @@ import edu.svec.fams.common.ApiException;
  */
 public enum WorkflowAction {
     SUBMIT(Role.FACULTY, SUBMITTED),
+    RESUBMIT(Role.FACULTY, SUBMITTED),
     START_HOD_REVIEW(Role.HOD, HOD_REVIEW),
     HOD_APPROVE(Role.HOD, HOD_APPROVED),
     START_PRINCIPAL_REVIEW(Role.PRINCIPAL, PRINCIPAL_REVIEW),

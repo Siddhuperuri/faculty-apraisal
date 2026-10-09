@@ -27,6 +27,10 @@ export interface SectionUi {
    * column is offered; either way a filter appears only where the records actually differ in that field.
    */
   filters?: string[];
+  /** No more than this many records can be added; the Add button goes once it is reached. */
+  maxRecords?: number;
+  /** Filters on something worked out from a record rather than stored in it (odd or even semester). */
+  derivedFilters?: { name: string; label: string; options: { value: string; label: string }[]; of: (r: Rec) => string }[];
   /** Show the list as one table per value of this field (for example per semester), headed by `title`. */
   groupBy?: { field: string; title: (value: string, count: number) => string };
   summary?: { key: string; label: string; format: SummaryFormat }[];
@@ -78,19 +82,27 @@ export const PAGES: PageUi[] = [
         addLabel: "Add course",
         columns: [
           { header: "Course Code & Name (Theory / Lab)", render: (r) => `${s(r.courseCode)} · ${s(r.courseName)} (${enumLabel(s(r.courseType))})` },
-          { header: "Program & Branch", render: (r) => `${s(r.program)} · ${s(r.branch)}` },
+          { header: "Program & Branch", render: (r) => `${enumLabel(s(r.program))} · ${enumLabel(s(r.branch))}` },
           "semester",
-          "sections",
           "hoursPerWeek",
           "passPercentage",
           "phase1Feedback",
           "phase2Feedback",
         ],
-        headers: { semester: "Sem", sections: "No. of Sections", hoursPerWeek: "Hours / Week", passPercentage: "Pass %", phase1Feedback: "Phase-1 Feedback %", phase2Feedback: "Phase-2 Feedback %" },
+        headers: { semester: "Sem", hoursPerWeek: "Hours / Week", passPercentage: "Pass %", phase1Feedback: "Phase-1 Feedback %", phase2Feedback: "Phase-2 Feedback %" },
         filters: ["courseType", "semester", "program", "branch"],
+        derivedFilters: [
+          {
+            name: "semesterType",
+            label: "Odd / even semester",
+            options: [{ value: "odd", label: "Odd semesters (1, 3, 5, 7)" }, { value: "even", label: "Even semesters (2, 4, 6, 8)" }],
+            of: (r) => (Number(r.semester) % 2 === 1 ? "odd" : "even"),
+          },
+        ],
+        maxRecords: 8,
         groupBy: { field: "semester", title: (v, n) => `Semester ${v} · ${n} course${n === 1 ? "" : "s"}` },
         summary: [
-          { key: "courseCount", label: "Courses added (at least 8 needed)", format: "count" },
+          { key: "courseCount", label: "Courses added (at most 8)", format: "count" },
           { key: "totalHoursPerWeek", label: "Total teaching load (Hrs/Week)", format: "number" },
           { key: "averagePassPercentage", label: "Average Pass %", format: "percent" },
           { key: "averageFeedback", label: "Average Feedback % (Ph-1 & Ph-2)", format: "percent" },
@@ -171,8 +183,8 @@ export const PAGES: PageUi[] = [
         title: "Institute level roles",
         scope: { field: "scope", value: "INSTITUTE" },
         addLabel: "Add institute-level role",
-        columns: ["role", "description", "period"],
-        headers: { role: "Role", description: "Responsibility / Description", period: "Period" },
+        columns: ["role", "description", { header: "Duration (From–To)", render: (r) => duration(r, "fromDate", "toDate") }],
+        headers: { role: "Role", description: "Responsibility / Description" },
         hint: "For example: NAAC / NBA criterion coordinator, IQAC, Exam Cell, Training & Placement, NSS / NCC, Anti-Ragging.",
         suggestions: { role: ["NAAC / NBA criterion coordinator", "IQAC", "Exam Cell", "Training & Placement", "NSS / NCC", "Anti-Ragging"] },
         emptyText: "No institute-level roles added yet.",
@@ -182,8 +194,8 @@ export const PAGES: PageUi[] = [
         title: "Department level roles",
         scope: { field: "scope", value: "DEPARTMENT" },
         addLabel: "Add department-level role",
-        columns: ["role", "description", "period"],
-        headers: { role: "Role", description: "Responsibility / Description", period: "Period" },
+        columns: ["role", "description", { header: "Duration (From–To)", render: (r) => duration(r, "fromDate", "toDate") }],
+        headers: { role: "Role", description: "Responsibility / Description" },
         hint: "For example: Class Coordinator, Module Coordinator, Lab In-charge, Time-table In-charge, NAAC / NBA criterion coordinator, IQAC, Exam Cell, Training & Placement, NSS / NCC, Anti-Ragging.",
         suggestions: { role: ["Class Coordinator", "Module Coordinator", "Lab In-charge", "Time-table In-charge", "NAAC / NBA criterion coordinator", "IQAC", "Exam Cell", "Training & Placement", "NSS / NCC", "Anti-Ragging"] },
         emptyText: "No department-level roles added yet.",
@@ -211,7 +223,7 @@ export const PAGES: PageUi[] = [
         title: "Journal publications",
         addLabel: "Add publication",
         columns: [
-          { header: "Title of Paper (your position in author list)", render: (r) => `${s(r.title)} (${s(r.authorPosition)})` },
+          { header: "Title of Paper (your position in author list)", render: (r) => `${s(r.title)} (${enumLabel(s(r.authorPosition))})` },
           "journal",
           "volumeIssuePage",
           "monthYear",
@@ -286,6 +298,7 @@ export const PAGES: PageUi[] = [
           { key: "totalAmountSanctioned", label: "Total Amount Sanctioned (Rs.)", format: "rupees" },
           { key: "consultancyRevenue", label: "Consultancy Revenue (Rs.)", format: "rupees" },
         ],
+        hint: "Only projects whose year falls in the academic year being appraised are accepted, and only those earn marks.",
         emptyText: "No projects added yet.",
       },
     ],

@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError, get, put } from "@/lib/api";
 import { loadMetas } from "@/lib/meta";
-import type { AppraisalView, Rec, ScoreRow, SectionData, SectionMeta } from "@/lib/types";
+import type { AppraisalView, Rec, SectionData, SectionMeta } from "@/lib/types";
 
 export type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -14,7 +14,6 @@ export interface SectionState {
 }
 
 export type SaveResult = { ok: true; data: SectionData } | { ok: false; error: ApiError };
-export type ScoresResult = { ok: true; rows: ScoreRow[] } | { ok: false; error: ApiError };
 
 interface AppraisalContext {
   id: number;
@@ -31,8 +30,6 @@ interface AppraisalContext {
    * section are queued one after another), so two views of one section can never overwrite each other.
    */
   saveSection: (key: string, mutate: (current: Rec[]) => Rec[]) => Promise<SaveResult>;
-  /** Saves self-scores (criterion code to typed text; empty clears). Only the criteria sent are changed. */
-  saveScores: (changes: Record<string, string>) => Promise<ScoresResult>;
   saveState: SaveState;
   saveMessage: string | null;
   lastSavedAt: Date | null;
@@ -63,8 +60,6 @@ export function AppraisalProvider({ id, children }: { id: number; children: Reac
   const pending = useRef(0);
   const dirty = useRef<Set<string>>(new Set());
   const failed = useRef<{ key: string; mutate: (current: Rec[]) => Rec[] } | null>(null);
-  const failedScores = useRef<Record<string, string> | null>(null);
-  const scoresChain = useRef<Promise<unknown>>(Promise.resolve());
 
   const refreshAppraisal = useCallback(async () => {
     try {
@@ -151,47 +146,10 @@ export function AppraisalProvider({ id, children }: { id: number; children: Reac
     [id, refreshAppraisal, setSection],
   );
 
-  const saveScores = useCallback(
-    (changes: Record<string, string>): Promise<ScoresResult> => {
-      const run = async (): Promise<ScoresResult> => {
-        try {
-          const rows = await put<ScoreRow[]>(`/api/appraisals/${id}/scores`, {
-            scores: Object.fromEntries(Object.entries(changes).map(([k, v]) => [k, v.trim() === "" ? null : v.trim()])),
-          });
-          setAppraisal((a) => (a ? { ...a, scores: rows } : a));
-          pending.current -= 1;
-          if (failedScores.current === changes) failedScores.current = null;
-          if (pending.current === 0) {
-            setSaveState("saved");
-            setSaveMessage(null);
-            setLastSavedAt(new Date());
-          }
-          return { ok: true, rows };
-        } catch (e) {
-          const error = e instanceof ApiError ? e : new ApiError(0, (e as Error).message);
-          pending.current -= 1;
-          failedScores.current = changes;
-          setSaveState("error");
-          setSaveMessage(error.message);
-          if (error.status === 409) void refreshAppraisal();
-          return { ok: false, error };
-        }
-      };
-      pending.current += 1;
-      setSaveState("saving");
-      const task = scoresChain.current.then(run, run);
-      scoresChain.current = task.catch(() => undefined);
-      return task;
-    },
-    [id, refreshAppraisal],
-  );
-
   const retryFailedSave = useCallback(() => {
     const f = failed.current;
     if (f) void saveSection(f.key, f.mutate);
-    const s = failedScores.current;
-    if (s) void saveScores(s);
-  }, [saveSection, saveScores]);
+  }, [saveSection]);
 
   const setDirty = useCallback((key: string, isDirty: boolean) => {
     if (isDirty) dirty.current.add(key);
@@ -222,14 +180,13 @@ export function AppraisalProvider({ id, children }: { id: number; children: Reac
       section: (key) => sections[key] ?? EMPTY,
       loadSection,
       saveSection,
-      saveScores,
       saveState,
       saveMessage,
       lastSavedAt,
       setDirty,
       retryFailedSave,
     }),
-    [id, appraisal, appraisalError, refreshAppraisal, counts, metas, metaError, sections, loadSection, saveSection, saveScores, saveState, saveMessage, lastSavedAt, setDirty, retryFailedSave],
+    [id, appraisal, appraisalError, refreshAppraisal, counts, metas, metaError, sections, loadSection, saveSection, saveState, saveMessage, lastSavedAt, setDirty, retryFailedSave],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

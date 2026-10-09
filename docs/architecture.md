@@ -24,10 +24,10 @@ transactions and SQL), and the types they share.
 
 | Package | Responsibility | Start reading at |
 |---|---|---|
-| `auth` | Sign-in, sessions, CSRF, password rules, sign-in limits, the security filter chain | `SecurityConfig`, `AuthController`, `SignInThrottle`, `SessionGuardFilter` |
+| `auth` | Sign-in, sessions, CSRF, password rules, the security filter chain | `SecurityConfig`, `AuthController`, `SessionGuardFilter` |
 | `appraisal` | The appraisal's life cycle and **who may see or edit one** | `AppraisalAccess`, `AppraisalStatus`, `WorkflowAction` |
 | `section` | The form: every section and field, validation, generic read and save | `Sections`, `FieldSpec`, `SectionService` |
-| `scoring` | The nine criteria, each cadre's maxima and scoring components, and the self-scores | `Criteria`, `ScoreService` |
+| `scoring` | The nine criteria, each cadre's maxima and scoring components, and the marks worked out from the entries | `Criteria`, `ScoreService` |
 | `documents` | Private file storage (used for the issued reports) | `DocumentStorage`, `LocalDocumentStorage` |
 | `report` | The printed form as a PDF; the official copy and its integrity check | `ReportService`, `FormPdfBuilder` |
 | `console` | Read-only overviews for the HoD, Principal and administrator | `ConsoleService` |

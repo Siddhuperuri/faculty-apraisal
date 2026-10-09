@@ -24,8 +24,8 @@ export function RequirementsSummary() {
 
   const { data } = section(GENERAL);
   const items = useMemo(
-    () => buildRequirements({ blockers, scores: appraisal?.scores ?? [], general: { meta: metas?.[GENERAL], record: data ? data.records[0] ?? null : undefined } }),
-    [blockers, appraisal?.scores, metas, data],
+    () => buildRequirements({ blockers, general: { meta: metas?.[GENERAL], record: data ? data.records[0] ?? null : undefined } }),
+    [blockers, metas, data],
   );
 
   if (!appraisal?.editable || items.length === 0) return null;

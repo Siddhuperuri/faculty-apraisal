@@ -9,11 +9,15 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -93,7 +97,7 @@ public class SectionService {
         access.loadEditable(appraisalId, user); // locks the appraisal row until commit
 
         List<Map<String, Object>> existing = loadRows(spec, appraisalId);
-        List<Map<String, Object>> wanted = validate(spec, incoming, existing);
+        List<Map<String, Object>> wanted = validate(spec, appraisalId, incoming, existing);
 
         int changes = spec.singleton() ? applySingle(spec, appraisalId, existing, wanted)
                                        : applyList(spec, appraisalId, existing, wanted);
@@ -107,16 +111,18 @@ public class SectionService {
 
     // ---- validation ----
 
-    private List<Map<String, Object>> validate(SectionSpec spec, List<Map<String, Object>> incoming,
+    private List<Map<String, Object>> validate(SectionSpec spec, long appraisalId, List<Map<String, Object>> incoming,
                                                List<Map<String, Object>> existing) {
         Map<String, String> errors = new LinkedHashMap<>();
         if (incoming == null) {
             throw new ValidationException(Map.of("records", "records is required."));
         }
-        int limit = spec.singleton() ? 1 : MAX_RECORDS;
+        int limit = spec.singleton() ? 1 : spec.maxRecords();
         if (incoming.size() > limit) {
-            throw new ValidationException(Map.of("records", "At most " + limit + " records are allowed here."));
+            String noun = spec.singleton() ? "records" : spec.recordsNoun();
+            throw new ValidationException(Map.of("records", "At most " + limit + " " + noun + " are allowed here."));
         }
+        AcademicYear year = spec.inAcademicYear().isEmpty() ? null : academicYear(appraisalId);
 
         Set<Long> existingIds = existing.stream().map(r -> (Long) r.get("id")).collect(Collectors.toSet());
         Set<Long> seenIds = new HashSet<>();
@@ -137,8 +143,19 @@ public class SectionService {
 
             Map<String, Object> rec = new LinkedHashMap<>();
             rec.put("id", spec.singleton() ? null : validateId(raw.get("id"), prefix, existingIds, seenIds, errors));
+            SectionSpec.DerivedDays derived = spec.derivedDays();
             for (FieldSpec f : spec.fields()) {
+                if (derived != null && f.name().equals(derived.daysField())) continue;   // worked out below
                 rec.put(f.name(), f.normalize(raw.get(f.name()), prefix + "." + f.name(), errors));
+            }
+            if (derived != null) rec.put(derived.daysField(), derivedDays(spec, derived, rec, prefix, errors));
+
+            SectionSpec.DependentChoice dependent = spec.dependentChoice();
+            if (dependent != null && rec.get(dependent.field()) instanceof String chosen
+                    && rec.get(dependent.onField()) instanceof String on
+                    && !dependent.allowedBy().getOrDefault(on, List.of()).contains(chosen)) {
+                errors.putIfAbsent(prefix + "." + dependent.field(), spec.field(dependent.field()).label()
+                        + " is not offered under the " + spec.field(dependent.onField()).label().toLowerCase(Locale.ROOT) + " you chose.");
             }
 
             for (SectionSpec.DateRange r : spec.dateRanges()) {
@@ -149,6 +166,12 @@ public class SectionService {
                     errors.putIfAbsent(prefix + "." + r.endField(), spec.field(r.endField()).label()
                             + " must not be before " + Character.toLowerCase(startLabel.charAt(0))
                             + startLabel.substring(1) + ".");
+                }
+            }
+            if (year != null) {
+                for (String name : spec.inAcademicYear()) {
+                    String problem = outsideAcademicYear(spec.field(name).label(), rec.get(name), year);
+                    if (problem != null) errors.putIfAbsent(prefix + "." + name, problem);
                 }
             }
             if (spec.uniqueField() != null) {
@@ -162,6 +185,50 @@ public class SectionService {
         }
         if (!errors.isEmpty()) throw new ValidationException(errors);
         return out;
+    }
+
+    /** From the start date to the end date, both days counted; null while either date is missing or the range is reversed. */
+    private static Integer derivedDays(SectionSpec spec, SectionSpec.DerivedDays d, Map<String, Object> rec, String prefix,
+                                       Map<String, String> errors) {
+        if (!(rec.get(d.startField()) instanceof LocalDate start) || !(rec.get(d.endField()) instanceof LocalDate end) || end.isBefore(start)) {
+            return null;
+        }
+        long days = ChronoUnit.DAYS.between(start, end) + 1;
+        FieldSpec field = spec.field(d.daysField());
+        if (field.max() != null && days > field.max().longValue()) {
+            errors.putIfAbsent(prefix + "." + d.endField(), field.label() + " can be at most " + field.max() + ".");
+            return null;
+        }
+        return (int) days;
+    }
+
+    /** The academic year an appraisal is for: its name and its first and last day (1 June 2025 to 31 May 2026 for 2025-26). */
+    private record AcademicYear(String name, LocalDate start, LocalDate end) {}
+
+    private static final DateTimeFormatter DMY = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+    private AcademicYear academicYear(long appraisalId) {
+        return jdbc.sql("""
+                SELECT ay.name, ay.start_date, ay.end_date FROM appraisals a
+                JOIN academic_years ay ON ay.id = a.academic_year_id WHERE a.id = ?""")
+                .param(appraisalId).query((rs, n) -> new AcademicYear(rs.getString(1), rs.getObject(2, LocalDate.class), rs.getObject(3, LocalDate.class))).single();
+    }
+
+    /** What is wrong with a day, a month (YYYY-MM) or a year that must fall in the academic year; null when it does (or is empty). */
+    static String outsideAcademicYear(String label, Object value, AcademicYear ay) {
+        String within = " must be within the academic year " + ay.name() + " (" + DMY.format(ay.start()) + " to " + DMY.format(ay.end()) + ").";
+        if (value instanceof LocalDate d) {
+            return d.isBefore(ay.start()) || d.isAfter(ay.end()) ? label + within : null;
+        }
+        if (value instanceof String s) {   // a month and year, YYYY-MM
+            YearMonth m = YearMonth.parse(s);
+            return m.isBefore(YearMonth.from(ay.start())) || m.isAfter(YearMonth.from(ay.end())) ? label + within : null;
+        }
+        if (value instanceof Integer y && (y < ay.start().getYear() || y > ay.end().getYear())) {
+            int a = ay.start().getYear(), b = ay.end().getYear();
+            return label + " must be " + (a == b ? String.valueOf(a) : a + " or " + b) + ", the years of the academic year " + ay.name() + ".";
+        }
+        return null;
     }
 
     private static Long validateId(Object raw, String prefix, Set<Long> existingIds, Set<Long> seenIds,

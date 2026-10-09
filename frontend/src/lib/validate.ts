@@ -1,3 +1,4 @@
+import { formatDate } from "./format";
 import type { FieldMeta, Rec, SectionMeta } from "./types";
 
 /**
@@ -38,7 +39,7 @@ export function toApiRecord(meta: SectionMeta, values: FormValues, id?: number):
 
 const num = (s: string) => (s.trim() === "" || Number.isNaN(Number(s)) ? null : Number(s));
 
-function fieldError(f: FieldMeta, raw: string): string | null {
+function fieldError(f: FieldMeta, raw: string, allowed: string[] | null = f.allowed): string | null {
   const v = raw.trim();
   if (v === "") return f.required ? `${f.label} is required.` : null;
   switch (f.type) {
@@ -59,7 +60,7 @@ function fieldError(f: FieldMeta, raw: string): string | null {
       return null;
     }
     case "ENUM":
-      return f.allowed?.includes(v) ? null : `${f.label} must be one of the listed options.`;
+      return allowed?.includes(v) ? null : f.dependsOn ? `${f.label} is not offered under the choice above.` : `${f.label} must be one of the listed options.`;
     case "DATE":
       return /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) ? null : `${f.label} must be a valid date.`;
     case "MONTH_YEAR":
@@ -67,13 +68,37 @@ function fieldError(f: FieldMeta, raw: string): string | null {
   }
 }
 
+/** The academic year an appraisal is for: its name and first and last day (YYYY-MM-DD). */
+export interface YearBounds {
+  name: string;
+  start: string;
+  end: string;
+}
+
+/** What is wrong with a day, month or year that must fall in the academic year, in the server's words; null when it does. */
+export function outsideYear(f: FieldMeta, v: string, year: YearBounds): string | null {
+  const within = `${f.label} must be within the academic year ${year.name} (${formatDate(year.start)} to ${formatDate(year.end)}).`;
+  if (f.type === "DATE") return v < year.start || v > year.end ? within : null;
+  if (f.type === "MONTH_YEAR") return v < year.start.slice(0, 7) || v > year.end.slice(0, 7) ? within : null;
+  if (f.type === "INT") {
+    const a = Number(year.start.slice(0, 4));
+    const b = Number(year.end.slice(0, 4));
+    return Number(v) < a || Number(v) > b ? `${f.label} must be ${a === b ? a : `${a} or ${b}`}, the years of the academic year ${year.name}.` : null;
+  }
+  return null;
+}
+
 /** Errors keyed by field name. Empty object means the values can be saved. */
-export function validate(meta: SectionMeta, values: FormValues, hidden: string[] = []): FieldErrors {
+export function validate(meta: SectionMeta, values: FormValues, hidden: string[] = [], year?: YearBounds): FieldErrors {
   const errors: FieldErrors = {};
   for (const f of meta.fields) {
-    if (hidden.includes(f.name)) continue;
-    const e = fieldError(f, values[f.name] ?? "");
+    if (hidden.includes(f.name) || f.derived) continue;   // a derived field is worked out, not typed
+    const e = fieldError(f, values[f.name] ?? "", f.dependsOn ? (f.allowedBy?.[values[f.dependsOn] ?? ""] ?? []) : f.allowed);
     if (e) errors[f.name] = e;
+    else if (year && f.inAcademicYear && (values[f.name] ?? "").trim() !== "") {
+      const outside = outsideYear(f, values[f.name].trim(), year);
+      if (outside) errors[f.name] = outside;
+    }
   }
   for (const r of meta.dateRanges) {
     const a = values[r.startField]?.trim();
@@ -96,21 +121,30 @@ export function serverErrorsFor(fieldErrors: Record<string, string> | undefined,
   return out;
 }
 
+/** The choices offered for a field now: all of them, or (for a dependent field) those of the value chosen above it. */
+export function choicesFor(f: FieldMeta, values: FormValues): string[] {
+  if (!f.dependsOn) return f.allowed ?? [];
+  return f.allowedBy?.[values[f.dependsOn] ?? ""] ?? [];
+}
+
 /**
- * Checks one typed self-score against the cadre maximum, with the server's wording. Empty is allowed (not entered).
- * @returns an error message, or null when the value can be saved
+ * After `changed` has been set in `values`: a dependent choice that the new value no longer offers is cleared, and a
+ * derived field (days) is worked out again from the section's date range.
  */
-export function validateScore(raw: string, max: number | null, criterionLabel: string): string | null {
-  const v = raw.trim();
-  if (v === "") return null;
-  const label = `Self-score for ${criterionLabel}`;
-  const n = Number(v);
-  if (Number.isNaN(n)) return `${label} must be a number.`;
-  const places = (v.split(".")[1] ?? "").replace(/0+$/, "").length;
-  if (places > 2) return `${label} can have at most 2 decimal places.`;
-  if (n < 0 && max === null) return `${label} cannot be below 0.`;
-  if (max !== null && (n < 0 || n > max)) {
-    return max === 0 ? `${label} is not applicable for your cadre (maximum 0).` : `${label} must be between 0 and ${max}.`;
+export function applyDependencies(meta: SectionMeta, values: FormValues, changed: string): FormValues {
+  const out = { ...values };
+  for (const f of meta.fields) {
+    if (f.dependsOn === changed && out[f.name] && !choicesFor(f, out).includes(out[f.name])) out[f.name] = "";
+    if (f.derived && meta.dateRanges[0]) out[f.name] = inclusiveDays(out[meta.dateRanges[0].startField] ?? "", out[meta.dateRanges[0].endField] ?? "");
   }
-  return null;
+  return out;
+}
+
+/** Inclusive number of days from `start` to `end` (both YYYY-MM-DD), or "" while either is missing or they are reversed. */
+export function inclusiveDays(start: string, end: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) return "";
+  const a = Date.parse(`${start}T00:00:00Z`);
+  const b = Date.parse(`${end}T00:00:00Z`);
+  if (Number.isNaN(a) || Number.isNaN(b) || b < a) return "";
+  return String(Math.round((b - a) / 86_400_000) + 1);
 }

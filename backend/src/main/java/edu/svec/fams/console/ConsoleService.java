@@ -123,7 +123,7 @@ public class ConsoleService {
         return jdbc.sql("""
                 SELECT d.id, d.code, d.name AS dept, fp.name, fp.employee_id, c.name AS cadre, a.id AS aid, a.status,
                        a.submitted_at, a.updated_at,
-                       (a.status = 'HOD_REVIEW' AND EXISTS (SELECT 1 FROM appraisal_messages m WHERE m.appraisal_id = a.id)) AS query_raised
+                       (a.status = 'HOD_REVIEW' AND EXISTS (SELECT 1 FROM appraisal_messages m WHERE m.appraisal_id = a.id AND m.answered_at IS NULL)) AS query_raised
                 FROM faculty_profiles fp
                 JOIN users u ON u.id = fp.user_id
                 JOIN departments d ON d.id = fp.department_id

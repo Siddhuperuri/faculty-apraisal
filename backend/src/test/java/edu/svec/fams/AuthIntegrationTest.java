@@ -182,52 +182,19 @@ class AuthIntegrationTest {
         UUID.fromString(echoed); // generated UUID
     }
 
+    /** The college chose not to limit sign-in attempts: a wrong password never locks an account or an address. */
     @Test
-    void repeatedFailuresAreRateLimited() throws Exception {
+    void signInIsNeverRefusedHoweverManyWrongPasswordsWereTried() throws Exception {
         String email = "victim-" + UUID.randomUUID() + "@test.edu";
-        for (int i = 0; i < 5; i++) assertEquals(401, tryLogin(email, "bad").getResponse().getStatus());
-        assertEquals(429, tryLogin(email, TestDb.PASSWORD).getResponse().getStatus());
-    }
-
-    private int loginStatusFrom(String address, String email, String password) throws Exception {
-        return mvc.perform(post("/api/auth/login").with(csrf().asHeader())
-                .with(request -> {
-                    request.setRemoteAddr(address);
-                    return request;
-                })
-                .contentType(MediaType.APPLICATION_JSON).content(loginJson(email, password))).andReturn().getResponse().getStatus();
-    }
-
-    /** Guessing from one address after another (or behind forged forwarding headers) must not be unlimited. */
-    @Test
-    void guessingAtOneAccountFromManyAddressesIsLimitedToo() throws Exception {
-        String subnet = "10." + (int) (Math.random() * 250) + "." + (int) (Math.random() * 250) + ".";
-        db.user("target@test.edu", Role.PRINCIPAL);
-        for (int address = 1; address <= 5; address++) {
-            for (int i = 0; i < 5; i++) assertEquals(401, loginStatusFrom(subnet + address, "target@test.edu", "guess-" + i));
-        }
-        // 25 wrong passwords so far. An address never seen before is refused, even with the right password.
-        assertEquals(429, loginStatusFrom(subnet + "77", "target@test.edu", TestDb.PASSWORD));
-        // Other accounts are not affected.
-        assertEquals(200, loginStatusFrom(subnet + "77", "faculty@test.edu", TestDb.PASSWORD));
-    }
-
-    @Test
-    void theOwnerAtTheirUsualAddressIsNotLockedOutByOthersGuessing() throws Exception {
-        String subnet = "10." + (int) (Math.random() * 250) + "." + (int) (Math.random() * 250) + ".";
-        db.user("owner@test.edu", Role.PRINCIPAL);
-        assertEquals(200, loginStatusFrom(subnet + "200", "owner@test.edu", TestDb.PASSWORD));
-        for (int address = 1; address <= 5; address++) {
-            for (int i = 0; i < 5; i++) assertEquals(401, loginStatusFrom(subnet + address, "owner@test.edu", "guess-" + i));
-        }
-        assertEquals(429, loginStatusFrom(subnet + "77", "owner@test.edu", TestDb.PASSWORD));
-        assertEquals(200, loginStatusFrom(subnet + "200", "owner@test.edu", TestDb.PASSWORD));
+        db.user(email, Role.FACULTY);
+        for (int i = 0; i < 12; i++) assertEquals(401, tryLogin(email, "bad-" + i).getResponse().getStatus());
+        assertEquals(200, tryLogin(email, TestDb.PASSWORD).getResponse().getStatus());
     }
 
     /**
      * The database compares e-mail addresses without regard to accents or letter width, so a look-alike spelling finds
-     * the real account. If a look-alike could sign in, every spelling would have its own attempt counters and the limits
-     * on guessing at one account would mean nothing. Only the address as it is stored (in any letter case) is the account.
+     * the real account. If a look-alike could sign in, one account would have several spellings. Only the address as it is
+     * stored (in any letter case) is the account.
      */
     @Test
     void aLookAlikeSpellingOfAnAddressIsNotThatAccount() throws Exception {

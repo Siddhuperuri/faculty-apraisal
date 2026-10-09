@@ -21,6 +21,7 @@ export function FieldInput({
   hint,
   suggestions,
   autoFocus = false,
+  range,
 }: {
   meta: FieldMeta;
   value: string;
@@ -31,6 +32,8 @@ export function FieldInput({
   hint?: string;
   suggestions?: string[];
   autoFocus?: boolean;
+  /** The first and last day (YYYY-MM-DD) a date or month input offers; the whole calendar when omitted. */
+  range?: { start: string; end: string };
 }) {
   const uid = useId();
   const id = `f-${uid}`;
@@ -71,7 +74,14 @@ export function FieldInput({
     );
   } else if (meta.type === "DATE" || meta.type === "MONTH_YEAR") {
     control = (
-      <input {...common} type={meta.type === "DATE" ? "date" : "month"} min={meta.type === "DATE" ? "1950-01-01" : undefined} max={meta.type === "DATE" ? "2100-12-31" : undefined} onChange={(e) => onChange(e.target.value)} className={`${CONTROL} ${border}`} />
+      <input
+        {...common}
+        type={meta.type === "DATE" ? "date" : "month"}
+        min={meta.type === "DATE" ? (range?.start ?? "1950-01-01") : range?.start.slice(0, 7)}
+        max={meta.type === "DATE" ? (range?.end ?? "2100-12-31") : range?.end.slice(0, 7)}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${CONTROL} ${border}`}
+      />
     );
   } else {
     const numeric = meta.type === "INT" || meta.type === "DECIMAL";

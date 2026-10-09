@@ -21,6 +21,7 @@ export function SubmitPanel() {
   const [error, setError] = useState<string | null>(null);
 
   const blockers = appraisal?.submitBlockers ?? [];
+  const again = appraisal?.status === "HOD_REVIEW";   // a correction sent in answer to the HoD's message
   // What is missing comes from the server and is re-read whenever this panel is shown, after the earlier pages' autosaves.
   useEffect(() => {
     void refreshAppraisal();
@@ -65,7 +66,7 @@ export function SubmitPanel() {
             );
           })}
         </ul>
-        <p className="mt-2 text-xs text-muted">Sections with no entries are submitted as they are. Nothing can be changed, added or removed after you submit.</p>
+        <p className="mt-2 text-xs text-muted">Sections with no entries are submitted as they are. {again ? "Your HoD will begin the review again once you send it." : "Nothing can be changed, added or removed after you submit."}</p>
       </div>
 
       <fieldset className="space-y-4 rounded-xl border border-line-strong/70 bg-surface p-4 shadow-[var(--shadow-paper)] sm:p-5">
@@ -87,17 +88,19 @@ export function SubmitPanel() {
       {blocked && <Alert tone={saveState === "error" ? "error" : "info"} title={saveState === "error" ? "Unsaved change" : "Please wait"}>{blocked}</Alert>}
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={() => setConfirming(true)} disabled={!ready}>Submit to your HoD</Button>
+        <Button onClick={() => setConfirming(true)} disabled={!ready}>{again ? "Send it again to your HoD" : "Submit to your HoD"}</Button>
         {!ready && !blocked && <p className="text-sm text-muted">{blockers.length > 0 ? "Complete the items listed at the top of this page, then tick the declaration." : "Tick the declaration to submit."}</p>}
       </div>
 
       <ConfirmDialog
         open={confirming}
-        title="Submit your appraisal?"
+        title={again ? "Send your corrected appraisal again?" : "Submit your appraisal?"}
         confirmLabel={busy ? "Submitting…" : "Yes, submit"}
         onCancel={() => setConfirming(false)}
         onConfirm={() => void submit()}
-        message={<p>It goes to your Head of the Department, and then to the Principal or the Director Technical. Once submitted it cannot be edited or taken back, so check it first. Do you want to submit now?</p>}
+        message={again
+          ? <p>It goes back to your Head of the Department, who will begin the review again. Until they approve it you may correct it again if they send you another message. Do you want to send it now?</p>
+          : <p>It goes to your Head of the Department, and then to the Principal or the Director Technical. Once submitted it cannot be edited or taken back, so check it first. Do you want to submit now?</p>}
       />
     </div>
   );
