@@ -1,0 +1,12 @@
+# DEVELOPMENT ONLY. Active with the "dev" profile (scripts/dev-backend.ps1), which also creates the demo accounts.
+# Never enable this profile on a real installation.
+server:
+  servlet:
+    session:
+      cookie:
+        secure: ${FAMS_SECURE_COOKIES:false}   # plain http://localhost in development
+
+fams:
+  secure-cookies: ${FAMS_SECURE_COOKIES:false}
+  documents:
+    storage-dir: ${FAMS_STORAGE_DIR:${user.dir}/storage/documents}   # backend/storage when started by the dev script

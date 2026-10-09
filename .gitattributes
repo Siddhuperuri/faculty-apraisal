@@ -1,0 +1,8 @@
+# One line ending in the repository whatever the developer's machine uses.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+
+*.png binary
+*.ico binary
+*.pdf binary
+*.woff2 binary

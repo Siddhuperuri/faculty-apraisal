@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN" "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<!--
+  The conventions this code base follows, written down so the build can hold new code to them:
+  standard Java naming, explicit imports, no tabs, lines up to 180 characters, and the handful of constructs that are
+  mistakes more often than not. It deliberately does not dictate layout beyond that (no forced reformatting).
+-->
+<module name="Checker">
+  <property name="charset" value="UTF-8"/>
+  <property name="severity" value="warning"/>
+  <property name="fileExtensions" value="java"/>
+
+  <module name="FileTabCharacter"/>
+  <module name="NewlineAtEndOfFile"/>
+  <module name="RegexpSingleline">
+    <property name="format" value="\s+$"/>
+    <property name="message" value="Trailing whitespace."/>
+  </module>
+  <module name="LineLength">
+    <property name="max" value="180"/>
+    <property name="ignorePattern" value="^(package|import) "/>
+  </module>
+
+  <module name="TreeWalker">
+    <!-- naming: PascalCase types, camelCase members, UPPER_SNAKE_CASE constants -->
+    <module name="PackageName"/>
+    <module name="TypeName"/>
+    <module name="MethodName"/>
+    <module name="MemberName"/>
+    <module name="ParameterName"/>
+    <module name="LocalVariableName"/>
+    <module name="LambdaParameterName"/>
+    <module name="StaticVariableName"/>
+    <module name="ConstantName">
+      <!-- "log" is the conventional name of a logger -->
+      <property name="format" value="^(log|[A-Z][A-Z0-9]*(_[A-Z0-9]+)*)$"/>
+    </module>
+    <module name="OuterTypeFilename"/>
+
+    <!-- imports -->
+    <module name="AvoidStarImport">
+      <property name="allowStaticMemberImports" value="true"/>
+    </module>
+    <module name="UnusedImports"/>
+    <module name="RedundantImport"/>
+    <module name="IllegalImport"/>
+
+    <!-- constructs that are usually mistakes -->
+    <module name="EmptyCatchBlock"/>
+    <module name="EmptyStatement"/>
+    <module name="EqualsHashCode"/>
+    <module name="CovariantEquals"/>
+    <module name="StringLiteralEquality"/>
+    <module name="FallThrough"/>
+    <module name="DefaultComesLast"/>
+    <module name="SimplifyBooleanExpression"/>
+    <module name="SimplifyBooleanReturn"/>
+    <module name="ModifierOrder"/>
+    <module name="UpperEll"/>
+    <module name="ArrayTypeStyle"/>
+    <module name="HideUtilityClassConstructor">
+      <!-- the application's entry point has only main(), but Spring instantiates it -->
+      <property name="ignoreAnnotatedBy" value="SpringBootApplication"/>
+    </module>
+    <module name="NeedBraces">
+      <!-- "if (x) return y;" on one line is the idiom here; a body on the following line needs braces -->
+      <property name="allowSingleLineStatement" value="true"/>
+    </module>
+
+    <!-- whitespace the code base already keeps consistent -->
+    <module name="WhitespaceAfter">
+      <property name="tokens" value="COMMA, SEMI"/>
+    </module>
+    <module name="NoWhitespaceBefore"/>
+    <module name="GenericWhitespace"/>
+    <module name="MethodParamPad"/>
+    <module name="ParenPad"/>
+  </module>
+</module>

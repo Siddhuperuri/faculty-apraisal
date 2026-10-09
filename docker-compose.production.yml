@@ -1,0 +1,222 @@
+# PRODUCTION deployment for the college network: MySQL 8.4, the Spring Boot backend, the Next.js frontend and an Nginx
+# reverse proxy. Only Nginx publishes ports (80 and 443); the other three can be reached by nothing but each other.
+#
+# This is not docker-compose.yml, which is the developer's MySQL on port 3307 and is left as it was.
+# Step by step: docs/docker-deployment.md. Always give the settings file explicitly, so the development .env (which
+# Compose would otherwise read from this folder) can never leak in:
+#
+#   docker compose -f docker-compose.production.yml --env-file .env.docker up -d
+#
+# Settings come from .env.docker (copy .env.docker.example). Nothing secret is in this file, in an image or in git.
+
+name: fams-prod
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    # Needed so the migration account can create the append-only audit triggers while binary logging is on.
+    command: ["--log-bin-trust-function-creators=1"]
+    environment:
+      TZ: ${FAMS_TIMEZONE:-Asia/Kolkata}
+      MYSQL_DATABASE: fams
+      # The account Flyway migrates with: full rights on the fams database. The application itself runs as the
+      # restricted account created by deploy/mysql/init/10-app-account.sh (read and write rows, nothing else).
+      MYSQL_USER: fams_migrator
+      MYSQL_PASSWORD: ${FAMS_DB_MIGRATION_PASSWORD:?set FAMS_DB_MIGRATION_PASSWORD in .env.docker}
+      MYSQL_ROOT_PASSWORD: ${FAMS_DB_ROOT_PASSWORD:?set FAMS_DB_ROOT_PASSWORD in .env.docker}
+      MYSQL_ROOT_HOST: localhost            # root may sign in from inside this container only
+      FAMS_APP_DB_USER: fams
+      FAMS_APP_DB_PASSWORD: ${FAMS_DB_PASSWORD:?set FAMS_DB_PASSWORD in .env.docker}
+    volumes:
+      # A named volume by default. To keep the data in a folder of your choosing, set FAMS_MYSQL_DATA to an absolute
+      # path in .env.docker; that folder must belong to uid 999 (see docs/docker-deployment.md).
+      - ${FAMS_MYSQL_DATA:-mysql-data}:/var/lib/mysql
+      - ./deploy/mysql/init:/docker-entrypoint-initdb.d:ro
+    networks: [internal]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      # Signs in as the application account over TCP: healthy only when the final server (not the temporary one the
+      # image runs while it sets up a new volume) is up and the account exists.
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$FAMS_APP_DB_PASSWORD\" mysql -h 127.0.0.1 -u\"$$FAMS_APP_DB_USER\" -e 'SELECT 1' \"$$MYSQL_DATABASE\" >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    logging: *logging
+
+  backend:
+    build:
+      context: ./backend
+    image: fams-backend:${FAMS_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      TZ: ${FAMS_TIMEZONE:-Asia/Kolkata}
+      # The application runs as the restricted account; Flyway migrates as the other one. sslMode=REQUIRED encrypts the
+      # connection on the private network without needing a certificate.
+      FAMS_DB_URL: jdbc:mysql://mysql:3306/fams?sslMode=REQUIRED
+      FAMS_DB_USER: fams
+      FAMS_DB_PASSWORD: ${FAMS_DB_PASSWORD:?set FAMS_DB_PASSWORD in .env.docker}
+      SPRING_FLYWAY_USER: fams_migrator
+      SPRING_FLYWAY_PASSWORD: ${FAMS_DB_MIGRATION_PASSWORD:?set FAMS_DB_MIGRATION_PASSWORD in .env.docker}
+      # Behind Nginx. The client address is read from X-Forwarded-For, but only when the connection comes from the proxy's
+      # own fixed address on the private network (below): nothing else is believed. The backend listens on all
+      # interfaces of the container because Nginx is another container; no port is published, so only the private
+      # network can reach it.
+      FAMS_FORWARD_HEADERS: native
+      FAMS_TRUSTED_PROXIES: 172[.]29[.]88[.]10
+      FAMS_BIND_ADDRESS: 0.0.0.0
+      # The browser and the API share one origin (Nginx serves both), so no cross-origin access is configured.
+      # Cookies are sent over HTTPS only. Fixed here on purpose: the only file that turns it off is the trial-run override
+      # docker-compose.http-test.yml.
+      FAMS_SECURE_COOKIES: "true"
+      FAMS_STORAGE_DIR: /data/documents
+      # Where the backup script leaves latest.json; the administrator console reads it (read-only mount below).
+      FAMS_BACKUP_DIR: /backups
+      FAMS_BACKUP_MAX_AGE_HOURS: ${FAMS_BACKUP_MAX_AGE_HOURS:-36}
+      FAMS_RESTORE_TEST_MAX_AGE_DAYS: ${FAMS_RESTORE_TEST_MAX_AGE_DAYS:-180}
+      FAMS_STORAGE_WARN_PERCENT: ${FAMS_STORAGE_WARN_PERCENT:-80}
+      # Empty means "the college's standard old password" (docs/deployment.md). The first administrator is created only
+      # while no administrator exists; remove both afterwards.
+      FAMS_DEFAULT_PASSWORD: ${FAMS_DEFAULT_PASSWORD:-}
+      FAMS_BOOTSTRAP_ADMIN_EMAIL: ${FAMS_BOOTSTRAP_ADMIN_EMAIL:-}
+      FAMS_BOOTSTRAP_ADMIN_PASSWORD: ${FAMS_BOOTSTRAP_ADMIN_PASSWORD:-}
+    volumes:
+      # Issued reports. A named volume by default (it takes the image's ownership: uid 10001, mode 0750). To keep them
+      # in a folder of your choosing set FAMS_DOCUMENTS_DATA to an absolute path; that folder must belong to uid 10001.
+      - ${FAMS_DOCUMENTS_DATA:-documents}:/data/documents
+      - type: bind
+        source: ${FAMS_BACKUP_DIR_HOST:?set FAMS_BACKUP_DIR_HOST in .env.docker to the folder the backups go to}
+        target: /backups
+        read_only: true
+        bind:
+          create_host_path: false
+    networks: [internal]
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      # Plain bash (the image has no curl): asks the actuator, which reports status only, on the container's own
+      # loopback address.
+      test:
+        - CMD
+        - bash
+        - -c
+        - |
+          exec 3<>/dev/tcp/127.0.0.1/8080
+          printf 'GET /actuator/health HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3
+          grep -q '"status":"UP"' <&3
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 90s
+    logging: *logging
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        BACKEND_URL: http://backend:8080
+    image: fams-frontend:${FAMS_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    init: true
+    environment:
+      TZ: ${FAMS_TIMEZONE:-Asia/Kolkata}
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      BACKEND_URL: http://backend:8080
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+    networks: [internal]
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+      - /app/.next/cache:size=128m,uid=1000,gid=1000,mode=0750
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/',{redirect:'manual'}).then(r=>process.exit(r.status<500?0:1),()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *logging
+
+  nginx:
+    image: nginx:1.30-alpine
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    environment:
+      TZ: ${FAMS_TIMEZONE:-Asia/Kolkata}
+      FAMS_PUBLIC_HOST: ${FAMS_PUBLIC_HOST:?set FAMS_PUBLIC_HOST in .env.docker to the host name people type, for example appraisal.example.edu}
+      # Only variables whose names start with FAMS_ are substituted into the configuration template.
+      NGINX_ENVSUBST_FILTER: ^FAMS_
+    ports:
+      # The only published ports. 0.0.0.0 makes them IPv4 only, which keeps every client's real address visible to the
+      # proxy; set FAMS_LISTEN_ADDRESS to one of the host's addresses to listen on that one alone.
+      - "${FAMS_LISTEN_ADDRESS:-0.0.0.0}:80:80"
+      - "${FAMS_LISTEN_ADDRESS:-0.0.0.0}:443:443"
+    volumes:
+      - ./deploy/nginx/fams-https.conf.template:/etc/nginx/templates/default.conf.template:ro
+      # fullchain.pem and privkey.pem, from the host. Not in git, not in an image.
+      - type: bind
+        source: ${FAMS_TLS_DIR:-./deploy/tls}
+        target: /etc/nginx/tls
+        read_only: true
+        bind:
+          create_host_path: false
+    networks:
+      edge: {}
+      internal:
+        # A fixed address: the backend trusts X-Forwarded-For from this address and no other.
+        ipv4_address: 172.29.88.10
+    read_only: true
+    tmpfs:
+      - /etc/nginx/conf.d:size=1m
+      - /var/cache/nginx:size=64m
+      - /run:size=1m
+      - /tmp:size=16m
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETGID, SETUID, NET_BIND_SERVICE, DAC_OVERRIDE]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/nginx-health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging: *logging
+
+networks:
+  # Everything that must stay private. "internal" means no route to or from the outside world: the containers on it can
+  # reach each other and nothing else, and nothing can reach them except through Nginx.
+  # 172.29.88.0/24 is fixed so that Nginx can have a fixed address. If the college network already uses that range, change
+  # it here, the nginx address above and FAMS_TRUSTED_PROXIES in the backend (docs/docker-deployment.md).
+  internal:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.29.88.0/24
+  # Where Nginx meets the host's published ports.
+  edge: {}
+
+volumes:
+  mysql-data: {}
+  documents: {}

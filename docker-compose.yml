@@ -1,0 +1,23 @@
+# Development database. Host port 3307 avoids clashing with a locally installed MySQL on 3306.
+# Credentials come from .env (copy .env.example); there are deliberately no default passwords.
+services:
+  mysql:
+    image: mysql:8.4
+    # Needed so the app user can create the append-only audit triggers while binary logging is on.
+    command: ["--log-bin-trust-function-creators=1"]
+    environment:
+      MYSQL_DATABASE: fams
+      MYSQL_USER: fams
+      MYSQL_PASSWORD: ${FAMS_DB_PASSWORD:?set FAMS_DB_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${FAMS_DB_ROOT_PASSWORD:?set FAMS_DB_ROOT_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - fams-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 20
+
+volumes:
+  fams-mysql:

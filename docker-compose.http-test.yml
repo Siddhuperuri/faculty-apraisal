@@ -1,0 +1,24 @@
+# TEMPORARY, FOR A CLOSED TRIAL RUN ONLY: the production stack over PLAIN HTTP on port 80.
+#
+# Passwords, session cookies and appraisals cross the network unencrypted, and the session cookie loses its Secure flag
+# (FAMS_SECURE_COOKIES=false), so anyone on the same network segment can read or steal them. Use it to see the stack work
+# before the college's certificate is ready, with no real accounts or data; never for real users. Do not keep a database
+# that was used this way as the production database.
+#
+# Add it AFTER the production file (needs Docker Compose 2.24 or newer for the !override tags; `docker compose version`):
+#
+#   docker compose -f docker-compose.production.yml -f docker-compose.http-test.yml --env-file .env.docker up -d
+#
+# Then open http://<FAMS_PUBLIC_HOST>/ . To go to production, start again with the production file alone.
+
+services:
+  nginx:
+    # Port 80 only, serving the pages itself instead of redirecting.
+    ports: !override
+      - "${FAMS_LISTEN_ADDRESS:-0.0.0.0}:80:80"
+    # The plain-HTTP configuration; no certificate is needed.
+    volumes: !override
+      - ./deploy/nginx/fams-http-test.conf.template:/etc/nginx/templates/default.conf.template:ro
+  backend:
+    environment:
+      FAMS_SECURE_COOKIES: "false"

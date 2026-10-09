@@ -1,0 +1,25 @@
+# What must never reach an image build: installed packages (the image installs its own), build output, local files of
+# the developer's machine, and secrets.
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+*.log
+.git
+.gitignore
+.idea/
+.vscode/
+
+# Secrets and certificates
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.jks
+
+Dockerfile
+.dockerignore

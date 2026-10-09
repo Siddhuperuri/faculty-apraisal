@@ -1,0 +1,1376 @@
+[ {
+  "key" : "general-information",
+  "singleton" : true,
+  "fields" : [ {
+    "name" : "contactNo",
+    "label" : "Contact number",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : true,
+    "maxLength" : 20,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "qualificationSpecialization",
+    "label" : "Highest qualification and specialization",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : true,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "phdStatus",
+    "label" : "Ph.D. status",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "AWARDED", "PURSUING", "NOT_APPLICABLE" ]
+  }, {
+    "name" : "joiningDateInstitution",
+    "label" : "Date of joining (institution)",
+    "type" : "DATE",
+    "required" : false,
+    "submitRequired" : true,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "joiningDateDesignation",
+    "label" : "Date of joining (present designation)",
+    "type" : "DATE",
+    "required" : false,
+    "submitRequired" : true,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "teachingExperienceYears",
+    "label" : "Teaching experience (years)",
+    "type" : "DECIMAL",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0.0,
+    "max" : 80.0,
+    "scale" : 1,
+    "allowed" : null
+  }, {
+    "name" : "industryExperienceYears",
+    "label" : "Industry experience (years)",
+    "type" : "DECIMAL",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0.0,
+    "max" : 80.0,
+    "scale" : 1,
+    "allowed" : null
+  }, {
+    "name" : "researchExperienceYears",
+    "label" : "Research experience (years)",
+    "type" : "DECIMAL",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0.0,
+    "max" : 80.0,
+    "scale" : 1,
+    "allowed" : null
+  }, {
+    "name" : "researchIds",
+    "label" : "ORCID / Scopus / Google Scholar / Vidwan ID",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : null
+}, {
+  "key" : "teaching-courses",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "courseCode",
+    "label" : "Course code",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 32,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "courseName",
+    "label" : "Course name",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 160,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "courseType",
+    "label" : "Course type",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "THEORY", "LAB" ]
+  }, {
+    "name" : "program",
+    "label" : "Program",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 40,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "branch",
+    "label" : "Branch",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 40,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "semester",
+    "label" : "Semester",
+    "type" : "INT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 1,
+    "max" : 12,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "sections",
+    "label" : "Number of sections",
+    "type" : "INT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0,
+    "max" : 100,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "hoursPerWeek",
+    "label" : "Hours per week",
+    "type" : "DECIMAL",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0.0,
+    "max" : 168.0,
+    "scale" : 1,
+    "allowed" : null
+  }, {
+    "name" : "passPercentage",
+    "label" : "Pass percentage",
+    "type" : "DECIMAL",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0.0,
+    "max" : 100.0,
+    "scale" : 2,
+    "allowed" : null
+  }, {
+    "name" : "phase1Feedback",
+    "label" : "Phase-1 feedback percentage",
+    "type" : "DECIMAL",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0.0,
+    "max" : 100.0,
+    "scale" : 2,
+    "allowed" : null
+  }, {
+    "name" : "phase2Feedback",
+    "label" : "Phase-2 feedback percentage",
+    "type" : "DECIMAL",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0.0,
+    "max" : 100.0,
+    "scale" : 2,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : null
+}, {
+  "key" : "mentoring-summary",
+  "singleton" : true,
+  "fields" : [ {
+    "name" : "totalStudentsMentored",
+    "label" : "Total students mentored",
+    "type" : "INT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0,
+    "max" : 10000,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : null
+}, {
+  "key" : "student-achievements",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "studentName",
+    "label" : "Student name",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 120,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "rollNo",
+    "label" : "Roll number",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 32,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "achievement",
+    "label" : "Achievement",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "level",
+    "label" : "Level",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "INST", "STATE", "NAT", "INTL" ]
+  }, {
+    "name" : "monthYear",
+    "label" : "Month and year",
+    "type" : "MONTH_YEAR",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : null
+}, {
+  "key" : "student-projects",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "level",
+    "label" : "Level",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "DIPLOMA", "UG", "PG" ]
+  }, {
+    "name" : "title",
+    "label" : "Project title",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "studentCount",
+    "label" : "Number of students",
+    "type" : "INT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0,
+    "max" : 1000,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "outcome",
+    "label" : "Outcome",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "PAPER", "PATENT", "PROTOTYPE", "COMPETITION" ]
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : null
+}, {
+  "key" : "fdps",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "title",
+    "label" : "Title",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "mode",
+    "label" : "Mode",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "OFFLINE", "ONLINE", "BLENDED" ]
+  }, {
+    "name" : "institutionVenue",
+    "label" : "Organizing institution or venue",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 200,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "startDate",
+    "label" : "Start date",
+    "type" : "DATE",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "endDate",
+    "label" : "End date",
+    "type" : "DATE",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "days",
+    "label" : "Number of days",
+    "type" : "INT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 1,
+    "max" : 366,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ {
+    "startField" : "startDate",
+    "endField" : "endDate"
+  } ],
+  "uniqueField" : null
+}, {
+  "key" : "certifications",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "platform",
+    "label" : "Platform",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "NPTEL", "SWAYAM", "COURSERA", "OTHER" ]
+  }, {
+    "name" : "title",
+    "label" : "Course title",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "startDate",
+    "label" : "Start date",
+    "type" : "DATE",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "endDate",
+    "label" : "End date",
+    "type" : "DATE",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "durationWeeksHours",
+    "label" : "Duration (weeks or hours)",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 40,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "gradeScore",
+    "label" : "Grade or score",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 40,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ {
+    "startField" : "startDate",
+    "endField" : "endDate"
+  } ],
+  "uniqueField" : null
+}, {
+  "key" : "administrative-roles",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "scope",
+    "label" : "Level",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "INSTITUTE", "DEPARTMENT" ]
+  }, {
+    "name" : "role",
+    "label" : "Role",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 160,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "description",
+    "label" : "Responsibility or description",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 1000,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "period",
+    "label" : "Period",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 60,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : null
+}, {
+  "key" : "events",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "activityType",
+    "label" : "Type of activity",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 80,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "role",
+    "label" : "Role",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 80,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "title",
+    "label" : "Title or details of the event",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "startDate",
+    "label" : "Start date",
+    "type" : "DATE",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "endDate",
+    "label" : "End date",
+    "type" : "DATE",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "beneficiaries",
+    "label" : "Number of beneficiaries",
+    "type" : "INT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0,
+    "max" : 100000,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ {
+    "startField" : "startDate",
+    "endField" : "endDate"
+  } ],
+  "uniqueField" : null
+}, {
+  "key" : "journal-publications",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "title",
+    "label" : "Title of paper",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 400,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "authorPosition",
+    "label" : "Author position",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 40,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "journal",
+    "label" : "Journal",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 200,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "volumeIssuePage",
+    "label" : "Volume, issue and page numbers",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 80,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "monthYear",
+    "label" : "Month and year",
+    "type" : "MONTH_YEAR",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "indexing",
+    "label" : "Indexing",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "SCI_SCIE", "SCOPUS", "UGC_CARE_ABDC", "OTHERS" ]
+  }, {
+    "name" : "doiIssn",
+    "label" : "DOI or ISSN",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 80,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : null
+}, {
+  "key" : "conference-papers",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "title",
+    "label" : "Title",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 400,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "conference",
+    "label" : "Conference",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 200,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "level",
+    "label" : "Level",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "NAT", "INTL" ]
+  }, {
+    "name" : "monthYear",
+    "label" : "Month and year",
+    "type" : "MONTH_YEAR",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "venue",
+    "label" : "Venue",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 200,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "doiIndexedIn",
+    "label" : "DOI or indexed in",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 120,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "citations",
+    "label" : "Number of citations",
+    "type" : "INT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0,
+    "max" : 1000000,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : null
+}, {
+  "key" : "research-metrics",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "platform",
+    "label" : "Platform",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "GOOGLE_SCHOLAR", "SCOPUS", "WEB_OF_SCIENCE" ]
+  }, {
+    "name" : "totalPublications",
+    "label" : "Total publications",
+    "type" : "INT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0,
+    "max" : 1000000,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "totalCitations",
+    "label" : "Total citations",
+    "type" : "INT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0,
+    "max" : 10000000,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "hIndex",
+    "label" : "h-index",
+    "type" : "INT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0,
+    "max" : 1000,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "i10Index",
+    "label" : "i10-index",
+    "type" : "INT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0,
+    "max" : 100000,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : "platform"
+}, {
+  "key" : "research-scholars",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "name",
+    "label" : "Scholar name",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 120,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "degree",
+    "label" : "Degree",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "PHD", "MTECH", "MBA" ]
+  }, {
+    "name" : "universityRegNo",
+    "label" : "University and registration number",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 120,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "status",
+    "label" : "Status",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "REGISTERED", "SUBMITTED", "AWARDED" ]
+  }, {
+    "name" : "year",
+    "label" : "Year",
+    "type" : "INT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 1950,
+    "max" : 2100,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : null
+}, {
+  "key" : "phd-progress",
+  "singleton" : true,
+  "fields" : [ {
+    "name" : "universityCenter",
+    "label" : "University or centre",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 200,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "registrationYear",
+    "label" : "Year of registration",
+    "type" : "INT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 1950,
+    "max" : 2100,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "stage",
+    "label" : "Current stage",
+    "type" : "ENUM",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "COURSE_WORK", "COMPREHENSIVE_PROPOSAL", "SYNOPSIS", "THESIS_SUBMITTED", "VIVA_COMPLETED" ]
+  }, {
+    "name" : "progress",
+    "label" : "Progress during the year",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 1000,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : null
+}, {
+  "key" : "funded-projects",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "title",
+    "label" : "Title",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "role",
+    "label" : "Role",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "PI", "CO_PI" ]
+  }, {
+    "name" : "team",
+    "label" : "Team",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "type",
+    "label" : "Type",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "RESEARCH", "CONSULTANCY" ]
+  }, {
+    "name" : "fundingAgencyClient",
+    "label" : "Funding agency or client",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 200,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "amount",
+    "label" : "Amount (Rs.)",
+    "type" : "DECIMAL",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 0.0,
+    "max" : 1.0E11,
+    "scale" : 2,
+    "allowed" : null
+  }, {
+    "name" : "startDate",
+    "label" : "Start date",
+    "type" : "DATE",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "endDate",
+    "label" : "End date",
+    "type" : "DATE",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "status",
+    "label" : "Status",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "SANCTIONED", "APPLIED" ]
+  }, {
+    "name" : "year",
+    "label" : "Year",
+    "type" : "INT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 1950,
+    "max" : 2100,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ {
+    "startField" : "startDate",
+    "endField" : "endDate"
+  } ],
+  "uniqueField" : null
+}, {
+  "key" : "patents-ipr",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "applicantInventors",
+    "label" : "Applicant or inventors",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "title",
+    "label" : "Title",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "applicationPatentNo",
+    "label" : "Application or patent number",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 80,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "type",
+    "label" : "Type",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "DESIGN", "UTILITY", "COPYRIGHT" ]
+  }, {
+    "name" : "status",
+    "label" : "Status",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "FILED", "PUBLISHED", "GRANTED" ]
+  }, {
+    "name" : "recordDate",
+    "label" : "Date",
+    "type" : "DATE",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : null
+}, {
+  "key" : "books",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "authors",
+    "label" : "Authors",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "title",
+    "label" : "Title of book or chapter",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "publisher",
+    "label" : "Publisher",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 160,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "isbn",
+    "label" : "ISBN",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 24,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "monthYear",
+    "label" : "Month and year",
+    "type" : "MONTH_YEAR",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "type",
+    "label" : "Type",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "BOOK", "CHAPTER" ]
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : null
+}, {
+  "key" : "outreach",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "role",
+    "label" : "Role",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "CONFERENCE_SESSION_CHAIR", "EXPERT_LECTURE_DELIVERED", "RESOURCE_PERSON", "EDITORIAL_BOARD_MEMBER", "JOURNAL_REVIEWER", "EXTERNAL_EXAMINER", "EXTERNAL_THESIS_EVALUATED", "VISITING_RESEARCHER", "INDUSTRY_INTERACTION_MOU", "INTERNATIONAL_CONFERENCE_ATTENDED", "OTHERS" ]
+  }, {
+    "name" : "eventActivity",
+    "label" : "Event or activity",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "organization",
+    "label" : "Name of organization or institution",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 200,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "venue",
+    "label" : "Venue",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 200,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "eventDate",
+    "label" : "Date",
+    "type" : "DATE",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : null
+}, {
+  "key" : "memberships-awards",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "item",
+    "label" : "Membership, award or recognition",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "awardingBody",
+    "label" : "Professional or awarding body",
+    "type" : "TEXT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : 200,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "level",
+    "label" : "Level",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "INST", "STATE", "NAT", "INTL" ]
+  }, {
+    "name" : "year",
+    "label" : "Year",
+    "type" : "INT",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : 1950,
+    "max" : 2100,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : null
+}, {
+  "key" : "other-contributions",
+  "singleton" : true,
+  "fields" : [ {
+    "name" : "departmentContribution",
+    "label" : "Contribution at department level",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 5000,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  }, {
+    "name" : "instituteContribution",
+    "label" : "Contribution at institute level",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 5000,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : null
+} ]

@@ -1,0 +1,74 @@
+# Production defaults. Anything that is only right on a developer's machine lives in application-dev.yml, so starting
+# the application without a profile gives the safe behaviour.
+spring:
+  application:
+    name: fams-backend
+  datasource:
+    url: ${FAMS_DB_URL}             # required: no default on purpose (the development URL is in .env.example)
+    username: ${FAMS_DB_USER:fams}
+    password: ${FAMS_DB_PASSWORD}   # required: no default on purpose
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jackson:
+    default-property-inclusion: always
+
+server:
+  port: 8080
+  # Listens on this machine only: the reverse proxy (or Next) on the same host is the way in. Set FAMS_BIND_ADDRESS
+  # (for example 0.0.0.0) only if the proxy runs on another machine, and then firewall the port to that machine.
+  address: ${FAMS_BIND_ADDRESS:127.0.0.1}
+  # "native" behind a reverse proxy: the client address is then taken from X-Forwarded-For, but only when the request
+  # really came from a trusted proxy (below), and reading from the right so a client cannot plant its own value.
+  # "framework" is refused at start-up (ForwardedHeadersCheck): it believes whatever the client sends.
+  forward-headers-strategy: ${FAMS_FORWARD_HEADERS:none}
+  tomcat:
+    remoteip:
+      # Regular expression matching the addresses of the proxies in front of the backend. This machine only, by default.
+      internal-proxies: "${FAMS_TRUSTED_PROXIES:127[.]0[.]0[.]1|::1|0:0:0:0:0:0:0:1}"
+  servlet:
+    session:
+      timeout: 30m
+      tracking-modes: cookie                               # the session ID never travels in a URL
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${FAMS_SECURE_COOKIES:true}                # HTTPS only; plain HTTP needs an explicit false
+  error:
+    include-stacktrace: never
+    include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  pattern:
+    level: "%5p [%X{requestId:-}]"
+
+fams:
+  documents:
+    # Required, absolute, on storage that is kept and backed up (no default on purpose): issued reports live here.
+    # Private; never served directly. scripts/backup.ps1 copies it together with the database.
+    storage-dir: ${FAMS_STORAGE_DIR:}
+  # What the administrator's health pages measure (see docs/deployment.md). All optional.
+  ops:
+    # The folder scripts/backup.ps1 is given with -To. The script leaves latest.json there after each good backup, which is
+    # how the console knows when the last one was. Empty: the console says backups are not being watched.
+    backup-dir: ${FAMS_BACKUP_DIR:}
+    backup-max-age-hours: ${FAMS_BACKUP_MAX_AGE_HOURS:36}          # a backup older than this is overdue
+    restore-test-max-age-days: ${FAMS_RESTORE_TEST_MAX_AGE_DAYS:180}
+    storage-warn-percent: ${FAMS_STORAGE_WARN_PERCENT:80}
+    retention-years: 3                                             # how long issued reports are kept
+  max-request-bytes: 1048576                              # 1 MB for any request body (the largest form section is well under it)
+  cors-allowed-origin: ${FAMS_CORS_ORIGIN:}                # empty: no cross-origin access (pages and API share an origin)
+  secure-cookies: ${FAMS_SECURE_COOKIES:true}
+  # The old password of every account an administrator creates (one by one or from a CSV file) or whose password they
+  # reset. The person must replace it at first sign-in. Empty: the college's standard one (see DefaultPassword).
+  default-password: ${FAMS_DEFAULT_PASSWORD:}
+  # First administrator for a fresh installation: used only when no administrator exists; must change the password at
+  # first sign-in. Unset them once the account exists.
+  bootstrap-admin-email: ${FAMS_BOOTSTRAP_ADMIN_EMAIL:}
+  bootstrap-admin-password: ${FAMS_BOOTSTRAP_ADMIN_PASSWORD:}

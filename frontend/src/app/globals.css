@@ -1,0 +1,275 @@
+@import "tailwindcss";
+
+/* The visual language is drawn from the college's official appraisal form. */
+@theme {
+  --color-canvas: #e9e5d9;
+  --color-surface: #f6f3ea;
+  --color-line: #d6cfba;
+  --color-line-strong: #b5ab92;
+  --color-ink: #18233a;
+  --color-muted: #5a6477;
+  --color-navy: #1f3864;
+  --color-navy-deep: #12233f;
+  /* Solid blue fills (buttons, bars, the active tab): they stay dark in both themes, unlike navy as a text colour. */
+  --color-fill: #1f3864;
+  --color-fill-hover: #162a4d;
+  --color-brand: #0668a8;
+  --color-brand-soft: #dbe5f1;
+  --color-warm: #f4dac6;
+  --color-ochre: #c8962d;
+  --color-ok: #176a40;
+  --color-ok-soft: #d9e9de;
+  --color-warn: #8a5300;
+  --color-warn-soft: #f2e4c3;
+  --color-bad: #b3261e;
+  --color-bad-soft: #f2dad6;
+  --font-sans: var(--font-montserrat), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-montserrat), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-montserrat), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius-sm: 5px;
+  --radius-md: 9px;
+  --radius-lg: 14px;
+  --shadow-paper: 0 1px 2px rgb(20 30 54 / 0.04), 0 8px 24px -18px rgb(31 56 100 / 0.3);
+  --shadow-lift: 0 2px 5px rgb(20 30 54 / 0.06), 0 20px 36px -22px rgb(31 56 100 / 0.35);
+}
+
+/* Things the theme tokens cannot express on their own. */
+:root {
+  --glow: rgb(255 255 255 / 0.4);
+  --hdr-a: #12233f;
+  --hdr-b: #1f3864;
+  --hdr-c: #244574;
+  --row-hover: rgb(244 218 198 / 0.45);
+  --file-hover: #cddbeb;
+}
+
+/*
+ * Dark theme. The whole interface is drawn from the tokens above, so a second theme is a second set of values.
+ * It is switched by data-theme on <html> (set before first paint by the script in the root layout, and by the toggle),
+ * and applies on screen only: printing and the PDF report always use the light, paper colours.
+ */
+@media screen {
+  html[data-theme="dark"],
+  .auth-dark {
+    color-scheme: dark;
+    --color-canvas: #070b13;
+    --color-surface: #0e1522;
+    --color-line: #1c2740;
+    --color-line-strong: #3d4e72;
+    --color-ink: #e8ecf4;
+    --color-muted: #9ba7bf;
+    --color-navy: #b9ccef;
+    --color-navy-deep: #e3ecfb;
+    --color-fill: #25427a;
+    --color-fill-hover: #30508f;
+    --color-brand: #62b3f0;
+    --color-brand-soft: #12203a;
+    --color-warm: #33261d;
+    --color-ochre: #d9aa4a;
+    --color-ok: #5cc98f;
+    --color-ok-soft: #10281a;
+    --color-warn: #e5ab45;
+    --color-warn-soft: #30230d;
+    --color-bad: #f3908a;
+    --color-bad-soft: #321716;
+    --shadow-paper: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -18px rgb(0 0 0 / 0.6);
+    --shadow-lift: 0 2px 5px rgb(0 0 0 / 0.35), 0 20px 36px -22px rgb(0 0 0 / 0.7);
+    --glow: rgb(120 160 220 / 0.05);
+    --hdr-a: #070d1a;
+    --hdr-b: #0e1a33;
+    --hdr-c: #132447;
+    --row-hover: rgb(217 170 74 / 0.08);
+    --file-hover: #1f3256;
+  }
+}
+
+html { scroll-behavior: smooth; }
+html:not([data-theme="dark"]) { color-scheme: light; }
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 8% 3%, rgb(200 150 45 / 0.07), transparent 34rem),
+    radial-gradient(ellipse at 94% 18%, rgb(8 118 189 / 0.045), transparent 38rem),
+    var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+  font-feature-settings: "tnum" 1, "kern" 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, .font-display { font-family: var(--font-display); font-optical-sizing: auto; }
+h1 { letter-spacing: -0.02em; }
+:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 3px; }
+::selection { background: var(--color-brand-soft); color: var(--color-navy-deep); }
+
+/*
+ * The sign-in page: a photograph of the campus under a dark veil, with the form on a translucent dark "glass" card.
+ * Everything in .auth-dark uses the dark tokens whichever theme is chosen, because the photograph is the same either way.
+ */
+.auth-glass {
+  border: 1px solid rgb(255 255 255 / 0.14);
+  background: rgb(6 11 22 / 0.8);
+  box-shadow: 0 30px 80px -40px rgb(0 0 0 / 0.85);
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .auth-glass {
+    background: rgb(6 11 22 / 0.52);
+    -webkit-backdrop-filter: blur(10px) saturate(1.1);
+    backdrop-filter: blur(10px) saturate(1.1);
+  }
+}
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  .auth-glass { background: rgb(6 11 22 / 0.97); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+/* Browsers paint remembered sign-ins pale; keep them readable on the dark glass. */
+.auth-glass input:-webkit-autofill,
+.auth-glass input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-ink);
+  caret-color: var(--color-ink);
+  box-shadow: 0 0 0 1000px rgb(24 34 54) inset;
+  transition: background-color 9999s ease-out 0s;
+}
+
+/* Consistent, comfortable controls across sign-in, appraisal, and admin forms. */
+input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+  border-radius: 7px;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 4px rgb(8 118 189 / 0.12);
+}
+input:not([type="checkbox"]):not([type="radio"]):focus-visible, input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible, select:focus-visible, textarea:focus-visible,
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--color-navy); }
+input:not([type="checkbox"]):not([type="radio"]), select { min-height: 2.75rem; }
+textarea { min-height: 5.5rem; }
+input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-brand-soft);
+  padding: 0.5rem 0.85rem;
+  color: var(--color-navy);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+input[type="file"]::file-selector-button:hover { background: var(--file-hover); }
+button, a { -webkit-tap-highlight-color: transparent; }
+button:disabled { filter: saturate(0.7); }
+
+/* Data grids read like a contemporary ledger while retaining the printed form's blue headings. */
+table thead th { letter-spacing: 0.11em; }
+table tbody tr { transition: background-color 140ms ease; }
+table tbody tr:hover { background-color: var(--row-hover); }
+table th, table td { line-height: 1.45; }
+
+/* Shared console tiles, role navigation, and the appraisal's long-form index. */
+.console-stat::after {
+  position: absolute;
+  z-index: -1;
+  top: -2.7rem;
+  right: -2rem;
+  width: 7.5rem;
+  height: 7.5rem;
+  border: 1px solid rgb(200 150 45 / 0.16);
+  border-radius: 999px;
+  box-shadow: 0 0 0 11px rgb(200 150 45 / 0.035), 0 0 0 23px rgb(200 150 45 / 0.025);
+  content: "";
+  pointer-events: none;
+}
+.console-stat > * { position: relative; }
+.section-tabs ul { gap: 0.3rem; }
+.section-tabs a {
+  border-color: transparent;
+  border-radius: 10px 10px 0 0;
+  padding: 0.7rem 1rem;
+  color: var(--color-muted);
+}
+.section-tabs a:hover { background: color-mix(in srgb, var(--color-brand-soft) 58%, transparent); color: var(--color-navy); }
+.section-tabs a[aria-current="page"] {
+  border-color: var(--color-line-strong);
+  border-bottom-color: var(--color-surface);
+  background: var(--color-surface);
+  color: var(--color-navy);
+  box-shadow: inset 0 2px 0 var(--color-ochre);
+}
+.appraisal-index summary { list-style: none; }
+.appraisal-index summary::-webkit-details-marker { display: none; }
+.appraisal-index summary::after {
+  float: right;
+  color: var(--color-brand);
+  content: "+";
+  font-size: 1.1rem;
+  line-height: 1.2;
+}
+.appraisal-index[open] summary::after { content: "−"; }
+.appraisal-index a:focus-visible { outline-offset: -2px; }
+.appraisal-index a[aria-current="page"] { border-radius: 9px; }
+
+.section-tabs { overflow-x: auto; scrollbar-width: thin; }
+.section-tabs ul { min-width: max-content; }
+.console-stat { min-height: 9rem; }
+.console-stat > p:first-child { max-width: 15rem; line-height: 1.4; }
+.console-stat > p:nth-child(2) { font-variant-numeric: tabular-nums lining-nums; }
+.empty-state { min-height: 11rem; }
+.score-sheet table th:first-child, .score-sheet table td:first-child { width: 3.25rem; }
+.score-sheet table th:nth-child(3), .score-sheet table td:nth-child(3) { width: 7rem; }
+.score-sheet table th:nth-child(4), .score-sheet table td:nth-child(4) { width: 10rem; }
+.appraisal-paging a { max-width: 48%; white-space: normal; text-align: center; line-height: 1.3; }
+main { min-width: 0; }
+section, article, aside { min-width: 0; }
+.tabular-nums { font-variant-numeric: tabular-nums lining-nums; }
+
+dialog { border-radius: 16px; box-shadow: 0 32px 80px -30px rgb(18 35 63 / 0.55); }
+dialog::backdrop { background: rgb(18 35 63 / 0.56); backdrop-filter: blur(3px); }
+
+/* One orchestrated entrance, with motion disabled for users who request reduced motion. */
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise 0.52s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 65ms); }
+
+.letterhead-rule {
+  height: 5px;
+  background: linear-gradient(var(--color-ochre), var(--color-ochre)) top / 100% 1px no-repeat,
+    linear-gradient(var(--color-ochre), var(--color-ochre)) bottom / 100% 2px no-repeat;
+}
+.numeral-outline { color: transparent; -webkit-text-stroke: 1.5px var(--color-navy); font-family: var(--font-display); font-weight: 500; line-height: 0.85; letter-spacing: -0.02em; }
+
+@media (max-width: 640px) {
+  body { font-size: 14px; }
+  h1 { letter-spacing: -0.02em; }
+  button { min-height: 2.75rem; }
+  .console-stat { min-height: 8rem; padding: 1rem; }
+  .section-tabs a { padding: 0.65rem 0.85rem; }
+  .score-sheet table th, .score-sheet table td { padding-inline: 0.35rem; }
+  .score-sheet table th:first-child, .score-sheet table td:first-child { width: 2.4rem; }
+  .score-sheet table th:nth-child(3), .score-sheet table td:nth-child(3) { width: 5.1rem; }
+  .score-sheet table th:nth-child(4), .score-sheet table td:nth-child(4) { width: 5.6rem; }
+  .score-sheet table th:nth-child(3) { font-size: 9px; line-height: 1.25; }
+  .score-sheet table input { width: 4.4rem; padding-inline: 0.35rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0s !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+@media print {
+  html, body { background: #fff !important; color: #111 !important; }
+  .appraisal-workspace { max-width: none !important; }
+  .appraisal-index, .appraisal-paging, .appraisal-workspace header > a, .appraisal-workspace button,
+  body > div > header, body > div > footer { display: none !important; }
+  .appraisal-workspace [class*="shadow-"] { box-shadow: none !important; }
+  .appraisal-workspace [class*="bg-"] { background-color: #fff !important; color: #111 !important; }
+  .appraisal-workspace { padding: 0 !important; }
+  .appraisal-workspace h1, .appraisal-workspace h2, .appraisal-workspace h3 { color: #111 !important; }
+  .appraisal-workspace table { break-inside: avoid; }
+  /* Pages meant to be printed (the administrator's checklist and handover) show the page and nothing around it. */
+  .no-print, nav[aria-label="Administration"], .print-sheet button { display: none !important; }
+  .print-sheet { max-width: none !important; }
+  .print-sheet [class*="shadow-"] { box-shadow: none !important; }
+  .print-sheet li, .print-sheet tr { break-inside: avoid; }
+}

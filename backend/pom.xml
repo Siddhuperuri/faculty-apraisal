@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.5.16</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>edu.svec</groupId>
+  <artifactId>fams-backend</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <name>fams-backend</name>
+  <description>Faculty Appraisal Management System - backend</description>
+
+  <properties>
+    <java.version>25</java.version>
+    <!--
+      Security patch levels ahead of what Spring Boot 3.5.16 manages (same minor line for Tomcat and Jackson, so no API
+      change). Each closes published advisories; drop a line once Boot's own managed version is at or above it.
+        tomcat      10.1.55 -> 10.1.60   (CVE-2026-65182, CVE-2026-65905, CVE-2026-68525)
+        jackson     2.21.4  -> 2.21.7    (CVE-2026-89407, CVE-2026-89425, CVE-2026-91776, CVE-2026-91777 and others)
+        log4j-api   2.24.3  -> 2.25.5    (CVE-2026-49844; only the SLF4J bridge is on the classpath)
+    -->
+    <tomcat.version>10.1.60</tomcat.version>
+    <jackson-bom.version>2.21.7</jackson-bom.version>
+    <log4j2.version>2.25.5</log4j2.version>
+
+    <!-- Code-quality tooling, run by "mvn verify" (see the build section). -->
+    <checkstyle.version>14.3.0</checkstyle.version>
+    <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
+    <spotbugs-maven-plugin.version>4.10.4.1</spotbugs-maven-plugin.version>
+    <findsecbugs.version>1.14.0</findsecbugs.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jdbc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-mysql</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.librepdf</groupId>
+      <artifactId>openpdf</artifactId>
+      <version>2.0.3</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+      <!-- Compiler warnings are errors: a new unchecked cast, deprecated call or fall-through fails the build. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <showWarnings>true</showWarnings>
+          <failOnWarning>true</failOnWarning>
+          <compilerArgs>
+            <arg>-Xlint:all,-processing,-serial</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+      <!-- Style: the conventions this code base already follows (config/checkstyle.xml), enforced at "verify". -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>${maven-checkstyle-plugin.version}</version>
+        <dependencies>
+          <dependency>
+            <groupId>com.puppycrawl.tools</groupId>
+            <artifactId>checkstyle</artifactId>
+            <version>${checkstyle.version}</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <configLocation>config/checkstyle.xml</configLocation>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <consoleOutput>true</consoleOutput>
+          <violationSeverity>warning</violationSeverity>
+          <failOnViolation>true</failOnViolation>
+        </configuration>
+        <executions>
+          <execution>
+            <id>checkstyle</id>
+            <phase>verify</phase>
+            <goals><goal>check</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Static analysis for bugs and security weaknesses (SpotBugs with the Find Security Bugs detectors). -->
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>${spotbugs-maven-plugin.version}</version>
+        <configuration>
+          <effort>Max</effort>
+          <threshold>Medium</threshold>
+          <excludeFilterFile>config/spotbugs-exclude.xml</excludeFilterFile>
+          <plugins>
+            <plugin>
+              <groupId>com.h3xstream.findsecbugs</groupId>
+              <artifactId>findsecbugs-plugin</artifactId>
+              <version>${findsecbugs.version}</version>
+            </plugin>
+          </plugins>
+        </configuration>
+        <executions>
+          <execution>
+            <id>spotbugs</id>
+            <phase>verify</phase>
+            <goals><goal>check</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- Mockito's inline agent self-attach is deprecated on newer JDKs -->
+          <argLine>-XX:+EnableDynamicAgentLoading</argLine>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

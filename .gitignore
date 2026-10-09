@@ -1,0 +1,27 @@
+node_modules/
+.next/
+target/
+# Secrets: every .env variant stays out of version control; only the example (which holds no values) is kept.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+*.log
+.idea/
+.vscode/
+# Uploaded documents and issued reports
+storage/
+# Local tooling: Maven, the development MySQL data directory (password hashes, server keys) and run logs
+tools/
+
+# Backups made in development (copies of the development database)
+backups/
+
+# Docker deployment: the filled-in settings file (the example stays) and the TLS certificate and key. Nothing real is
+# ever committed; deploy/tls keeps only its README.
+!.env.docker.example
+deploy/tls/*
+!deploy/tls/README.md

@@ -1,0 +1,23 @@
+# What must never reach an image build: build output, local files of the developer's machine, secrets, and tests
+# (the image build does not run them).
+target/
+storage/
+logs/
+*.log
+.git
+.gitignore
+.idea/
+.vscode/
+*.iml
+
+# Secrets and certificates
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.jks
+
+src/test/
+Dockerfile
+.dockerignore

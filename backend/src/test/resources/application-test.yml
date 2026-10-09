@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    url: ${FAMS_TEST_DB_URL:jdbc:mysql://127.0.0.1:3307/fams_test?useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${FAMS_TEST_DB_USER:fams}
+    password: ${FAMS_TEST_DB_PASSWORD}   # required, same as the app: set FAMS_TEST_DB_PASSWORD
+
+fams:
+  documents:
+    storage-dir: ${user.dir}/target/test-storage
+  ops:
+    backup-dir: ""      # tests never depend on the developer's own backup folder

@@ -1,0 +1,88 @@
+# FAMS reverse proxy, HTTPS. The nginx image fills ${FAMS_...} from the container's environment and writes the result to
+# /etc/nginx/conf.d/default.conf when the container starts (docker-compose.production.yml). Nothing else is substituted,
+# so nginx's own $variables are safe.
+#
+# This is the only part of the stack that faces the network. It terminates TLS, sends /api/* straight to the backend and
+# everything else to the Next.js server, and tells the backend which client it is serving (X-Forwarded-For): the backend
+# believes that header from this container's address only (FAMS_TRUSTED_PROXIES), which is what keeps the sign-in
+# limits per client rather than per proxy. Nothing is cached here: pages carry a per-request Content-Security-Policy nonce.
+
+server_tokens off;
+
+# Docker's own DNS. The upstreams are looked up again every few seconds, so recreating the backend or the frontend
+# container (a new image, a restart) does not leave this proxy pointing at an address that is gone.
+resolver 127.0.0.11 valid=10s ipv6=off;
+
+# Plain HTTP: the health check for Docker, and a redirect to HTTPS for everything else. The redirect goes to the one
+# configured host name, never to whatever the request said.
+server {
+    listen 80 default_server;
+    server_name _;
+
+    location = /nginx-health {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    location / {
+        return 301 https://${FAMS_PUBLIC_HOST}$request_uri;
+    }
+}
+
+# A request for HTTPS under any other name (for example the server's bare IP address) is refused before it is answered.
+server {
+    listen 443 ssl default_server;
+    server_name _;
+    ssl_reject_handshake on;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name ${FAMS_PUBLIC_HOST};
+
+    # Files from the host, mounted read-only. They are never part of an image.
+    ssl_certificate     /etc/nginx/tls/fullchain.pem;
+    ssl_certificate_key /etc/nginx/tls/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+
+    # Browsers that have seen this once stop trying plain HTTP. (180 days; raise it once everything is known to work.)
+    # The backend sends its own on /api; hiding it leaves one header, this one, on every response.
+    proxy_hide_header Strict-Transport-Security;
+    add_header Strict-Transport-Security "max-age=15552000" always;
+
+    # The backend refuses request bodies over 1 MB with a message of its own; this only stops anything far larger.
+    client_max_body_size 2m;
+
+    # What every upstream is told. X-Forwarded-For is set to the address this server saw, not appended to: whatever the
+    # client put in the header is dropped here, and the backend reads the rightmost entry.
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host  $host;
+    proxy_set_header Connection        "";
+    proxy_redirect off;
+    proxy_connect_timeout 5s;
+    proxy_send_timeout    60s;
+    proxy_read_timeout    60s;
+
+    # The API: straight to Spring Boot. (The path is passed on unchanged: with a variable in proxy_pass and no path
+    # after it, nginx sends the request line as it came.)
+    location /api/ {
+        set $backend http://backend:8080;
+        proxy_pass $backend;
+    }
+
+    # Pages and static files: the Next.js server.
+    location / {
+        set $frontend http://frontend:3000;
+        proxy_pass $frontend;
+    }
+}

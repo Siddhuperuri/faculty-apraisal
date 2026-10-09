@@ -1,0 +1,2072 @@
+FACULTY SELF-APPRAISAL & ASSESSMENT MANAGEMENT SYSTEM MASTER BUILD
+SCHEMATIC + PRODUCT/DESIGN/ENGINEERING SPECIFICATION Version 1.0 Source
+of truth: Sri Vasavi Engineering College (Autonomous) Faculty
+Self-Appraisal & Assessment Report, 6-page supplied PDF
+
+======================================================================
+0. PURPOSE OF THIS DOCUMENT
+======================================================================
+
+This document is the master implementation blueprint for converting the
+supplied paper-based Faculty Self-Appraisal & Assessment Report into a
+polished, production-quality institutional web application.
+
+The objective is NOT to make a simple HTML copy of the PDF.
+
+The objective is to build a complete Faculty Self-Appraisal & Assessment
+Management System that preserves the official fields, terminology,
+appraisal categories, cadre-wise maximum marks, declaration/review
+structure and supporting-document requirements from the supplied form,
+while turning the manual process into a secure, maintainable,
+easy-to-use digital workflow.
+
+The product must feel like professional institutional software: -
+exceptionally clean visual design - excellent information hierarchy -
+low cognitive load - fast and responsive interaction - predictable
+navigation - excellent form UX - accessible and responsive - easy for
+faculty to understand without training - easy for HoD/Principal to
+review - easy for developers to maintain - configurable rather than
+hard-coded wherever policy may change - auditable and secure - suitable
+for future expansion to other departments
+
+IMPORTANT SOURCE BOUNDARY: The supplied six-page document defines the
+official form structure and cadre-wise maximum marks. It does NOT, by
+itself, define every formula used to convert activities into
+self-scores. Do not invent institutional scoring rules. Treat missing
+rules as configuration/requirements questions that must be confirmed by
+the institution.
+
+====================================================================== 1.
+PRODUCT VISION
+======================================================================
+
+Working product name: Faculty Appraisal Management System (FAMS)
+
+Alternative formal name: Faculty Self-Appraisal & Assessment Management
+System
+
+Core promise: Replace a difficult paper-based appraisal process with a
+guided, auditable, role-based digital workflow without changing the
+institution’s official appraisal structure.
+
+The system should make these actions easy:
+
+FACULTY: 1. Start an appraisal for an academic year. 2. Complete
+information section by section. 3. Add unlimited records to repeated
+tables. 4. Save automatically. 5. Upload evidence. 6. See completion
+status. 7. Review all information before submission. 8. Submit once
+complete. 9. Receive returned items and correction instructions. 10.
+Track appraisal status. 11. Download/preview the final report where
+permitted.
+
+HOD: 1. See submissions requiring review. 2. Open a complete appraisal.
+3. Review every section. 4. Inspect supporting evidence. 5. Add remarks.
+6. Return the appraisal for correction. 7. Recommend/approve according
+to institutional workflow. 8. Track pending and completed appraisals.
+
+PRINCIPAL: 1. See appraisals reaching principal review. 2. Review the
+complete record. 3. Inspect evidence. 4. Add remarks. 5. Approve or
+return according to institutional rules.
+
+ADMINISTRATOR: Only if the institution authorizes this role: 1. Manage
+users. 2. Manage departments. 3. Manage academic years. 4. Manage cadre
+configuration. 5. Manage appraisal configuration. 6. Manage
+policy/configuration without modifying historical records. 7. Monitor
+system activity.
+
+======================================================================
+2. OFFICIAL SOURCE STRUCTURE TO PRESERVE
+======================================================================
+
+The supplied form contains:
+
+PART A – GENERAL INFORMATION
+
+-   Name of Faculty
+-   Academic Year
+-   Employee ID
+-   Contact No.
+-   Department / Branch
+-   Designation (Cadre)
+-   Highest Qualification & Specialization
+-   Ph.D. Status
+-   Date of Joining (Institution)
+-   Date of Joining (Present Designation)
+-   Total Experience:
+    -   Teaching
+    -   Industry
+    -   Research
+-   E-mail ID
+-   ORCID / Scopus / Google Scholar / Vidwan ID
+
+Department/branch choices in the supplied form: - CE - ME - ECE / ECT -
+EEE - CSE / IT - AIML / CAI / DS - BSH - MBA
+
+Designation choices: - Lecturer - Assistant Professor - Senior Assistant
+Professor - Associate Professor - Professor
+
+Ph.D. status: - Awarded - Pursuing - Not applicable
+
+PART B – ACADEMIC & PROFESSIONAL ACTIVITIES
+
+1.  Teaching & Learning
+
+-   Courses handled during the Academic Year
+-   Course Code & Name (Theory / Lab)
+-   Program & Branch
+-   Semester
+-   Number of Sections
+-   Hours / Week
+-   Pass %
+-   Phase-1 Feedback %
+-   Phase-2 Feedback %
+-   Total teaching load (Hrs/Week)
+-   Average Pass %
+-   Average Feedback % (Ph-1 & Ph-2)
+
+2.  Student Mentoring, Project Guidance & Achievements
+
+(a) Total No. of Students Mentored Student achievements:
+
+-   Student Name & Roll No.
+-   Achievement
+-   Level: Inst / State / Nat / Intl
+-   Month & Year
+
+(b) Student projects guided:
+
+-   Level: Diploma / UG / PG
+-   Project Title
+-   No. of Students
+-   Outcome: Paper / Patent / Prototype / Competition
+
+3.  FDPs / Certifications
+
+(a) Workshops / FDPs / Seminars / Training programs attended:
+
+-   Title
+-   Mode: Offline / Online / Blended
+-   Organizing Institution / Venue
+-   Duration From-To
+-   No. of Days
+
+(b) Certifications:
+
+-   Platform: NPTEL / Swayam / Coursera / Other
+-   Course Title
+-   Duration From-To
+-   No. of Weeks / Hours
+-   Grade / Score
+
+4.  Administrative Responsibilities
+
+(a) Institute level roles:
+
+-   Role
+-   Responsibility / Description
+-   Period
+
+(b) Department level roles:
+
+-   Role
+-   Responsibility / Description
+-   Period
+
+(c) Student workshops / events / tours / trainings / guest lectures:
+
+-   Type of Activity
+-   Role
+-   Title / Details of Event
+-   Duration From-To
+-   No. of Beneficiaries
+
+5.  Research & Publications
+
+(a) Journal publications:
+
+-   SCI/SCIE count
+-   Scopus count
+-   UGC-CARE / ABDC count
+-   Others count
+-   Title of Paper
+-   Author position
+-   Journal
+-   Volume / Issue / Page No.
+-   Month & Year
+-   Indexing
+-   DOI/ISSN
+
+(b) Conference papers:
+
+-   Title
+-   Conference
+-   Level: Nat / Intl
+-   Month & Year
+-   Venue
+-   DOI / Indexed in
+-   No. of Citations
+
+(c) Research profile metrics: Platforms:
+
+-   Google Scholar
+-   Scopus
+-   Web of Science
+
+Metrics: - Total Publications - Total Citations - h-index - i10-index
+
+(d) Research guidance and own Ph.D. progress
+(e) Research scholars / PG dissertations:
+
+-   Scholar Name
+-   Degree: Ph.D. / M.Tech / MBA
+-   University / Reg. No.
+-   Status: Registered / Submitted / Awarded
+-   Year
+
+(ii) Own Ph.D. progress:
+
+-   University / Center
+-   Year of Registration
+-   Current Stage:
+    -   Course work
+    -   Comprehensive / Proposal
+    -   Synopsis / Pre-Ph.D.
+    -   Thesis submitted
+    -   Viva-voce completed
+-   Progress during the year
+
+6.  Funded Projects / Consultancy Summary:
+
+-   Sanctioned
+-   Applied
+-   Total Amount Sanctioned (Rs.)
+-   Consultancy Revenue (Rs.)
+
+Rows: - Title - Role (PI / Co-PI) & Team - Type: Research /
+Consultancy - Funding Agency / Client - Amount (Rs.) - Duration
+From-To - Status: Sanctioned / Applied - Year
+
+7.  Patents, Books & IPR
+
+(a) Patents / Designs / Copyrights Summary:
+
+-   Filed
+-   Published
+-   Granted
+
+Rows: - Applicant / Inventor(s) - Title & Application / Patent No. -
+Type: Design / Utility / Copyright - Status: Filed / Published /
+Granted - Date
+
+(b) Books / Book chapters
+
+-   Number of Books Published
+-   Number of Book Chapters Published
+
+Book/chapter rows: - Authors - Title of Book / Chapter - Publisher -
+ISBN - Month & Year - Type: Book / Chapter
+
+8.  Outreach Rows:
+
+-   Role
+-   Event / Activity
+-   Name of Organization / Institution
+-   Venue
+-   Date
+
+The supplied form defines possible roles such as: - Conference Session
+Chair - Expert Lectures Delivered - Resource Person - Editorial Board
+Member - Reviewer for Journals - External Examiner - External Thesis
+Evaluated - Visiting Researcher - Industry Interaction or MoU -
+International Conferences Attended - Others
+
+9.  Professional Memberships, Awards & Recognitions Rows:
+
+-   Membership / Award / Recognition
+-   Professional / Awarding Body
+-   Level: Inst / State / Nat / Intl
+-   Year
+
+10. Any Other Contributions
+
+-   At Department level
+-   At Institute level
+
+11. Self-Appraisal Score Sheet & Supporting Documents Criteria:
+12. Teaching & Learning
+13. Student Mentoring, Guidance & Achievements
+14. FDPs / Certifications
+15. Administrative, Curriculum & Quality Contributions
+16. Research & Publications
+17. Funded Projects / Consultancy
+18. Patents, Books & IPR
+19. Outreach
+20. Professional Memberships, Awards & Recognitions Total = 100
+
+Supporting documents named in the supplied form: - Course files & result
+analysis - Student feedback reports - Mentoring records - Publication
+proofs (with indexing) - Project sanction letters - Patent / book
+proofs - FDP / course certificates - Role / appointment orders - Event
+reports - Awards / membership proofs - Others
+
+Declaration: The faculty declares that information is true and correct
+and that supporting documents are available for verification.
+
+Review: - Recommendations of HoD - Remarks of Principal
+
+======================================================================
+3. CADRE-WISE MAXIMUM MARKS
+======================================================================
+
+Treat this as official configuration supplied by the source document.
+
+                         Lecturer  Asst Prof  Sr Asst Prof  Assoc Prof  Professor
+
+Teaching & Learning 40 30 25 20 15 Student Mentoring 15 12 10 8 5 FDPs /
+Certifications 15 10 8 5 5 Administrative Contributions 15 15 15 15 20
+Research & Publications 5 15 20 25 25 Funded Projects / Consultancy 0 5
+7 10 12 Patents, Books & IPR 0 3 5 7 8 Outreach 5 5 5 5 5
+Memberships/Awards 5 5 5 5 5 Total 100 100 100 100 100
+
+CRITICAL IMPLEMENTATION RULE: Do not scatter these numbers through
+frontend components or backend services. Store them as configuration
+data with effective academic year/version.
+
+Recommended conceptual model:
+
+ScoringPolicy - id - academicYearId - cadreId - version - active -
+createdAt - updatedAt
+
+ScoringPolicyCriterion - id - policyId - criterion - maxMarks -
+calculationMode - configurationJson (only where an approved
+institutional rule exists)
+
+Historical appraisals must reference the scoring policy version used
+when they were created/submitted. Changing next year’s policy must not
+alter old appraisals.
+
+======================================================================
+4. REQUIREMENTS THAT MUST BE CONFIRMED BEFORE CODING
+======================================================================
+
+DO NOT INVENT ANSWERS.
+
+Ask the Vice HOD / authorized stakeholder:
+
+A. Identity and authentication 1. Should the system use college email
+accounts? 2. Is there an existing college login/SSO? 3. Who creates
+faculty accounts? 4. Are HoD and Principal accounts centrally managed?
+5. Can one person have more than one role?
+
+B. Appraisal lifecycle 6. Is one appraisal allowed per faculty per
+academic year? 7. Can a faculty create a new appraisal after final
+approval? 8. Does submission lock editing? 9. Can HoD return an
+appraisal? 10. Can Principal return an appraisal? 11. Can faculty edit
+only returned sections or the entire appraisal? 12. Is HoD approval
+mandatory before Principal review? 13. What happens after Principal
+return? 14. Is final approval irreversible?
+
+C. Scoring 15. What is the exact self-score calculation method for every
+criterion? 16. Are there sub-criteria? 17. Are there minimum/maximum
+values for individual activities? 18. Does the system calculate scores
+automatically or merely validate them? 19. Can HoD modify a faculty’s
+self-score? 20. Is a separate panel score required later? 21. Does the
+scoring policy vary by academic year?
+
+D. Evidence 22. Which documents are mandatory? 23. Allowed file types?
+24. Maximum file size? 25. Can multiple documents be attached to one
+record? 26. Should evidence be visible to HoD and Principal? 27. Can
+evidence be replaced after submission? 28. Should final documents be
+retained indefinitely?
+
+E. Reporting 29. Must the final PDF visually match the official six-page
+form? 30. Should the system generate a PDF before final approval, after
+approval, or both? 31. Should the PDF include digital signatures? 32.
+Should HoD/Principal remarks appear in the PDF? 33. Should the system
+generate department-level reports?
+
+F. Institutional scope 34. Is version 1 only for CSE? 35. Should
+departments be configurable? 36. Will the same system eventually serve
+the entire college? 37. Are department-specific fields allowed?
+
+======================================================================
+5. PRODUCT ARCHITECTURE
+======================================================================
+
+Recommended architecture for a serious student-built institutional
+system:
+
+FRONTEND - Next.js - React - TypeScript - Tailwind CSS - shadcn/ui or an
+equivalent controlled component system - React Hook Form - Zod -
+TanStack Query where appropriate
+
+BACKEND Preferred enterprise-oriented option: - Spring Boot - Java 25 -
+Spring Security - Spring Data JPA / Hibernate - Bean Validation - REST
+API
+
+DATABASE - MySQL 8
+
+DOCUMENT STORAGE Development: - local/private filesystem abstraction
+
+Production: - object storage or institution-approved file storage
+
+PDF: - server-side PDF generation from structured appraisal data
+
+DEPLOYMENT: - Docker where appropriate - reverse proxy - HTTPS -
+environment-based configuration - database backup strategy
+
+IMPORTANT: Do not introduce microservices just to look advanced. A
+modular monolith is appropriate for this application and is easier to
+develop, test, deploy and maintain.
+
+======================================================================
+6. HIGH-LEVEL SYSTEM ARCHITECTURE
+======================================================================
+
+Users | v Next.js Web Application | | HTTPS / REST v Spring Boot
+Application | +– Authentication & Authorization | +– Faculty Profile
+Service | +– Appraisal Service | +– Scoring Service | +– Document
+Service | +– Review Workflow Service | +– PDF/Report Service | +– Audit
+Service | v MySQL | +– Structured appraisal data +– Workflow state +–
+Review history +– Configuration +– Audit records
+
+Separate: Document Storage | +– Supporting evidence +– Generated reports
+
+======================================================================
+7. USER ROLES AND PERMISSIONS
+======================================================================
+
+FACULTY
+
+CAN: - view own profile - create own appraisal - edit own draft -
+add/remove own records - upload own evidence - preview own appraisal -
+submit own appraisal - view status - view return reasons - edit returned
+appraisal - resubmit - view final report if permitted
+
+CANNOT: - access another faculty’s appraisal - change own role - change
+scoring policy - approve own appraisal - alter audit history - modify
+approved records unless institutional workflow explicitly permits it
+
+HOD
+
+CAN: - view assigned faculty - view submitted appraisals - review
+evidence - add review remarks - return appraisal - approve/recommend
+according to workflow - view history - filter/search appraisals
+
+CANNOT: - silently alter faculty-entered information - impersonate
+faculty - modify policy unless separately authorized - delete audit
+history
+
+PRINCIPAL
+
+CAN: - view appraisals reaching principal stage - review complete
+appraisal - view evidence - add remarks - approve/return according to
+workflow
+
+ADMIN
+
+Only if approved: - manage users - manage departments - manage academic
+years - configure policies - manage system configuration - view audit
+logs - manage system-level settings
+
+Never make ADMIN a shortcut around business rules.
+
+======================================================================
+8. APPRAISAL STATE MACHINE
+======================================================================
+
+Recommended states:
+
+DRAFT SUBMITTED HOD_REVIEW HOD_RETURNED HOD_APPROVED PRINCIPAL_REVIEW
+PRINCIPAL_RETURNED APPROVED
+
+Optional: WITHDRAWN ARCHIVED
+
+State transition rules must be enforced on the backend.
+
+Example:
+
+DRAFT -> SUBMITTED
+
+SUBMITTED -> HOD_REVIEW
+
+HOD_REVIEW -> HOD_RETURNED -> HOD_APPROVED
+
+HOD_RETURNED -> DRAFT / RESUBMITTED according to chosen implementation
+
+HOD_APPROVED -> PRINCIPAL_REVIEW
+
+PRINCIPAL_REVIEW -> PRINCIPAL_RETURNED -> APPROVED
+
+PRINCIPAL_RETURNED -> RESUBMITTED / HOD_REVIEW according to approved
+workflow
+
+Every transition: - actor - timestamp - old state - new state -
+reason/comment must be stored.
+
+======================================================================
+9. PAGE AND ROUTE ARCHITECTURE
+======================================================================
+
+PUBLIC / - product/institution landing if required
+
+/auth/login /auth/forgot-password /auth/reset-password
+
+FACULTY /faculty/dashboard /faculty/profile
+
+/faculty/appraisals /faculty/appraisals/new
+
+/faculty/appraisals/[id]/overview /faculty/appraisals/[id]/general
+/faculty/appraisals/[id]/teaching /faculty/appraisals/[id]/mentoring
+/faculty/appraisals/[id]/fdp /faculty/appraisals/[id]/administration
+/faculty/appraisals/[id]/research
+/faculty/appraisals/[id]/funded-projects /faculty/appraisals/[id]/ipr
+/faculty/appraisals/[id]/outreach /faculty/appraisals/[id]/awards
+/faculty/appraisals/[id]/other /faculty/appraisals/[id]/documents
+/faculty/appraisals/[id]/score /faculty/appraisals/[id]/review
+/faculty/appraisals/[id]/preview
+
+/faculty/appraisals/[id]/submitted
+
+HOD /hod/dashboard /hod/appraisals /hod/appraisals/[id]
+/hod/appraisals/[id]/review /hod/faculty /hod/reports
+
+PRINCIPAL /principal/dashboard /principal/appraisals
+/principal/appraisals/[id] /principal/review /principal/reports
+
+ADMIN, if authorized /admin/dashboard /admin/users /admin/departments
+/admin/academic-years /admin/cadres /admin/scoring-policies
+/admin/audit-logs /admin/settings
+
+======================================================================
+10. FACULTY DASHBOARD DESIGN
+======================================================================
+
+The dashboard should immediately answer:
+
+-   What appraisal am I working on?
+-   What is its status?
+-   How much is complete?
+-   What needs attention?
+-   What is my academic year?
+-   What action should I take next?
+
+Suggested layout:
+
+TOP BAR - institution identity - page title - academic year context -
+notifications - profile menu
+
+WELCOME “Good morning, Dr. [Name]” “Your 2026–27 appraisal is in
+progress.”
+
+PRIMARY APPRAISAL CARD - Academic year - status - progress - last saved
+time - next action - Continue button
+
+PROGRESS - overall percentage - completed sections - incomplete
+sections - warnings
+
+QUICK ACTIONS - Continue Appraisal - Preview - Documents - View History
+
+RECENT ACTIVITY - autosave - document uploads - submissions - returns
+
+IMPORTANT DESIGN RULE: Do not turn the dashboard into a data-heavy
+analytics page. Faculty need clarity, not noise.
+
+======================================================================
+11. FORM EXPERIENCE
+======================================================================
+
+Use a multi-step section-based form, not one enormous page.
+
+Persistent left navigation: 01 General Information 02 Teaching &
+Learning 03 Mentoring & Projects 04 FDPs & Certifications 05
+Administration 06 Research & Publications 07 Funded Projects /
+Consultancy 08 Patents, Books & IPR 09 Outreach 10 Memberships, Awards &
+Recognitions 11 Other Contributions 12 Supporting Documents 13 Score &
+Review
+
+Each item displays: - complete - incomplete - warning - locked
+
+Top area: - appraisal title - academic year - status - autosave
+indicator
+
+Bottom navigation: - Save Draft - Previous - Next
+
+Do not hide unsaved-state feedback.
+
+Autosave indicator: “Saving…” “Saved just now” “Last saved 2 minutes
+ago” “Unable to save — retry”
+
+======================================================================
+12. FORM UX RULES
+======================================================================
+
+1.  Group related information.
+2.  Use labels, not placeholder-only fields.
+3.  Explain unusual fields with small helper text.
+4.  Avoid asking for the same information twice.
+5.  Prefill profile information.
+6.  Make repeated data dynamic.
+7.  Use conditional fields.
+8.  Validate at field level where possible.
+9.  Validate section before allowing progression.
+10. Validate the entire appraisal on submission.
+11. Preserve entered data if validation fails.
+12. Never silently discard user input.
+13. Avoid excessive modal dialogs.
+14. Use confirmation only for destructive/high-impact actions.
+15. Provide keyboard-accessible controls.
+16. Maintain focus intelligently after errors.
+17. Make date formats consistent.
+18. Make percentages explicit.
+19. Clearly distinguish optional and required fields.
+20. Never use unexplained abbreviations in the UI.
+
+======================================================================
+13. DYNAMIC RECORD COMPONENT
+======================================================================
+
+Every repeated table should use a reusable pattern.
+
+Example:
+
+SECTION HEADER “Journal Publications” “Add publications and attach
+indexing evidence where required.”
+
+RECORD CARD / ROW
+
+Title Journal Author Position Volume / Issue / Page Month & Year
+Indexing DOI / ISSN
+
+Actions: Edit Duplicate Delete
+
+Footer: “+ Add Publication”
+
+For desktop, use tables when the data is naturally tabular. For mobile,
+transform rows into stacked cards.
+
+Never create a separate custom implementation for every repeated list.
+Build reusable primitives.
+
+Potential reusable components: - DynamicTable - RecordCard -
+AddRecordDialog - DateRangeField - PercentageField - FileUploader -
+EvidenceList - SectionHeader - SectionProgress - SaveStatus -
+ReviewComment - StatusBadge - EmptyState - ConfirmDialog
+
+======================================================================
+14. SMART CONDITIONAL LOGIC
+======================================================================
+
+Ph.D. Status: If Awarded: show awarded-related information as approved
+by institution.
+
+If Pursuing: show: - University / Center - Year of Registration -
+Current Stage - Progress during year
+
+If Not Applicable: hide Ph.D. progress fields.
+
+Similar conditional behavior may be used for: - publication indexing -
+project status - patent status - certification platform - role type
+
+Never hide information in a way that causes data loss. When a
+conditional field is disabled, explain what happens to previously
+entered data.
+
+======================================================================
+15. VALIDATION
+======================================================================
+
+CLIENT AND SERVER VALIDATION ARE BOTH REQUIRED.
+
+Examples:
+
+Email: - valid email format
+
+Phone: - institution-approved format
+
+Percentage: - 0 to 100
+
+Number of sections: - non-negative integer
+
+Number of students: - non-negative integer
+
+Amount: - non-negative decimal - correct currency handling
+
+Date range: - end >= start
+
+Year: - valid academic/year format
+
+Score: - score >= 0 - score <= configured maximum
+
+Text: - reasonable length - reject dangerous content where applicable
+
+Files: - allowlist extensions - verify MIME type server-side - size
+limit - safe filename - virus/malware scanning if institutional
+infrastructure supports it
+
+======================================================================
+16. AUTOSAVE
+======================================================================
+
+Autosave must be implemented carefully.
+
+Recommended behavior: - debounce saves after meaningful changes - save
+section-level data - show save state - recover draft after refresh -
+handle network failure - avoid creating excessive revisions
+
+Suggested UI: “Saved” “Saving…” “Offline — changes will retry” “Save
+failed — Retry”
+
+Do not make autosave compete with the user’s typing.
+
+Never show a false “Saved” state before the backend confirms
+persistence.
+
+======================================================================
+17. DATABASE MODEL
+======================================================================
+
+Core tables/entities:
+
+users - id - email - passwordHash / externalIdentity - role - status -
+createdAt - updatedAt
+
+faculty_profiles - id - userId - employeeId - name - contactNo -
+departmentId - designation/cadreId - qualification - specialization -
+phdStatus - joiningDateInstitution - joiningDateDesignation -
+teachingExperience - industryExperience - researchExperience - email -
+orcid - scopusId - googleScholarId - vidwanId
+
+departments - id - code - name - active
+
+academic_years - id - name - startDate - endDate - active
+
+cadres - id - name - active
+
+appraisals - id - facultyId - academicYearId - scoringPolicyId -
+status - submittedAt - finalApprovedAt - createdAt - updatedAt
+
+teaching_courses - id - appraisalId - courseCode - courseName -
+courseType - program - branch - semester - sections - hoursPerWeek -
+passPercentage - phase1Feedback - phase2Feedback
+
+student_mentoring - id - appraisalId - totalStudentsMentored
+
+student_achievements - id - appraisalId - studentName - rollNo -
+achievement - level - month - year
+
+student_projects - id - appraisalId - level - title - studentCount -
+outcome
+
+fdps - id - appraisalId - title - mode - institutionVenue - startDate -
+endDate - days
+
+certifications - id - appraisalId - platform - title - startDate -
+endDate - duration - score
+
+administrative_roles - id - appraisalId - scope - role - description -
+period
+
+events - id - appraisalId - activityType - role - title - startDate -
+endDate - beneficiaries
+
+journal_publications - id - appraisalId - title - authorPosition -
+journal - volumeIssuePage - month - year - indexing - doiIssn
+
+conference_papers - id - appraisalId - title - conference - level -
+month - year - venue - doiIndexedIn - citations
+
+research_metrics - id - appraisalId - platform - totalPublications -
+totalCitations - hIndex - i10Index
+
+research_scholars - id - appraisalId - name - degree - universityRegNo -
+status - year
+
+phd_progress - id - appraisalId - universityCenter - registrationYear -
+stage - progress
+
+funded_projects - id - appraisalId - title - role - team - type -
+fundingAgencyClient - amount - startDate - endDate - status - year
+
+patents_ipr - id - appraisalId - applicantInventors - title -
+applicationPatentNo - type - status - date
+
+books - id - appraisalId - authors - title - publisher - isbn - month -
+year - type
+
+outreach - id - appraisalId - role - eventActivity - organization -
+venue - date
+
+memberships_awards - id - appraisalId - item - awardingBody - level -
+year
+
+other_contributions - id - appraisalId - departmentContribution -
+instituteContribution
+
+supporting_documents - id - appraisalId - category - relatedEntityType -
+relatedEntityId - originalName - storageKey - contentType - size -
+checksum - uploadedBy - uploadedAt
+
+appraisal_scores - id - appraisalId - criterion - maxMarks - selfScore -
+calculatedScore - remarks
+
+review_actions - id - appraisalId - actorId - actorRole - action -
+fromStatus - toStatus - comment - createdAt
+
+audit_logs - id - actorId - action - entityType - entityId - metadata -
+timestamp
+
+======================================================================
+18. DATABASE DESIGN PRINCIPLES
+======================================================================
+
+1.  Use foreign keys.
+2.  Add unique constraints where appropriate.
+3.  Prevent duplicate appraisal for faculty + academic year if that is
+    the institutional rule.
+4.  Index frequently filtered fields.
+5.  Use transactions for important state transitions.
+6.  Avoid storing repeated records as JSON blobs unless the data is
+    genuinely configuration or flexible metadata.
+7.  Store dates in a consistent database representation.
+8.  Do not store uploaded files directly in database BLOBs unless there
+    is a deliberate institutional reason.
+9.  Store file metadata and secure storage keys.
+10. Preserve historical scoring-policy references.
+11. Use soft deletion carefully for records that may be required for
+    audit.
+12. Never physically delete audit history.
+
+======================================================================
+19. BACKEND MODULES
+======================================================================
+
+Suggested Spring Boot modules/packages:
+
+auth - authentication - password reset - session/token handling
+
+user - user management - roles
+
+faculty - profile
+
+department - departments
+
+academicyear - academic year configuration
+
+appraisal - appraisal lifecycle - section persistence - completion state
+
+teaching - courses - calculations
+
+mentoring - achievements - projects
+
+professional - FDP - certifications - administration - outreach - awards
+
+research - journals - conferences - metrics - scholars - Ph.D.
+
+funding - projects - consultancy
+
+ipr - patents - books
+
+scoring - policy - maximum marks - validation - score calculations
+
+documents - upload - download - access control - metadata
+
+review - HoD - Principal - comments - state transitions
+
+report - PDF generation
+
+audit - immutable activity history
+
+======================================================================
+20. API DESIGN
+======================================================================
+
+Use RESTful, predictable endpoints.
+
+AUTH POST /api/auth/login POST /api/auth/logout POST
+/api/auth/forgot-password POST /api/auth/reset-password GET /api/auth/me
+
+FACULTY GET /api/faculty/me PUT /api/faculty/me
+
+APPRAISALS GET /api/appraisals POST /api/appraisals GET
+/api/appraisals/{id} PUT /api/appraisals/{id} DELETE
+/api/appraisals/{id} (draft only, if permitted)
+
+SECTIONS GET/PUT /api/appraisals/{id}/general GET/PUT
+/api/appraisals/{id}/teaching GET/PUT /api/appraisals/{id}/mentoring
+GET/PUT /api/appraisals/{id}/fdp GET/PUT
+/api/appraisals/{id}/administration GET/PUT
+/api/appraisals/{id}/research GET/PUT
+/api/appraisals/{id}/funded-projects GET/PUT /api/appraisals/{id}/ipr
+GET/PUT /api/appraisals/{id}/outreach GET/PUT
+/api/appraisals/{id}/awards GET/PUT /api/appraisals/{id}/other
+
+SUBMISSION POST /api/appraisals/{id}/validate POST
+/api/appraisals/{id}/submit
+
+DOCUMENTS POST /api/appraisals/{id}/documents GET
+/api/appraisals/{id}/documents GET /api/documents/{documentId} DELETE
+/api/documents/{documentId}
+
+REVIEW GET /api/reviews/queue GET /api/appraisals/{id}/review POST
+/api/appraisals/{id}/review/return POST
+/api/appraisals/{id}/review/approve
+
+SCORE GET /api/appraisals/{id}/score PUT /api/appraisals/{id}/score
+
+REPORT GET /api/appraisals/{id}/preview GET /api/appraisals/{id}/pdf
+
+ADMIN, IF AUTHORIZED CRUD /api/admin/users CRUD /api/admin/departments
+CRUD /api/admin/academic-years CRUD /api/admin/cadres CRUD
+/api/admin/scoring-policies
+
+Every endpoint must enforce server-side authorization.
+
+======================================================================
+21. FRONTEND DESIGN SYSTEM
+======================================================================
+
+The visual goal: “Professional institutional product, not a student
+template.”
+
+Design characteristics: - editorial clarity - restrained visual
+language - strong typography - precise spacing - subtle borders -
+excellent hierarchy - minimal decorative noise - consistent components -
+calm color palette - clear status colors - high information density
+without clutter
+
+Avoid: - excessive gradients - huge hero graphics - excessive
+glassmorphism - random shadows - excessive rounded corners - decorative
+animations - bouncing UI - unnecessary 3D - neon colors - giant empty
+spaces - inconsistent card styles
+
+The application should feel trustworthy.
+
+======================================================================
+22. VISUAL DESIGN SYSTEM
+======================================================================
+
+Use a controlled spacing scale.
+
+Recommended: 4 8 12 16 20 24 32 40 48 64
+
+Use a limited radius system: - small: inputs - medium: cards - large:
+major containers only
+
+Use typography hierarchy: - page title - section title - subsection
+title - body - label - helper - metadata
+
+Never use typography merely for decoration.
+
+Tables: - strong column headers - readable density - row hover - clear
+alignment - right-align numeric values where appropriate - sticky
+headers only where helpful - horizontal scrolling on smaller screens -
+mobile transformation when needed
+
+Forms: - labels above fields - helper text below - errors directly
+below - required marker consistent - clear focus state
+
+======================================================================
+23. INFORMATION ARCHITECTURE
+======================================================================
+
+Every screen should answer: 1. Where am I? 2. What am I doing? 3. What
+information do I need? 4. What happens next?
+
+Use breadcrumbs where useful.
+
+Example: Appraisals / 2026–27 / Research & Publications
+
+Page header: Research & Publications “Record your journal, conference
+and research activity for the academic year.”
+
+Progress: 8 / 13 sections complete
+
+Primary action: Next: Funded Projects
+
+Secondary: Save Draft
+
+======================================================================
+24. PROFESSIONAL UX DETAILS
+======================================================================
+
+Implement: - autosave - optimistic UI only where safe - skeleton
+loading - clear loading states - error boundaries - retry actions -
+empty states - confirmation dialogs - toast notifications for small
+confirmations - inline errors for form problems - keyboard navigation -
+focus restoration - accessible labels - disabled state explanations -
+unsaved changes warning - network failure handling
+
+Do not overuse toast messages. Important errors belong in the page
+context.
+
+======================================================================
+25. DASHBOARD COMPONENTS
+======================================================================
+
+Faculty dashboard: - active appraisal card - progress ring/bar - status
+badge - next action - incomplete sections - recent activity - document
+summary - academic year history
+
+HoD dashboard: - pending review count - returned count - approved
+count - faculty list - filters - search - review queue - recent activity
+
+Principal dashboard: - pending principal review - returned - approved -
+search/filter - review queue
+
+Admin dashboard, if approved: - users - departments - academic years -
+policies - system health - audit activity
+
+======================================================================
+26. REVIEW EXPERIENCE
+======================================================================
+
+Review pages should NOT look like the faculty editing form.
+
+Reviewer layout:
+
+LEFT: Section navigation - General - Teaching - Mentoring - Research -
+etc.
+
+CENTER: Read-only appraisal content
+
+RIGHT: Review panel - current status - score summary - evidence -
+comments - return - approve
+
+For each section: - show source information - show evidence - show any
+calculated values - show reviewer comments
+
+Reviewer should be able to understand the whole appraisal without
+hunting through the interface.
+
+======================================================================
+27. DOCUMENT MANAGEMENT
+======================================================================
+
+Upload component should display: - category - related record -
+filename - file size - upload progress - upload status - preview if
+supported - replace - delete when allowed
+
+Security: - authorization on every download - safe storage key -
+sanitized display name - server-side content verification - file size
+limit - extension allowlist - MIME validation - optional malware
+scanning - never expose raw storage paths
+
+Generated PDFs should be immutable once final approval occurs, if that
+matches institutional requirements.
+
+======================================================================
+28. PDF GENERATION
+======================================================================
+
+The system should generate a structured report.
+
+Possible report modes:
+
+A. Digital detailed report Modern layout optimized for reading.
+
+B. Official-form-compatible report Matches the institution’s existing
+six-page structure as closely as possible.
+
+Do not assume the exact final PDF requirement. Confirm with the Vice
+HOD.
+
+If exact-form output is required: - reproduce official headings -
+preserve section order - preserve terminology - preserve cadre score
+table - include supporting-document status - include declaration -
+include HoD recommendation - include Principal remarks
+
+Use data from the database, not screenshots of the UI.
+
+======================================================================
+29. SCORE ENGINE
+======================================================================
+
+Separate three concepts:
+
+1.  Maximum marks
+2.  Faculty self-score
+3.  Any calculated/review score
+
+Do not collapse these into one value.
+
+Example:
+
+criterion: RESEARCH_PUBLICATIONS
+
+maxMarks: 15
+
+selfScore: 11
+
+reviewScore: TBD
+
+remarks: …
+
+If automatic score calculation is later approved, define a versioned
+rule:
+
+ScoreRule - criterion - version - input requirements - calculation
+method - effectiveFrom - effectiveTo
+
+Never silently change how an existing appraisal was calculated.
+
+======================================================================
+30. SECURITY MODEL
+======================================================================
+
+Minimum: - password hashing - secure session/token strategy - RBAC -
+object-level authorization - server-side validation - CSRF protection
+where applicable - rate limiting for authentication - secure headers -
+HTTPS - safe file handling - audit logs - secret management - no
+sensitive secrets in Git
+
+Authorization checks: 1. Is user authenticated? 2. Does role permit
+action? 3. Does user own/oversee the resource? 4. Is current workflow
+state compatible? 5. Is the operation allowed for this academic
+year/state?
+
+Never rely on UI hiding.
+
+======================================================================
+31. AUDITABILITY
+======================================================================
+
+Audit important events: - login - logout where useful - appraisal
+created - appraisal updated - document uploaded/deleted - appraisal
+submitted - appraisal returned - appraisal approved - score changed -
+policy changed - account changes - role changes
+
+Audit log fields: - actor - action - entity - entity ID - timestamp -
+contextual metadata - IP/device metadata only if institution’s
+privacy/security policy allows it
+
+Audit logs should not be editable by normal users.
+
+======================================================================
+32. ACCESSIBILITY
+======================================================================
+
+Target strong practical accessibility.
+
+Requirements: - semantic HTML - keyboard navigation - visible focus -
+proper labels - accessible dialogs - error association - no color-only
+meaning - sufficient contrast - accessible tables - reduced motion
+preference - screen-reader-friendly status updates
+
+Example: Do not say only: “red field”
+
+Say: “Phase-2 Feedback is required.”
+
+======================================================================
+33. RESPONSIVE DESIGN
+======================================================================
+
+Desktop: - full sidebar - multi-column layouts - tables
+
+Tablet: - compressed layout - collapsible navigation
+
+Mobile: - stacked forms - cards instead of wide tables - bottom action
+bar where useful - simplified reviewer layout
+
+Never simply shrink desktop UI.
+
+Test at: - 360px - 390px - 768px - 1024px - 1280px - 1440px+
+
+======================================================================
+34. PERFORMANCE
+======================================================================
+
+The application must feel fast.
+
+Use: - pagination - lazy loading - code splitting - optimized queries -
+indexes - debounced autosave - efficient document loading - cached
+configuration where safe - avoid fetching entire appraisal repeatedly
+
+Do not load all documents on dashboard.
+
+Do not render hundreds of records unnecessarily.
+
+Measure: - initial page load - API latency - form interaction latency -
+upload time - PDF generation time
+
+======================================================================
+35. ERROR HANDLING
+======================================================================
+
+Frontend: - friendly message - retry - preserve data - identify affected
+operation
+
+Backend: - structured errors - proper HTTP status - no stack traces to
+users - server logs with correlation ID
+
+Example: “Your changes could not be saved because the connection was
+interrupted. Your current entries remain on this page. Retry when
+ready.”
+
+======================================================================
+36. TESTING STRATEGY
+======================================================================
+
+UNIT TESTS: - score validation - calculations - state transition rules -
+permission checks - validation
+
+INTEGRATION TESTS: - appraisal creation - save/update - submission -
+review - document metadata - PDF generation
+
+API TESTS: - authentication - authorization - invalid payloads -
+ownership violations - workflow violations
+
+E2E TESTS: 1. Faculty logs in. 2. Creates appraisal. 3. Completes
+sections. 4. Uploads evidence. 5. Saves draft. 6. Refreshes. 7.
+Continues. 8. Submits. 9. HoD reviews. 10. HoD returns. 11. Faculty
+corrects. 12. Resubmits. 13. HoD approves. 14. Principal reviews. 15.
+Principal approves. 16. Final report generated.
+
+SECURITY TESTS: - direct URL access - IDOR attempts - role escalation -
+invalid score - invalid file - oversized file - expired session -
+duplicate submit
+
+======================================================================
+37. TEST CASE EXAMPLES
+======================================================================
+
+TC-001 Valid faculty login Expected: faculty dashboard
+
+TC-002 Invalid password Expected: clear error, no sensitive information
+
+TC-003 Faculty accesses another faculty appraisal Expected: 403 /
+resource not found according to security design
+
+TC-004 Faculty creates second appraisal for same year Expected: blocked
+if one-per-year rule is confirmed
+
+TC-005 Teaching percentage > 100 Expected: client + server validation
+error
+
+TC-006 Score exceeds configured maximum Expected: rejected
+
+TC-007 Draft refresh Expected: all saved values restored
+
+TC-008 Upload unsupported file Expected: rejected
+
+TC-009 Oversized file Expected: rejected
+
+TC-010 Submit incomplete appraisal Expected: submission blocked with
+section-level issues
+
+TC-011 HoD returns appraisal Expected: status changes and reason stored
+
+TC-012 Faculty edits approved appraisal Expected: blocked
+
+TC-013 Principal approves Expected: final state + timestamp + audit
+entry
+
+======================================================================
+38. GIT / TEAM WORKFLOW
+======================================================================
+
+Two-person team recommended workflow:
+
+main develop
+
+Feature branches: feature/auth feature/faculty-dashboard
+feature/appraisal-form feature/research feature/documents
+feature/scoring feature/review-workflow feature/pdf feature/testing
+
+Commit examples: feat: add faculty authentication feat: implement
+appraisal draft workflow feat: add teaching course records feat:
+implement document metadata feat: add cadre scoring configuration fix:
+prevent score above maximum fix: block faculty access to other
+appraisals refactor: extract reusable dynamic record component docs: add
+architecture documentation test: add appraisal submission flow
+
+Pull requests should include: - what changed - why - screenshots - test
+status - known limitations
+
+======================================================================
+39. PROJECT FOLDER STRUCTURE
+======================================================================
+
+Suggested repository:
+
+faculty-appraisal-system/ | +– frontend/ | +– app/ | +– components/ | +–
+features/ | +– hooks/ | +– lib/ | +– types/ | +– styles/ | +– tests/ |
++– backend/ | +– src/main/java/…/ | | +– auth/ | | +– user/ | | +–
+faculty/ | | +– appraisal/ | | +– teaching/ | | +– mentoring/ | | +–
+professional/ | | +– research/ | | +– funding/ | | +– ipr/ | | +–
+scoring/ | | +– documents/ | | +– review/ | | +– report/ | | +– audit/ |
+| | +– src/main/resources/ | +– application.yml | +– db/migration/ | +–
+templates/ | +– docs/ | +– requirements.md | +– architecture.md | +–
+database.md | +– api.md | +– workflow.md | +– scoring.md | +–
+security.md | +– test-plan.md | +– decisions.md | +– README.md +–
+.env.example +– .gitignore +– docker-compose.yml
+
+Adapt this structure to the actual framework and team preferences.
+
+======================================================================
+40. DEVELOPMENT PHASES
+======================================================================
+
+PHASE 0 — DISCOVERY Deliverables: - requirements - stakeholder
+questions - workflow - scoring questions - UI direction
+
+Do not code heavily before this is clear.
+
+PHASE 1 — FOUNDATION - repository - frontend shell - backend shell -
+database - environment config - authentication foundation - roles
+
+PHASE 2 — DESIGN SYSTEM - typography - colors - spacing - buttons -
+inputs - tables - cards - status badges - dialogs - navigation -
+accessibility
+
+PHASE 3 — FACULTY PROFILE - profile - department - cadre - academic year
+
+PHASE 4 — APPRAISAL CORE - create appraisal - draft state - autosave -
+section navigation - progress
+
+PHASE 5 — FORM MODULES Implement sections in official order.
+
+PHASE 6 — DOCUMENTS - upload - validation - secure access - record
+association
+
+PHASE 7 — SCORING - policy configuration - maximum marks - self-score -
+validation - totals
+
+PHASE 8 — REVIEW WORKFLOW - HoD - return - resubmit - approve -
+Principal
+
+PHASE 9 — REPORTING - preview - PDF - final report
+
+PHASE 10 — HARDENING - security - performance - error handling -
+accessibility - tests
+
+PHASE 11 — DEPLOYMENT - production config - HTTPS - backups -
+monitoring - documentation
+
+======================================================================
+41. DESIGN QUALITY BAR
+======================================================================
+
+The application should pass this visual test:
+
+If the logo and institution name were removed, it should still look like
+a serious enterprise/internal product.
+
+Every screen must feel related.
+
+No: - random colors - inconsistent spacing - different border radii -
+different button styles - random shadows - inconsistent terminology
+
+The design must be: - restrained - precise - modern - professional -
+calm - highly usable
+
+The goal is “premium enterprise software”, not “fancy student project.”
+
+======================================================================
+42. MICROINTERACTIONS
+======================================================================
+
+Use motion only when it improves comprehension.
+
+Good: - sidebar section transition - subtle dialog entrance - upload
+progress - save state - status transition - success confirmation
+
+Avoid: - decorative page animations - excessive parallax - bouncing
+elements - long transitions - motion on every hover
+
+Target fast interactions.
+
+Respect prefers-reduced-motion.
+
+======================================================================
+43. MANAGEABILITY / MAINTAINABILITY
+======================================================================
+
+The application must be easy to modify six months later.
+
+Rules: - no duplicated business logic - no hard-coded institutional
+policy scattered throughout UI - reusable components - centralized
+validation - centralized authorization - versioned migrations -
+documented APIs - clear naming - consistent errors - environment
+config - tests around critical logic - feature boundaries
+
+A future developer should be able to answer: “Where do I change the
+maximum marks for Assistant Professor?” without searching through 50
+frontend files.
+
+Answer should be: scoring policy/configuration.
+
+======================================================================
+44. CONFIGURATION-FIRST PRINCIPLE
+======================================================================
+
+Potentially configurable: - departments - academic years - cadres -
+maximum marks - allowed indexing types - roles - workflow
+configuration - file limits - allowed document categories
+
+Do not make configuration so generic that the system becomes impossible
+to understand. Use explicit domain models.
+
+======================================================================
+45. DATA INTEGRITY
+======================================================================
+
+Important invariants: - one appraisal per faculty/year if confirmed -
+approved appraisal cannot be edited - score cannot exceed max - only
+assigned HoD can review - only principal can perform principal action -
+document must belong to authorized appraisal - deleted records must not
+break audit history - academic year cannot be deleted if referenced -
+scoring policy cannot be deleted if referenced by historical appraisal
+
+Prefer disabling/deactivating configuration instead of destructive
+deletion.
+
+======================================================================
+46. NOTIFICATIONS
+======================================================================
+
+Optional but highly useful.
+
+Events: - appraisal created - appraisal submitted - appraisal returned -
+appraisal approved - document issue - review pending
+
+In-app notification first. Email can be added if institution approves.
+
+Do not build notifications before the core workflow is stable.
+
+======================================================================
+47. ANALYTICS / REPORTING
+======================================================================
+
+Future reporting: - submissions by department - pending review -
+completion rate - appraisal status by academic year - activity counts -
+research activity summaries
+
+Do not create evaluative analytics that the institution did not request.
+
+Keep reporting factual.
+
+======================================================================
+48. DEPLOYMENT
+======================================================================
+
+Development: - frontend local - backend local - MySQL local/Docker
+
+Production: - HTTPS - environment variables - secure database - private
+document storage - backups - monitoring - logging - restricted admin
+access
+
+Deployment checklist: - build succeeds - migrations applied -
+environment configured - CORS correct - HTTPS active - file storage
+working - PDF generation working - backups tested - error logs working -
+health endpoint available
+
+======================================================================
+49. README REQUIREMENTS
+======================================================================
+
+The repository README must be highly detailed and professional.
+
+It should contain:
+
+1.  Project title
+2.  One-line description
+3.  Product overview
+4.  Problem statement
+5.  Objectives
+6.  Source document basis
+7.  Key features
+8.  User roles
+9.  Workflow
+10. Architecture
+11. Technology stack
+12. Repository structure
+13. Database model
+14. Security model
+15. Scoring model
+16. Document management
+17. PDF generation
+18. UX/design principles
+19. API overview
+20. Environment variables
+21. Installation
+22. Local development
+23. Database setup
+24. Running frontend
+25. Running backend
+26. Testing
+27. Production deployment
+28. Screenshots
+29. Demo flow
+30. Known limitations
+31. Future roadmap
+32. Contributors
+33. License/institutional ownership note if applicable
+
+======================================================================
+50. README TEMPLATE TO GENERATE
+======================================================================
+
+Faculty Self-Appraisal & Assessment Management System
+
+A production-oriented digital platform for managing faculty
+self-appraisal, supporting evidence, cadre-based scoring, HoD review,
+Principal review and final appraisal reporting.
+
+Overview
+
+Explain that the system digitizes the institution’s existing Faculty
+Self-Appraisal & Assessment Report while preserving its official
+structure.
+
+Problem
+
+Describe the manual workflow: - paper forms - repetitive entry -
+document handling - calculation - review - tracking - historical records
+
+Do not claim improvements that have not been measured.
+
+Objectives
+
+-   digitize appraisal workflow
+-   improve data consistency
+-   improve review visibility
+-   centralize evidence
+-   enforce workflow permissions
+-   support historical academic years
+-   provide final report generation
+
+Features
+
+Faculty
+
+-   profile
+-   multi-step appraisal
+-   autosave
+-   dynamic records
+-   document upload
+-   progress
+-   preview
+-   submission
+-   correction/resubmission
+
+HoD
+
+-   review queue
+-   faculty filtering
+-   evidence review
+-   comments
+-   return
+-   approval/recommendation
+
+Principal
+
+-   final review
+-   remarks
+-   approval/return
+
+System
+
+-   role-based authorization
+-   cadre configuration
+-   scoring policy
+-   audit history
+-   PDF reporting
+
+Official Form Coverage
+
+List every official Part A and Part B section.
+
+User Roles
+
+Create a permission table.
+
+Workflow
+
+Show state machine.
+
+Scoring
+
+Explain: - cadre-wise maximum marks - policy configuration -
+self-score - score validation - explicit statement that exact
+activity-to-score formulas require institutional confirmation if not
+provided by source requirements.
+
+Architecture
+
+Show frontend -> backend -> database -> document storage.
+
+Tech Stack
+
+Frontend: Next.js, React, TypeScript, Tailwind, component system
+
+Backend: Spring Boot, Java 25, Spring Security, JPA/Hibernate
+
+Database: MySQL 8
+
+Repository Structure
+
+Show actual repository tree.
+
+Database
+
+Explain major entities and relationships.
+
+Security
+
+Explain: - authentication - authorization - ownership - file security -
+validation - audit logging - secrets
+
+UX / Design
+
+State: - responsive - accessible - professional - component-driven - low
+cognitive load - section-based workflow - clear status
+
+Local Setup
+
+Include: 1. prerequisites 2. environment file 3. database setup 4.
+backend startup 5. frontend startup
+
+Never put real secrets in README.
+
+Environment Variables
+
+Show variable names with placeholder values only.
+
+Testing
+
+Describe: - unit - integration - API - E2E - security - responsive
+
+Deployment
+
+Document production deployment and backup requirements.
+
+Screenshots
+
+Add polished screenshots after UI completion.
+
+Demo
+
+Provide a concise scenario: Faculty -> create -> complete -> upload ->
+submit -> HoD -> return -> resubmit -> approve -> Principal -> final
+report.
+
+Limitations
+
+Be honest.
+
+Roadmap
+
+Future: - notifications - SSO - advanced reports - institution-wide
+rollout - configurable workflow - additional integrations
+
+Contributors
+
+List the two student developers and roles.
+
+======================================================================
+51. DOCUMENTATION QUALITY
+======================================================================
+
+Write documentation for another developer who has never seen the
+project.
+
+Avoid: “Run npm install.”
+
+Prefer: “Install the frontend dependencies, configure the required
+environment variables, ensure the backend API is reachable, then start
+the development server.”
+
+Documentation should explain WHY important decisions were made.
+
+======================================================================
+52. ARCHITECTURE DECISION RECORDS
+======================================================================
+
+Create docs/decisions.md.
+
+Examples:
+
+ADR-001: Use modular monolith rather than microservices.
+
+Reason: System complexity does not justify distributed infrastructure.
+
+ADR-002: Store scoring policy separately from appraisals.
+
+Reason: Institutional scoring rules may change while historical
+appraisals must remain reproducible.
+
+ADR-003: Use dynamic records for repeated form sections.
+
+Reason: The paper form’s limited rows are a presentation constraint, not
+a natural software limitation.
+
+ADR-004: Use object/file storage abstraction for evidence.
+
+Reason: Keep document storage independent of relational data.
+
+======================================================================
+53. PROFESSIONAL PRESENTATION
+======================================================================
+
+When presenting the project, avoid a technology-first presentation.
+
+Use:
+
+1.  Problem
+2.  Existing manual process
+3.  Pain points
+4.  Proposed system
+5.  User roles
+6.  Workflow
+7.  UX
+8.  Architecture
+9.  Data model
+10. Security
+11. Scoring
+12. Document management
+13. Demonstration
+14. Testing
+15. Future scope
+
+This makes the project look like a real software engineering effort.
+
+======================================================================
+54. DEMO SCRIPT
+======================================================================
+
+Scenario: A faculty member is preparing the 2026–27 appraisal.
+
+Step 1: Login.
+
+Step 2: Dashboard shows the active appraisal and completion percentage.
+
+Step 3: Open Teaching & Learning.
+
+Step 4: Add multiple courses.
+
+Step 5: System calculates totals/averages where the official form
+explicitly requires those calculations.
+
+Step 6: Move to Research.
+
+Step 7: Add publication.
+
+Step 8: Attach publication/indexing proof.
+
+Step 9: Review score section.
+
+Step 10: Validate appraisal.
+
+Step 11: Submit.
+
+Step 12: Login as HoD.
+
+Step 13: Open review queue.
+
+Step 14: Review evidence.
+
+Step 15: Return appraisal with reason.
+
+Step 16: Login as faculty.
+
+Step 17: Correct issue.
+
+Step 18: Resubmit.
+
+Step 19: HoD approves/recommends.
+
+Step 20: Principal reviews.
+
+Step 21: Principal approves.
+
+Step 22: Generate final report.
+
+During demo, explain the engineering decisions, not only the clicks.
+
+======================================================================
+55. DEFINITION OF DONE
+======================================================================
+
+The project is not “done” when the screens exist.
+
+DONE means:
+
+FUNCTIONAL: - official fields implemented - repeated sections dynamic -
+draft saving works - submission works - workflow works - roles work -
+scoring configuration works - documents work - report works
+
+SECURITY: - unauthorized access blocked - object ownership enforced -
+backend validation implemented - secure document access - secrets
+excluded from source
+
+UX: - responsive - accessible - consistent - clear errors - clear
+progress - excellent empty/loading states
+
+QUALITY: - critical tests pass - no obvious data-loss paths - error
+handling exists - audit trail works - database constraints exist
+
+DOCUMENTATION: - README complete - architecture documented - setup
+documented - API documented - decisions documented - known limitations
+documented
+
+======================================================================
+56. WHAT NOT TO DO
+======================================================================
+
+Do NOT: - hard-code scoring values everywhere - create one giant React
+component - create one giant backend service - store all appraisal data
+in one JSON blob - trust frontend permissions - store passwords in plain
+text - commit secrets - allow editing after approval without policy -
+make every field mandatory - reproduce paper limitations unnecessarily -
+add unnecessary AI features - add blockchain for no reason - add
+microservices for prestige - overanimate the interface - copy random
+dashboard templates - use inconsistent UI components - ignore mobile -
+ignore accessibility - skip tests - skip documentation - invent
+institutional scoring rules - claim features that are not actually
+implemented
+
+======================================================================
+57. HOW TO MAKE THE DESIGN LOOK EXCEPTIONALLY PROFESSIONAL
+======================================================================
+
+Design principle: The interface should feel like software designed by a
+mature product team.
+
+Use: - strong typography - restrained colors - excellent spacing -
+consistent grid - clear hierarchy - subtle dividers - precise
+alignment - high-quality form controls - predictable interactions -
+meaningful status indicators - small but useful microinteractions
+
+The visual identity should support the institution without becoming a
+generic college portal.
+
+Recommended visual direction: - light neutral application canvas -
+white/near-white surfaces - deep institutional navy/blue as primary
+accent if institution branding permits - muted secondary colors - green
+only for successful states - amber for warnings - red only for
+destructive/error states - very limited shadows - moderate border
+radius - high contrast text
+
+If the institution provides an official brand guide, use that instead.
+
+======================================================================
+58. DESIGN TOKENS
+======================================================================
+
+Create central design tokens rather than scattered values.
+
+Example conceptual tokens:
+
+colors: background surface surfaceElevated text textMuted border primary
+primaryHover success warning danger info
+
+spacing: xs sm md lg xl 2xl 3xl
+
+radius: sm md lg
+
+typography: display h1 h2 h3 body small caption label
+
+Do not directly invent dozens of one-off values.
+
+======================================================================
+59. COMPONENT ARCHITECTURE
+======================================================================
+
+Build a small internal design system.
+
+FOUNDATION: Button Input Textarea Select Checkbox Radio Switch
+DatePicker FileUpload
+
+LAYOUT: Sidebar Topbar PageHeader SectionHeader Container Grid Stack
+
+DATA: Table DataCard StatCard StatusBadge ProgressBar Timeline
+
+FEEDBACK: Alert Toast Dialog ConfirmDialog Skeleton EmptyState
+ErrorState
+
+APPRAISAL: AppraisalShell SectionNav SectionProgress DynamicRecordTable
+EvidencePanel ScoreSummary ReviewPanel SubmissionChecklist
+
+This is one of the strongest ways to make the system maintainable.
+
+======================================================================
+60. FINAL ENGINEERING PRINCIPLE
+======================================================================
+
+Build the smallest architecture that can correctly support the actual
+institutional workflow, but build every layer cleanly.
+
+The project should communicate:
+
+“We didn’t just convert a PDF into a website. We analyzed the workflow,
+modeled the domain, designed a usable product, implemented secure
+role-based access, made policy configurable, preserved historical
+integrity, and created a maintainable system.”
+
+That is the professional standard this project should aim for.
+
+======================================================================
+61. FINAL IMPLEMENTATION ORDER
+======================================================================
+
+1.  Read and freeze official requirements.
+2.  Meet stakeholder and confirm unknowns.
+3.  Write requirements.
+4.  Define roles.
+5.  Define workflow.
+6.  Define scoring configuration.
+7.  Design database.
+8.  Design architecture.
+9.  Create design system.
+10. Build authentication.
+11. Build faculty dashboard.
+12. Build appraisal shell.
+13. Build General Information.
+14. Build Teaching.
+15. Build Mentoring.
+16. Build FDP.
+17. Build Administration.
+18. Build Research.
+19. Build Funded Projects.
+20. Build IPR.
+21. Build Outreach.
+22. Build Awards.
+23. Build Other Contributions.
+24. Build Documents.
+25. Build Score.
+26. Build HoD review.
+27. Build Principal review.
+28. Build PDF.
+29. Add audit logs.
+30. Add tests.
+31. Security hardening.
+32. Accessibility audit.
+33. Responsive audit.
+34. Performance audit.
+35. Documentation.
+36. Deployment.
+37. Demo preparation.
+
+======================================================================
+62. MASTER CLAUDE CODE / AI IMPLEMENTATION DIRECTIVE
+======================================================================
+
+If using Claude Code or another coding agent, give it this instruction:
+
+“You are working on a real institutional Faculty Self-Appraisal &
+Assessment Management System. Treat the supplied Faculty Self-Appraisal
+& Assessment Report as the authoritative source for official fields,
+section order, terminology, supporting-document categories, review
+structure and cadre-wise maximum marks.
+
+Do not blindly reproduce the PDF as a webpage.
+
+Build a polished, production-oriented application around the underlying
+workflow. Preserve every official requirement while improving the
+digital interaction.
+
+Before making architectural assumptions: - inspect the existing
+repository - inspect all existing code - identify the current stack -
+identify existing design system/components - avoid unnecessary
+rewrites - maintain existing working functionality
+
+Prioritize: 1. correctness 2. maintainability 3. security 4.
+accessibility 5. usability 6. visual quality 7. performance
+
+Never invent institutional scoring formulas. If the supplied
+requirements define maximum marks but not activity-to-score formulas,
+represent the missing formula as configurable and document the
+unresolved requirement.
+
+Use reusable components. Use domain-oriented modules. Keep
+policy/configuration separate from application data. Enforce all
+important rules on the backend. Use server-side authorization. Protect
+documents. Maintain audit history. Preserve historical appraisal
+integrity. Do not hard-code values that should be configurable.
+
+Design the UI as premium professional institutional software: clean,
+calm, precise, responsive, accessible, information-dense and easy to
+navigate. Avoid generic dashboard aesthetics and excessive decorative
+animation.
+
+Every important interaction must have: - loading state - success state
+where useful - error state - empty state where applicable - validation
+feedback - safe recovery
+
+Before implementing a large feature: - explain the intended architecture
+briefly - identify affected files/modules - implement incrementally -
+run tests - inspect the result - fix issues - update documentation
+
+Do not claim a feature is complete until it has been implemented and
+tested.
+
+Generate and continuously maintain: - README.md - docs/requirements.md -
+docs/architecture.md - docs/database.md - docs/api.md -
+docs/workflow.md - docs/scoring.md - docs/security.md -
+docs/test-plan.md - docs/decisions.md
+
+The README must be written as professional engineering documentation,
+not as a generic student project README.
+
+At the end of each implementation phase, provide: - completed work -
+files changed - tests run - known issues - next recommended phase
+
+Do not add technologies merely to appear advanced. Prefer a modular
+monolith and straightforward engineering unless a real requirement
+justifies additional infrastructure.”
+
+======================================================================
+63. FINAL README GENERATION DIRECTIVE
+======================================================================
+
+The coding agent must generate a README that accurately reflects the
+implemented project.
+
+IMPORTANT: Never generate a fictional README.
+
+Only document: - features that exist - technologies actually used -
+routes actually implemented - tests actually present - deployment steps
+actually supported - configuration actually available
+
+Use placeholders only for things intentionally left for later.
+
+README tone: - professional - technical - concise where possible -
+detailed where useful - honest - visually organized
+
+Include architecture diagrams using Mermaid if supported by the
+repository.
+
+Suggested Mermaid diagrams: - system architecture - workflow/state
+machine - ER diagram
+
+======================================================================
+64. SUCCESS CRITERIA
+======================================================================
+
+The final product should make a faculty member say:
+
+“This is easier than filling the paper form.”
+
+The HoD should say:
+
+“I can review submissions without chasing documents.”
+
+The Principal should say:
+
+“I can understand the appraisal and its status quickly.”
+
+A developer should say:
+
+“I can understand and modify this codebase.”
+
+And when another engineer examines it, the project should demonstrate: -
+requirements analysis - domain modeling - full-stack development -
+secure application design - professional UX - database engineering -
+workflow engineering - testing - documentation - maintainability
+
+That is the standard to build toward.
+
+======================================================================
+END OF MASTER SCHEMATIC
+======================================================================

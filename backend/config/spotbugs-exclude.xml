@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Findings that were reviewed and are not defects here. Each entry says why. Add to this file only with a reason:
+  an unexplained exclusion hides the next real finding of the same kind.
+-->
+<FindBugsFilter>
+
+  <!--
+    "May expose internal representation". Two shapes, both intended:
+      - the response records (AppraisalView, HodConsole, ...) are built by a service and handed straight to the JSON
+        serializer; nothing keeps a reference that a later change could corrupt, and copying every list would only cost;
+      - Spring components keep the collaborators the container injects (JdbcClient, ObjectMapper, other services),
+        which are shared singletons by design.
+  -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+
+  <!--
+    Sign-in calls getSession(true) and changeSessionId() for what they do (open a session, then give it a new ID so a
+    pre-set one cannot be reused), not for what they return. The analyser assumes these methods have no side effect.
+  -->
+  <Match>
+    <Class name="edu.svec.fams.auth.AuthController"/>
+    <Method name="login"/>
+    <Bug pattern="RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT"/>
+  </Match>
+
+  <!--
+    The request ID is echoed in a response header only after it has matched [A-Za-z0-9-]{8,64} (otherwise a generated
+    UUID is used), so it cannot carry a line break or a second header.
+  -->
+  <Match>
+    <Class name="edu.svec.fams.common.RequestIdFilter"/>
+    <Bug pattern="HRS_REQUEST_PARAMETER_TO_HTTP_HEADER"/>
+  </Match>
+
+</FindBugsFilter>
