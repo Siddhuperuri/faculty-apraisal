@@ -11,7 +11,7 @@ import { RefreshButton, useLoadedAt } from "@/components/ui/RefreshButton";
 import { get, post, put } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { ROLE_LABEL, isWithdrawnRole, roleLabel } from "@/lib/labels";
-import type { AdminReference, AdminUserRow, IssuedPassword, Role } from "@/lib/types";
+import type { AdminReference, AdminUserRow, BulkReset, IssuedPassword, Role } from "@/lib/types";
 
 type Pending = { kind: "disable" | "reset"; user: AdminUserRow } | null;
 
@@ -48,6 +48,7 @@ export default function UsersPage() {
   const [issued, setIssued] = useState<{ value: IssuedPassword; reason: "created" | "reset" } | null>(null);
   const [pending, setPending] = useState<Pending>(null);
   const [working, setWorking] = useState(false);
+  const [bulkAsked, setBulkAsked] = useState(false);
 
   const [loadedAt, stamp] = useLoadedAt();
 
@@ -101,6 +102,23 @@ export default function UsersPage() {
       }
     });
 
+  /** The accounts in the list as filtered, less your own (you would be signed out) and the closed ones of withdrawn roles. */
+  const resettable = useMemo(
+    () => (rows && reference ? shownRows(rows, reference, { status, department, cadre, signIn }) : []).filter((u) => u.id !== me?.id && !isWithdrawnRole(u.role)),
+    [rows, reference, status, department, cadre, signIn, me?.id],
+  );
+
+  const resetMany = () =>
+    run(async () => {
+      const done = await post<BulkReset>("/api/admin/users/reset-passwords", { ids: resettable.map((u) => u.id) });
+      setBulkAsked(false);
+      setNotice(
+        `${done.reset} password${done.reset === 1 ? " was" : "s were"} set back to the standard one. ` +
+          `Each person must choose a new password at their next sign-in${done.skipped > 0 ? `; ${done.skipped} account${done.skipped === 1 ? " was" : "s were"} left as ${done.skipped === 1 ? "it was" : "they were"}` : ""}.`,
+      );
+      await load();
+    });
+
   const enable = (u: AdminUserRow) =>
     run(async () => {
       await put(`/api/admin/users/${u.id}`, { status: "ACTIVE" });
@@ -108,28 +126,10 @@ export default function UsersPage() {
       await load();
     });
 
-  const shown = useMemo(() => {
-    if (!rows || !reference) return [];
-    const dept = reference.departments.find((d) => String(d.id) === department);
-    const out = rows.filter((u) => {
-      if (status && u.status !== status) return false;
-      if (dept && !(u.role === "FACULTY" ? u.department === dept.name : (u.hodDepartments ?? "").split(", ").includes(dept.code))) return false;
-      if (cadre && u.cadre !== cadre) return false;
-      if (signIn === "never" && u.lastLoginAt) return false;
-      if (signIn === "pending" && !u.mustChangePassword) return false;
-      if (signIn === "active" && !u.lastLoginAt) return false;
-      return true;
-    });
-    const label = (u: AdminUserRow) => (u.name ?? u.email).toLowerCase();
-    const time = (u: AdminUserRow) => (u.lastLoginAt ? Date.parse(u.lastLoginAt) : null);
-    if (sort === "name") out.sort((a, b) => label(a).localeCompare(label(b)));
-    if (sort === "role") out.sort((a, b) => (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9) || label(a).localeCompare(label(b)));
-    if (sort === "recent" || sort === "oldest") {
-      // An account that has never signed in counts as the longest ago: first when sorting oldest first, last otherwise.
-      out.sort((x, y) => (sort === "recent" ? (time(y) ?? 0) - (time(x) ?? 0) : (time(x) ?? 0) - (time(y) ?? 0)));
-    }
-    return out;
-  }, [rows, reference, status, department, cadre, signIn, sort]);
+  const shown = useMemo(
+    () => (rows && reference ? shownRows(rows, reference, { status, department, cadre, signIn }, sort) : []),
+    [rows, reference, status, department, cadre, signIn, sort],
+  );
   const narrowed = status !== "" || department !== "" || cadre !== "" || signIn !== "";
   const clearAll = () => {
     setQuery("");
@@ -200,6 +200,9 @@ export default function UsersPage() {
             {rows.length >= 500 ? " (the first 500; narrow the search)" : ""}
           </span>
           {(narrowed || query || role || sort) && <Button variant="ghost" size="sm" onClick={clearAll}>Clear all filters</Button>}
+          <Button variant="secondary" size="sm" className="ml-auto" disabled={resettable.length === 0 || working} onClick={() => setBulkAsked(true)}>
+            Reset the passwords of these {resettable.length} account{resettable.length === 1 ? "" : "s"}…
+          </Button>
         </div>
       </div>
 
@@ -335,6 +338,26 @@ export default function UsersPage() {
       <ImportAccountsDialog open={importing} reference={reference} onClose={() => setImporting(false)} onImported={() => void load()} />
       <OneTimePasswordDialog issued={issued?.value ?? null} reason={issued?.reason ?? "created"} onClose={() => setIssued(null)} />
       <ConfirmDialog
+        open={bulkAsked}
+        destructive
+        title={`Reset ${resettable.length} password${resettable.length === 1 ? "" : "s"}?`}
+        confirmLabel={`Reset ${resettable.length} password${resettable.length === 1 ? "" : "s"}`}
+        message={
+          <div className="space-y-2">
+            <p>
+              Every account in the list as you have filtered it ({resettable.length}; not your own, and not closed accounts) will be signed out everywhere, and its current
+              password stops working. Each password becomes the standard one, which its owner must replace at their next sign-in.
+            </p>
+            <p>
+              Anyone who knows the standard password and an e-mail address can sign in to an account until its owner has done so, so reset only the accounts
+              whose owners are about to sign in.
+            </p>
+          </div>
+        }
+        onConfirm={() => void resetMany()}
+        onCancel={() => setBulkAsked(false)}
+      />
+      <ConfirmDialog
         open={pending !== null}
         destructive={pending?.kind === "disable"}
         title={pending?.kind === "disable" ? "Disable this account?" : "Reset this password?"}
@@ -377,4 +400,35 @@ function Filter({ id, label, value, onChange, all, options }: {
       </select>
     </div>
   );
+}
+
+/**
+ * The loaded accounts as narrowed by the filters that work in the browser (the search and the role were asked of the
+ * server), in the chosen order.
+ */
+function shownRows(
+  rows: AdminUserRow[],
+  reference: AdminReference,
+  f: { status: string; department: string; cadre: string; signIn: string },
+  sort: Sort = "",
+): AdminUserRow[] {
+  const dept = reference.departments.find((d) => String(d.id) === f.department);
+  const out = rows.filter((u) => {
+    if (f.status && u.status !== f.status) return false;
+    if (dept && !(u.role === "FACULTY" ? u.department === dept.name : (u.hodDepartments ?? "").split(", ").includes(dept.code))) return false;
+    if (f.cadre && u.cadre !== f.cadre) return false;
+    if (f.signIn === "never" && u.lastLoginAt) return false;
+    if (f.signIn === "pending" && !u.mustChangePassword) return false;
+    if (f.signIn === "active" && !u.lastLoginAt) return false;
+    return true;
+  });
+  const label = (u: AdminUserRow) => (u.name ?? u.email).toLowerCase();
+  const time = (u: AdminUserRow) => (u.lastLoginAt ? Date.parse(u.lastLoginAt) : null);
+  if (sort === "name") out.sort((a, b) => label(a).localeCompare(label(b)));
+  if (sort === "role") out.sort((a, b) => (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9) || label(a).localeCompare(label(b)));
+  if (sort === "recent" || sort === "oldest") {
+    // An account that has never signed in counts as the longest ago: first when sorting oldest first, last otherwise.
+    out.sort((x, y) => (sort === "recent" ? (time(y) ?? 0) - (time(x) ?? 0) : (time(x) ?? 0) - (time(y) ?? 0)));
+  }
+  return out;
 }

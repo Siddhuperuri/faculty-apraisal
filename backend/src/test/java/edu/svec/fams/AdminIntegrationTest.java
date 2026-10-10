@@ -88,6 +88,7 @@ class AdminIntegrationTest {
                 {HttpMethod.POST, "/api/admin/users/import", Map.of()},
                 {HttpMethod.PUT, "/api/admin/users/1", Map.of("status", "DISABLED")},
                 {HttpMethod.POST, "/api/admin/users/1/reset-password", null},
+                {HttpMethod.POST, "/api/admin/users/reset-passwords", Map.of("ids", java.util.List.of(1))},
                 {HttpMethod.POST, "/api/admin/departments", Map.of("code", "XYZ", "name", "X")},
                 {HttpMethod.PUT, "/api/admin/departments/1", Map.of("name", "X")},
                 {HttpMethod.POST, "/api/admin/academic-years", Map.of("name", "2030-31", "startDate", "2030-06-01", "endDate", "2031-05-31")},
@@ -358,6 +359,47 @@ class AdminIntegrationTest {
         long me = jdbc.sql("SELECT id FROM users WHERE email = 'admin@test.edu'").query(Long.class).single();
         http.post(admin, "/api/admin/users/" + me + "/reset-password", null).andExpect(status().isConflict());
         http.get(admin, "/api/admin/users").andExpect(status().isOk());
+    }
+
+    // ---- many passwords at once ----
+
+    @Test
+    void severalPasswordsCanBeSetBackAtOnceAndTheAdministratorsOwnIsLeftAlone() throws Exception {
+        var a = db.faculty("bulk1@test.edu", "B1", "CSE", "ASST_PROF");
+        var c = db.faculty("bulk2@test.edu", "B2", "CSE", "PROFESSOR");
+        var untouched = db.faculty("bulk3@test.edu", "B3", "CSE", "LECTURER");
+        long me = jdbc.sql("SELECT id FROM users WHERE email = 'admin@test.edu'").query(Long.class).single();
+        MockHttpSession theirs = http.login("bulk1@test.edu");
+
+        JsonNode result = http.read(http.post(admin, "/api/admin/users/reset-passwords",
+                Map.of("ids", java.util.List.of(a.id(), c.id(), c.id(), me, 999999))).andExpect(status().isOk()));
+        assertEquals(2, result.get("reset").asInt());
+        assertEquals(2, result.get("skipped").asInt());                      // the administrator and the id that matches nobody
+
+        http.get(theirs, "/api/auth/me").andExpect(status().isUnauthorized());                 // their session ended
+        assertEquals(401, http.tryLogin("bulk1@test.edu", TestDb.PASSWORD).getResponse().getStatus());   // old password dead
+        MockHttpSession fresh = http.login("bulk2@test.edu", result.get("temporaryPassword").asText());
+        http.get(fresh, "/api/auth/me").andExpect(jsonPath("$.mustChangePassword").value(true));
+        assertEquals(200, http.tryLogin("bulk3@test.edu", TestDb.PASSWORD).getResponse().getStatus());    // not listed: untouched
+        http.get(admin, "/api/admin/users").andExpect(status().isOk());                        // the administrator stays signed in
+
+        assertEquals(2, jdbc.sql("SELECT COUNT(*) FROM audit_logs WHERE action = 'PASSWORD_RESET'").query(Integer.class).single());
+        assertEquals(1, jdbc.sql("SELECT COUNT(*) FROM audit_logs WHERE action = 'PASSWORDS_RESET_BULK'").query(Integer.class).single());
+        for (String meta : jdbc.sql("SELECT COALESCE(CAST(metadata AS CHAR), '') FROM audit_logs").query(String.class).list()) {
+            assertFalse(meta.contains(result.get("temporaryPassword").asText()) || meta.contains("$2a$"), meta);
+        }
+        assertEquals(untouched.id(), jdbc.sql("SELECT id FROM users WHERE email = 'bulk3@test.edu'").query(Long.class).single());
+    }
+
+    @Test
+    void aBulkResetNeedsAListOfWholeNumberIdsOfAReasonableLength() throws Exception {
+        http.post(admin, "/api/admin/users/reset-passwords", Map.of()).andExpect(status().isBadRequest());
+        http.post(admin, "/api/admin/users/reset-passwords", Map.of("ids", java.util.List.of())).andExpect(status().isBadRequest());
+        http.post(admin, "/api/admin/users/reset-passwords", Map.of("ids", java.util.List.of("x"))).andExpect(status().isBadRequest());
+        http.post(admin, "/api/admin/users/reset-passwords", Map.of("ids", "1")).andExpect(status().isBadRequest());
+        java.util.List<Integer> tooMany = new java.util.ArrayList<>();
+        for (int i = 1; i <= 2001; i++) tooMany.add(i);
+        http.post(admin, "/api/admin/users/reset-passwords", Map.of("ids", tooMany)).andExpect(status().isBadRequest());
     }
 
     // ---- departments ----

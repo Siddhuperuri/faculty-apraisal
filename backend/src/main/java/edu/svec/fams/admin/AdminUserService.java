@@ -47,6 +47,12 @@ public class AdminUserService {
 
     public record IssuedPassword(long id, String email, String role, String temporaryPassword) {}
 
+    /** @param reset accounts whose password was set back; @param skipped those asked for that were left as they were */
+    public record BulkReset(int reset, int skipped, String temporaryPassword) {}
+
+    /** The most accounts one request may reset: more than a college has, so a list on screen always fits. */
+    static final int MAX_BULK_RESET = 2000;
+
     /** The faculty record's free-form fields, validated with the same rules as the appraisal form. */
     private static final List<FieldSpec> PROFILE = List.of(
             FieldSpec.text("name", "name", "Name", 120, false),
@@ -314,6 +320,34 @@ public class AdminUserService {
                 WHERE id = ?""").params(encoder.encode(defaultPassword.value()), id).update();
         audit.recordDetails(actor.id(), "PASSWORD_RESET", "USER", id, Map.of("email", u.email()));
         return new IssuedPassword(id, u.email(), u.role(), defaultPassword.value());
+    }
+
+    /**
+     * Sets the password of each listed account back to the standard one, as {@link #resetPassword} does for one: they must
+     * replace it at their next sign-in and every session they have ends. The administrator's own account is left alone (they
+     * would be signed out mid-action), and so are closed accounts of withdrawn roles and ids that match nobody; those count as
+     * skipped. The password is hashed once for the whole batch. Each account gets its own PASSWORD_RESET audit entry, and the
+     * batch one more, with the number of accounts.
+     */
+    @Transactional
+    public BulkReset resetPasswords(FamsUserPrincipal actor, List<Long> ids) {
+        List<Long> wanted = ids.stream().distinct().toList();
+        List<Object[]> found = jdbc.sql("SELECT id, email, role FROM users WHERE id IN (:ids)").param("ids", wanted)
+                .query((rs, n) -> new Object[] {rs.getLong(1), rs.getString(2), rs.getString(3)}).list();
+        String hash = encoder.encode(defaultPassword.value());
+        int reset = 0;
+        for (Object[] u : found) {
+            long id = (Long) u[0];
+            if (id == actor.id() || Role.find((String) u[2]).isEmpty()) continue;
+            jdbc.sql("""
+                    UPDATE users SET password_hash = ?, must_change_password = TRUE,
+                           session_version = session_version + 1, password_changed_at = CURRENT_TIMESTAMP
+                    WHERE id = ?""").params(hash, id).update();
+            audit.recordDetails(actor.id(), "PASSWORD_RESET", "USER", id, Map.of("email", u[1], "bulk", true));
+            reset++;
+        }
+        audit.recordDetails(actor.id(), "PASSWORDS_RESET_BULK", "USER", null, Map.of("accounts", reset));
+        return new BulkReset(reset, wanted.size() - reset, defaultPassword.value());
     }
 
     /**
