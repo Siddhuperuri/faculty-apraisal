@@ -23,7 +23,7 @@ final class ReportLabels {
         String[][] pairs = {
                 {"INST", "Inst"}, {"STATE", "State"}, {"NAT", "Nat"}, {"INTL", "Intl"},
                 {"THEORY", "Theory"}, {"LAB", "Lab"}, {"B_TECH", "B.Tech"}, {"M_TECH", "M.Tech"}, {"PHARMACY", "Pharmacy"}, {"DIPLOMA", "Diploma"},
-                {"CSE", "CSE"}, {"AIML", "AI & ML"}, {"CAI", "CAI"}, {"AIM", "AIM"}, {"CSDS", "CSDS"},{"ECE", "ECE"}, {"EEE", "EEE"}, {"ME", "ME"}, {"CE", "CE"}, {"BSH", "BSH"},
+                {"CSE", "CSE"}, {"AIML", "AI & ML"}, {"CAI", "CAI"}, {"AIM", "AIM"}, {"CSDS", "CSDS"}, {"ECE", "ECE"}, {"EEE", "EEE"}, {"ME", "ME"}, {"CE", "CE"}, {"BSH", "BSH"},
                 {"PHARMACEUTICS", "Pharmaceutics"}, {"PHARMACEUTICAL_CHEMISTRY", "Pharmaceutical Chemistry"},
                 {"1", "1"}, {"2", "2"}, {"3", "3"}, {"4", "4"}, {"5", "5"}, {"6", "6"}, {"7", "7"}, {"8", "8"},
                 {"PHARMACOLOGY", "Pharmacology"}, {"PHARMACOGNOSY", "Pharmacognosy"}, {"PHARMACY_PRACTICE", "Pharmacy Practice"}, {"UG", "UG"}, {"PG", "PG"},
