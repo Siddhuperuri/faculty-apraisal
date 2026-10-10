@@ -70,5 +70,8 @@ fams:
   default-password: ${FAMS_DEFAULT_PASSWORD:}
   # First administrator for a fresh installation: used only when no administrator exists; must change the password at
   # first sign-in. Unset them once the account exists.
+  # Set back every account to the standard password once, at start-up, when this holds a token not used before (see
+  # StartupPasswordReset). Unset it afterwards.
+  reset-all-passwords: ${FAMS_RESET_ALL_PASSWORDS:}
   bootstrap-admin-email: ${FAMS_BOOTSTRAP_ADMIN_EMAIL:}
   bootstrap-admin-password: ${FAMS_BOOTSTRAP_ADMIN_PASSWORD:}

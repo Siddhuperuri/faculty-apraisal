@@ -66,6 +66,7 @@ database and the issued reports go with them. Use `scripts/docker-backup.sh` to 
 | `FAMS_BIND_ADDRESS` | The address the backend listens on. Default `127.0.0.1`. Set it (for example `0.0.0.0`) only if the proxy runs on another machine, and firewall port 8080 to that machine |
 | `FAMS_STORAGE_DIR` | **Required.** The absolute path of the directory where issued official reports are kept. It must be on storage that outlives the application (a data disk or a shared volume, not a temporary or working directory): the backend does not start without a directory it can write to. Private, outside any web root, writable by the service account only. With several instances, the same shared volume for all |
 | `FAMS_BOOTSTRAP_ADMIN_EMAIL`, `FAMS_BOOTSTRAP_ADMIN_PASSWORD` | Creates the first administrator, only while none exists. Remove both afterwards |
+| `FAMS_RESET_ALL_PASSWORDS` | A token. When the application starts with a token it has not seen before, every account (administrators included) is set back to the standard password and must choose a new one at its next sign-in; a token runs once, so a restart does nothing, and to repeat it give a new one. For when no administrator can use the console's bulk reset. **Unset it afterwards** |
 | `FAMS_CORS_ORIGIN` | Default empty: no other origin may call the API from a browser. Name one origin only if the pages are served from a different origin than the API (they normally are not) |
 
 Never enable the `dev` Spring profile on the server: it creates demo accounts with a shared password and turns off the
