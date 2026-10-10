@@ -47,7 +47,7 @@ Called "the college register". Tokens live in `frontend/src/app/globals.css` (`@
 grain, deep navy ink (`--color-navy`), the college blue from the official form (`--color-brand`), a thin ochre accent taken from
 the seal's gold (`--color-ochre`), editorial serif **Newsreader** for titles/numerals and **Hanken Grotesk** for data, status shown
 as a rubber stamp, an eleven-mark page ruler, outlined section numerals, a letterhead header with the college seal
-(`frontend/public/svec-logo.png`). Reusable primitives are in `src/components/ui/primitives.tsx`, `Dialog.tsx`, `FieldInput.tsx`
+(`frontend/public/svec-logo.png`, the 25th anniversary logo). Reusable primitives are in `src/components/ui/primitives.tsx`, `Dialog.tsx`, `FieldInput.tsx`
 and `src/components/console/parts.tsx`. Strengthen this identity; make it richer, more confident and more refined.
 
 ### Where to make it impressive (priority order)

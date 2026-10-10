@@ -74,7 +74,7 @@ function LoginForm() {
         <header className="flex flex-col justify-between gap-6 lg:gap-10">
           <div className="rise flex items-center gap-3 lg:gap-4" style={{ "--i": 0 } as React.CSSProperties}>
             <span className="flex h-14 w-14 shrink-0 items-center justify-center drop-shadow-[0_2px_10px_rgb(0_0_0/0.45)] lg:h-24 lg:w-24">
-              <Image src="/svec-logo.png" alt="Sri Vasavi Engineering College seal" width={96} height={96} priority className="h-full w-full object-contain" />
+              <Image src="/svec-logo.png" alt="Sri Vasavi Engineering College 25th anniversary logo" width={96} height={96} priority className="h-full w-full rounded-xl object-contain" />
             </span>
             <p className="font-display text-lg font-medium leading-tight text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.55),0_3px_16px_rgb(0_0_0/0.65)] sm:text-xl lg:text-2xl">
               Sri Vasavi Engineering College

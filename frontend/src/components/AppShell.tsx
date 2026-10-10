@@ -12,7 +12,7 @@ export function Brand({ inverse = false }: { inverse?: boolean }) {
   return (
     <span className="flex items-center gap-3.5">
       <span className="flex h-12 w-12 shrink-0 items-center justify-center drop-shadow-[0_2px_8px_rgb(0_0_0/0.35)] sm:h-[3.35rem] sm:w-[3.35rem]">
-        <Image src="/svec-logo.png" alt="" width={44} height={44} priority className="h-full w-full object-contain" />
+        <Image src="/svec-logo.png" alt="" width={44} height={44} priority className="h-full w-full rounded-lg object-contain" />
       </span>
       <span className="leading-tight">
         <span className={`block font-display text-[15px] font-semibold uppercase tracking-[0.09em] sm:text-[17px] ${inverse ? "text-white" : "text-navy"}`}>
