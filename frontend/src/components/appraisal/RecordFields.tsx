@@ -2,7 +2,7 @@
 
 import { FieldInput, rangeHint } from "@/components/ui/FieldInput";
 import { formatDate } from "@/lib/format";
-import { choicesFor } from "@/lib/validate";
+import { choicesFor, isAsked } from "@/lib/validate";
 import { useAppraisal } from "./AppraisalProvider";
 import type { SectionMeta } from "@/lib/types";
 import type { FieldErrors, FormValues } from "@/lib/validate";
@@ -17,6 +17,8 @@ export function RecordFields({
   disabled = false,
   hidden = [],
   suggestions,
+  radios = [],
+  fieldHints,
   autoFocusFirst = false,
 }: {
   meta: SectionMeta;
@@ -27,11 +29,15 @@ export function RecordFields({
   disabled?: boolean;
   hidden?: string[];
   suggestions?: Record<string, string[]>;
+  /** Choice fields shown as radio buttons rather than a drop-down. */
+  radios?: string[];
+  /** Helper text shown under a field, by field name. */
+  fieldHints?: Record<string, string>;
   autoFocusFirst?: boolean;
 }) {
   const { appraisal } = useAppraisal();
   const year = appraisal ? { start: appraisal.academicYearStart, end: appraisal.academicYearEnd } : undefined;
-  const shown = meta.fields.filter((f) => !hidden.includes(f.name));
+  const shown = meta.fields.filter((f) => !hidden.includes(f.name) && isAsked(f, values));
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {shown.map((f, i) => {
@@ -48,7 +54,7 @@ export function RecordFields({
               ? f.type === "INT"
                 ? `${year.start.slice(0, 4)} or ${year.end.slice(0, 4)} (the academic year being appraised)`
                 : `Within the academic year ${formatDate(year.start)} to ${formatDate(year.end)}`
-              : rangeHint(f);
+              : (fieldHints?.[f.name] ?? rangeHint(f));
         return (
           <div key={f.name} className={f.type === "TEXT" && (f.maxLength ?? 0) > 120 ? "md:col-span-2" : undefined}>
             <FieldInput
@@ -61,6 +67,7 @@ export function RecordFields({
               hint={hint}
               suggestions={suggestions?.[f.name]}
               autoFocus={autoFocusFirst && i === 0}
+              radio={radios.includes(f.name)}
               range={inYear ? year : undefined}
             />
           </div>

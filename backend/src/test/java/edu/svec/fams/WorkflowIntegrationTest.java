@@ -110,12 +110,12 @@ class WorkflowIntegrationTest {
     void newPolicyVersionAppliesToNewAppraisalsOnlyAndHistoryIsPreserved() throws Exception {
         long before = createAppraisal(faculty);
 
-        // Institution publishes a further policy version (3, after the document's 1 and the current policy's 2) for the Professor cadre with different marks.
+        // Institution publishes a further policy version (4, after the document's 1, V24's 2 and the current policy's 3) for the Professor cadre with different marks.
         long yearId = jdbc.sql("SELECT id FROM academic_years WHERE name = '2025-26'").query(Long.class).single();
         long cadreId = jdbc.sql("SELECT id FROM cadres WHERE code = 'PROFESSOR'").query(Long.class).single();
-        jdbc.sql("INSERT INTO scoring_policies (academic_year_id, cadre_id, version) VALUES (?,?,3)")
+        jdbc.sql("INSERT INTO scoring_policies (academic_year_id, cadre_id, version) VALUES (?,?,4)")
                 .params(yearId, cadreId).update();
-        long v2 = jdbc.sql("SELECT id FROM scoring_policies WHERE cadre_id = ? AND version = 3")
+        long v2 = jdbc.sql("SELECT id FROM scoring_policies WHERE cadre_id = ? AND version = 4")
                 .param(cadreId).query(Long.class).single();
         jdbc.sql("INSERT INTO scoring_policy_criteria (policy_id, criterion, max_marks) VALUES (?, 'TEACHING_LEARNING', 100)")
                 .param(v2).update();
@@ -127,7 +127,7 @@ class WorkflowIntegrationTest {
 
         Integer teachingOld = jdbc.sql("SELECT max_marks FROM appraisal_scores WHERE appraisal_id = ? AND criterion = 'TEACHING_LEARNING'")
                 .param(before).query(Integer.class).single();
-        assertEquals(40, teachingOld);                        // earlier appraisal unchanged (Asst Prof v2)
+        assertEquals(40, teachingOld);                        // earlier appraisal unchanged (Asst Prof v3)
     }
 
     @Test

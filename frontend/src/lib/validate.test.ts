@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SectionMeta } from "./types";
-import { isBlank, serverErrorsFor, toApiRecord, toFormValues, validate } from "./validate";
+import { applyDependencies, isAsked, isBlank, serverErrorsFor, toApiRecord, toFormValues, validate } from "./validate";
 
 const meta: SectionMeta = {
   key: "demo",
@@ -94,5 +94,50 @@ describe("serverErrorsFor", () => {
     const server = { "records[0].title": "bad", "records[1].count": "worse", "records[1].mode": "x" };
     expect(serverErrorsFor(server, 1)).toEqual({ count: "worse", mode: "x" });
     expect(serverErrorsFor(undefined, 0)).toEqual({});
+  });
+});
+
+describe("a number chosen from a list", () => {
+  const hours: SectionMeta = {
+    key: "demo", singleton: false, uniqueField: null, dateRanges: [],
+    fields: [
+      { name: "hoursPerWeek", label: "Hours per week", type: "DECIMAL", required: true, min: 1, max: 6, scale: 0, maxLength: null, allowed: ["1", "2", "3", "4", "5", "6"] },
+      { name: "semester", label: "Semester", type: "INT", required: true, min: 1, max: 12, scale: null, maxLength: null, allowed: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"] },
+    ],
+  };
+
+  it("accepts only the listed values", () => {
+    expect(validate(hours, { hoursPerWeek: "6", semester: "12" })).toEqual({});
+    expect(validate(hours, { hoursPerWeek: "1", semester: "1" })).toEqual({});
+    expect(validate(hours, { hoursPerWeek: "7", semester: "3" }).hoursPerWeek).toBe("Hours per week must be one of: 1, 2, 3, 4, 5, 6.");
+    expect(validate(hours, { hoursPerWeek: "0", semester: "3" }).hoursPerWeek).toBe("Hours per week must be one of: 1, 2, 3, 4, 5, 6.");
+    expect(validate(hours, { hoursPerWeek: "2.5", semester: "3" }).hoursPerWeek).toBe("Hours per week must be one of: 1, 2, 3, 4, 5, 6.");
+    expect(validate(hours, { hoursPerWeek: "", semester: "3" }).hoursPerWeek).toBe("Hours per week is required.");
+    expect(validate(hours, { hoursPerWeek: "3", semester: "13" }).semester).toContain("must be one of");
+  });
+});
+
+describe("a field asked for only under another choice", () => {
+  const cert: SectionMeta = {
+    key: "certifications", singleton: false, uniqueField: null, dateRanges: [],
+    fields: [
+      { name: "platform", label: "Platform", type: "ENUM", required: true, allowed: ["NPTEL", "OTHER"], maxLength: null, min: null, max: null, scale: null },
+      { name: "platformOther", label: "Name of the platform", type: "TEXT", required: false, maxLength: 100, min: null, max: null, scale: null, allowed: null,
+        onlyWhenField: "platform", onlyWhenEquals: "OTHER" },
+    ],
+  };
+
+  it("is required only while the platform is Other", () => {
+    expect(validate(cert, { platform: "NPTEL", platformOther: "" })).toEqual({});
+    expect(validate(cert, { platform: "OTHER", platformOther: "  " }).platformOther).toBe("Name of the platform is required when Platform is Other.");
+    expect(validate(cert, { platform: "OTHER", platformOther: "Infosys Springboard" })).toEqual({});
+  });
+
+  it("is not sent, and is cleared, when the platform is not Other", () => {
+    expect(isAsked(cert.fields[1], { platform: "NPTEL", platformOther: "x" })).toBe(false);
+    expect(toApiRecord(cert, { platform: "NPTEL", platformOther: "left over" }).platformOther).toBeNull();
+    expect(toApiRecord(cert, { platform: "OTHER", platformOther: "Infosys Springboard" }).platformOther).toBe("Infosys Springboard");
+    expect(applyDependencies(cert, { platform: "NPTEL", platformOther: "left over" }, "platform").platformOther).toBe("");
+    expect(applyDependencies(cert, { platform: "OTHER", platformOther: "kept" }, "platform").platformOther).toBe("kept");
   });
 });

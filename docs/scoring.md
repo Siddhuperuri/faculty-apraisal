@@ -23,7 +23,7 @@ and ignored. The per-entry marks are in code (`ScoringRules`), because they are 
 
 | Criterion | Entry | Marks |
 |---|---|---|
-| B1 Teaching | each course handled (up to the workload component's 20; 8 courses reach it) | 2.5 |
+| B1 Teaching | each course handled: an eighth of each component (see "B1: courses" below) | |
 | B5 Research & Publications | SCI/SCIE journal paper | 15 |
 | | ESCI/Scopus journal paper (UGC-CARE and others earn nothing) | 10 |
 | | conference paper | 5 |
@@ -44,23 +44,27 @@ and ignored. The per-entry marks are in code (`ScoringRules`), because they are 
 - **Only the academic year counts.** Everything is counted only if it was achieved, done or received in the academic year being
   appraised, which runs from 1 June to 31 May (the year's own dates). The form refuses an entry dated outside it
   (`SectionSpec.inAcademicYear`), and the marks also count only entries inside it, so a stray older row earns nothing.
-  Dated fields held to it: student achievements (month), FDPs, certifications and events (start and end day), roles
+  Dated fields held to it: student achievements (month), events (start and end day), roles
   (from and to day), journal and conference papers and books (month), scholars, funded projects and memberships (year, one of
   the two calendar years the academic year spans), patents (day) and outreach (day). What describes the person (joining dates,
   the year a Ph.D. was registered, research profile metrics) is not.
-- **B1: courses.** A faculty member teaches 4 courses in each of the academic year's 2 semesters, and **at most 8** can be added.
-  Each course earns one eighth of the cadre's B1 maximum, shared among its components as the policy divides it (an Assistant
-  Professor's 40 is 5 a course: 2.5 workload, 1 feedback, 0.75 course file, 0.75 innovative practices), so 8 courses earn all of it.
+- **B1: courses.** A faculty member teaches 4 courses in each of the academic year's 2 semesters, and **at most 8** can be added
+  (there is no minimum). Each course earns one eighth of each component of B1, so 8 courses earn all of it (an Assistant
+  Professor's 40 is 5 a course: 2.5 workload, 1.25 course file, 1.25 innovative practices). **Workload is a whole number of
+  marks**: it is worked out exactly (component maximum x courses / 8) and rounded to the nearest whole mark, half up, so a
+  Professor or Associate Professor (workload 15, that is 1.875 a course) earns 2, 4, 6, 8, 9, 11, 13 and 15 for 1 to 8 courses, and
+  8 courses are exactly 15. The other components are not rounded. There is no "student feedback" component any more (policy
+  version 3; the course form still records the Phase-1 and Phase-2 feedback percentages, which earn no marks).
 - **B2 to B4: a working rate card** (the college has not published one; change it in `ScoringRules`). Each kind of entry has a rate
   and a cap, and the caps add up to the criterion's 15:
 
 | Criterion | Entry | Marks each | Stops at |
 |---|---|---|---|
-| B2 | student mentored (50 mentees earn the 6) | 0.12 | 6 |
-| | student project guided | 1 | 4 |
+| B2 | students mentored: 6 marks if the total is more than 0, otherwise 0 | 6 once | 6 |
+| | student project guided | 2 | 4 |
 | | student achievement | 1 | 5 |
-| B3 | workshop, FDP, seminar or training attended | 1 | 5 |
-| | certification | 2 | 10 |
+| B3 | workshop, FDP, seminar or training of **5 days or more**: one qualifying program earns all 5 | 5 once | 5 |
+| | certification (a duration in whole weeks is given): one valid certification earns all 10 | 10 once | 10 |
 | B4 | department-level role | 2 | 4 |
 | | institute-level role | 1.5 | 3 |
 | | event organised or coordinated | 1 | 8 |
@@ -68,17 +72,20 @@ and ignored. The per-entry marks are in code (`ScoringRules`), because they are 
 ## Scoring components (criteria B1 to B4)
 
 The college's "Cadre_wise" document, *Scoring criteria B1 to B5 (Annexure A & B)*, gave for each cadre the components
-each maximum is made of. B5's are gone with its maximum, and B1 now has the same four parts for every cadre:
+each maximum is made of. B5's are gone with its maximum. B1 had four parts (including "student feedback") in policy versions 1
+and 2; **the current version 3 (`V33`) has three** and the totals are unchanged:
 
-| Cadre | Workload & course delivery | student feedback | course-file/assessment quality | innovative/remedial/advanced-learning practices | B1 |
-|---|---|---|---|---|---|
-| Lecturer, Assistant Professor | 20 | 8 | 6 | 6 | 40 |
-| Senior Assistant Professor | 20 | 6 | 5 | 4 | 35 |
-| Associate Professor, Professor | 20 | 4 | 3 | 3 | 30 |
+| Cadre | Workload & course delivery | course-file/assessment quality | innovative/remedial/advanced-learning practices | B1 |
+|---|---|---|---|---|
+| Lecturer, Assistant Professor | 20 | 10 | 10 | 40 |
+| Senior Assistant Professor | 20 | 10 | 5 | 35 |
+| Associate Professor, Professor | 15 | 10 | 5 | 30 |
 
-B2, B3 and B4 have the same parts for every cadre (policy version 2). The marks of a component are a **cap on that part of the
-criterion**, not a rate per entry: nothing is calculated from the number of entries, and the faculty member still types
-the criterion's score, from 0 up to its 15.
+Appraisals already submitted or approved keep the version they began with, so they still show the four parts of version 2
+(history is not rewritten); drafts follow version 3 (`V33` moves them, as `V25` did for version 2).
+
+B2, B3 and B4 have the same parts for every cadre (policy versions 2 and 3). The marks of a component are a **cap on that part
+of the criterion**; the marks themselves are calculated from the entries (see the rate card above) and nobody types a score.
 
 | Criterion | Component | Marks |
 |---|---|---|
@@ -106,7 +113,7 @@ new policy: `V25__drafts_follow_current_policy.sql` moves each draft to version 
 score rows, changing nothing the faculty member entered. A draft stays on version 1 if a self-score saved on it would exceed
 a new maximum (none is altered to fit). Each move is an `APPRAISAL_POLICY_MOVED` audit entry.
 
-- **One place.** The components are data: table `scoring_policy_components`, filled by `V9`, changed by `V13`, `V14` and `V24`.
+- **One place.** The components are data: table `scoring_policy_components`, filled by `V9`, changed by `V13`, `V14`, `V24` and `V33`.
   Everything reads them through `ScoreService.rows`: the score sheet, the submit summary, the report.
 - **Per cadre, per policy version.** An appraisal shows the components of the policy version it started with.
 - **They always add up.** A criterion's components total its maximum. When an administrator publishes a new version, a

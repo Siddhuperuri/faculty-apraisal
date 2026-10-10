@@ -424,7 +424,7 @@ class MessageIntegrationTest {
         java.util.List<Map<String, Object>> records = new java.util.ArrayList<>();
         for (int i = 0; i < n; i++) {
             records.add(new java.util.LinkedHashMap<>(Map.<String, Object>of("courseCode", "X" + i, "courseName", "Course", "courseType", "THEORY",
-                    "program", "B_TECH", "branch", "CSE", "semester", 3, "hoursPerWeek", 4, "passPercentage", 90)));
+                    "courseRole", "INSTRUCTOR", "program", "B_TECH", "branch", "CSE", "semester", 3, "section", "A", "hoursPerWeek", 4, "passPercentage", 90)));
         }
         return call(faculty, "PUT", "/api/appraisals/" + appraisal + "/sections/teaching-courses", Map.of("records", records));
     }

@@ -440,7 +440,7 @@ class AdminIntegrationTest {
         assertEquals(0, jdbc.sql("""
                 SELECT COUNT(*) FROM scoring_policy_criteria a
                 JOIN scoring_policies pa ON pa.id = a.policy_id AND pa.academic_year_id = ?
-                JOIN scoring_policies pb ON pb.academic_year_id = (SELECT id FROM academic_years WHERE name = '2025-26') AND pb.cadre_id = pa.cadre_id AND pb.version = 2
+                JOIN scoring_policies pb ON pb.academic_year_id = (SELECT id FROM academic_years WHERE name = '2025-26') AND pb.cadre_id = pa.cadre_id AND pb.version = 3
                 JOIN scoring_policy_criteria b ON b.policy_id = pb.id AND b.criterion = a.criterion
                 WHERE a.max_marks <> b.max_marks""").param(yearId).query(Integer.class).single());
 
@@ -505,9 +505,9 @@ class AdminIntegrationTest {
     @Test
     void policiesListEveryVersionWithTheirTotals() throws Exception {
         JsonNode all = http.read(http.get(admin, "/api/admin/policies?academicYearId=" + yearId()).andExpect(status().isOk()));
-        assertEquals(10, all.size());                              // two versions of each of the five cadres' policies
+        assertEquals(15, all.size());                              // three versions of each of the five cadres' policies
         for (JsonNode p : all) {
-            assertTrue(List.of(1, 2).contains(p.get("version").asInt()));
+            assertTrue(List.of(1, 2, 3).contains(p.get("version").asInt()));
             assertEquals(9, p.get("marks").size());
             assertEquals(0, p.get("marks").get("RESEARCH_PUBLICATIONS").asInt()); // marked per entry, no maximum
         }
@@ -522,7 +522,7 @@ class AdminIntegrationTest {
         http.post(http.login("old@test.edu"), "/api/appraisals", null).andExpect(status().isCreated());
 
         JsonNode v2 = http.read(http.post(admin, "/api/admin/policies", publish(marks(25, 20))).andExpect(status().isCreated()));
-        assertEquals(3, v2.get("version").asInt());          // after versions 1 (the document's) and 2 (V24's current policy)
+        assertEquals(4, v2.get("version").asInt());          // after versions 1 (the document's), 2 (V24's) and 3 (V33's current policy)
         assertEquals(70, v2.get("total").asInt());
         assertEquals(25, v2.get("marks").get("TEACHING_LEARNING").asInt());
 
@@ -532,12 +532,12 @@ class AdminIntegrationTest {
         http.post(http.login("new@test.edu"), "/api/appraisals", null).andExpect(status().isCreated());
         assertEquals(List.of(40, 25), jdbc.sql("SELECT s.max_marks FROM appraisal_scores s JOIN appraisals a ON a.id = s.appraisal_id"
                 + " WHERE s.criterion = 'TEACHING_LEARNING' ORDER BY a.id").query(Integer.class).list());
-        assertEquals(3, jdbc.sql("SELECT MAX(version) FROM scoring_policies WHERE cadre_id = ?").param(asstProf).query(Integer.class).single());
+        assertEquals(4, jdbc.sql("SELECT MAX(version) FROM scoring_policies WHERE cadre_id = ?").param(asstProf).query(Integer.class).single());
 
-        // the next publish is version 4; the other cadres were not touched
+        // the next publish is version 5; the other cadres were not touched
         JsonNode v3 = http.read(http.post(admin, "/api/admin/policies", publish(marks(20, 25))));
-        assertEquals(4, v3.get("version").asInt());
-        assertEquals(2, jdbc.sql("SELECT MAX(version) FROM scoring_policies WHERE cadre_id = ?").param(professor).query(Integer.class).single());
+        assertEquals(5, v3.get("version").asInt());
+        assertEquals(3, jdbc.sql("SELECT MAX(version) FROM scoring_policies WHERE cadre_id = ?").param(professor).query(Integer.class).single());
     }
 
     @Test
@@ -571,7 +571,7 @@ class AdminIntegrationTest {
         post("/api/admin/policies", badCadre, "cadreId");
         // a policy whose marks are right is still accepted after all those refusals
         http.post(admin, "/api/admin/policies", publish(marks(30, 15))).andExpect(status().isCreated());
-        assertEquals(3, jdbc.sql("SELECT MAX(version) FROM scoring_policies WHERE cadre_id = ?").param(asstProf).query(Integer.class).single());
+        assertEquals(4, jdbc.sql("SELECT MAX(version) FROM scoring_policies WHERE cadre_id = ?").param(asstProf).query(Integer.class).single());
     }
 
     // ---- audit trail ----

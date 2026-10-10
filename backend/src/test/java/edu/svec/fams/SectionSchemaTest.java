@@ -56,17 +56,17 @@ class SectionSchemaTest {
                 "teachingExperienceYears", 8.5, "industryExperienceYears", 1, "researchExperienceYears", 3.5,
                 "researchIds", "ORCID 0000-0001-2345-6789"));
         m.put("teaching-courses", rec("courseCode", "CS101", "courseName", "Intro to Programming",
-                "courseType", "THEORY", "program", "B_TECH", "branch", "CSE", "semester", 3,
-                "hoursPerWeek", 4, "passPercentage", 92.5, "phase1Feedback", 80, "phase2Feedback", 85));
+                "courseRole", "INSTRUCTOR", "courseType", "THEORY", "program", "B_TECH", "branch", "CSE", "semester", 3,
+                "section", "B", "hoursPerWeek", 4, "passPercentage", 92.5, "phase1Feedback", 80, "phase2Feedback", 85));
         m.put("mentoring-summary", rec("totalStudentsMentored", 25));
         m.put("student-achievements", rec("studentName", "A. Student", "rollNo", "21A91A0501",
                 "achievement", "Won hackathon", "level", "STATE", "monthYear", "2026-03"));
         m.put("student-projects", rec("level", "UG", "title", "Smart attendance", "studentCount", 4,
                 "outcome", "PAPER"));
         m.put("fdps", rec("title", "AI for Educators", "mode", "ONLINE", "institutionVenue", "IIT Madras",
-                "startDate", "2026-01-05", "endDate", "2026-01-09", "days", 5));
-        m.put("certifications", rec("platform", "NPTEL", "title", "Data Structures", "startDate", "2026-01-10",
-                "endDate", "2026-04-10", "durationWeeksHours", "12 weeks", "gradeScore", "Elite"));
+                "days", 5));
+        m.put("certifications", rec("platform", "NPTEL", "title", "Data Structures",
+                "durationWeeks", 12, "gradeScore", "Elite"));
         m.put("administrative-roles", rec("scope", "DEPARTMENT", "role", "Timetable Coordinator",
                 "description", "Prepares the timetable", "fromDate", "2025-07-01", "toDate", "2026-05-31"));
         m.put("events", rec("activityType", "Guest lecture", "role", "Organizer", "title", "Cloud workshop",
@@ -108,6 +108,10 @@ class SectionSchemaTest {
         assertEquals(Sections.all().keySet(), samples().keySet(), "every section needs a sample in this test");
     }
 
+    private static final Map<String, Set<String>> LEGACY_COLUMNS = Map.of(
+            "fdps", Set.of("start_date", "end_date"),
+            "certifications", Set.of("start_date", "end_date", "duration_weeks_hours"));
+
     @Test
     void definedColumnsMatchTheDatabaseExactly() {
         for (SectionSpec s : Sections.all().values()) {
@@ -117,6 +121,8 @@ class SectionSchemaTest {
                     .param(s.table()).query(String.class).list());
             dbColumns.remove("id");
             dbColumns.remove("appraisal_id");
+            // Columns the form no longer asks for are kept on rows entered before (V33), so that nothing is lost.
+            dbColumns.removeAll(LEGACY_COLUMNS.getOrDefault(s.table(), Set.of()));
             Set<String> specColumns = s.fields().stream().map(FieldSpec::column).collect(Collectors.toSet());
             assertEquals(dbColumns, specColumns, "columns of " + s.table());
         }
@@ -179,6 +185,9 @@ class SectionSchemaTest {
                     } else if (dep != null && f.name().equals(dep.onField())) {
                         variant.put(dep.field(), dep.allowedBy().get(value).get(0));
                     }
+                    for (SectionSpec.ConditionalField c : spec.conditionalFields()) {   // a platform named Other needs its name
+                        if (f.name().equals(c.onField()) && value.equals(c.equals())) variant.put(c.field(), "Some other platform");
+                    }
                     SectionService.SectionView v = sections.save(appraisalId, key, faculty, List.of(variant));
                     assertEquals(value, v.records().get(0).get(f.name()), key + "." + f.name());
                 }
@@ -200,6 +209,9 @@ class SectionSchemaTest {
                         spec.table() + "." + f.column() + ": limit " + f.maxLength() + " > column " + declared);
                 Map<String, Object> sample = new LinkedHashMap<>(samples().get(spec.key()));
                 sample.put(f.name(), "x".repeat(f.maxLength()));
+                for (SectionSpec.ConditionalField c : spec.conditionalFields()) {   // asked for only under another choice
+                    if (f.name().equals(c.field())) sample.put(c.onField(), c.equals());
+                }
                 sections.save(appraisalId, spec.key(), faculty, List.of(sample));
             }
         }

@@ -62,7 +62,7 @@ public class AdminUserService {
             FieldSpec.text("specialization", "specialization", "Specialization", 160, false),
             FieldSpec.choice("phdStatus", "phd_status", "Ph.D. status", false, "AWARDED", "PURSUING", "NOT_APPLICABLE"),
             FieldSpec.date("joiningDateInstitution", "joining_date_institution", "Date of joining (institution)", false),
-            FieldSpec.date("joiningDateDesignation", "joining_date_designation", "Date of joining (present designation)", false),
+            FieldSpec.date("joiningDateDesignation", "joining_date_designation", "Date of promotion", false),
             FieldSpec.decimal("teachingExperienceYears", "teaching_experience_years", "Teaching experience (years)", 0, 80, 1, false),
             FieldSpec.decimal("industryExperienceYears", "industry_experience_years", "Industry experience (years)", 0, 80, 1, false),
             FieldSpec.decimal("researchExperienceYears", "research_experience_years", "Research experience (years)", 0, 80, 1, false),

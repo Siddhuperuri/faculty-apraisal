@@ -17,9 +17,10 @@ import org.springframework.stereotype.Component;
  *   <li>B1 Teaching &amp; Learning: each course handled earns the cadre's B1 maximum divided by the 8 courses a faculty
  *       member teaches in a year (so 8 courses earn the whole maximum), shared among the criterion's components as the
  *       policy divides it. Worked out by {@link ScoreService}, which knows the policy.</li>
- *   <li>B2 to B4: a mark or two for each entry, up to a cap for each kind of entry; the caps add up to the criterion's
- *       maximum of 15. The college has not published rates for these, so the rates below are a working rule that is
- *       easy to change here.</li>
+ *   <li>B2 to B4: marks for each kind of entry, up to a cap for each; the caps add up to the criterion's maximum of 15.
+ *       Mentoring is 6 marks when any student is mentored, project guidance 2 for each project up to 4, a workshop or
+ *       FDP of at least 5 days earns 5 once and a certification 10 once. The rest are a working rule that is easy to
+ *       change here.</li>
  *   <li>B5 to B9: the college's fixed rate card per entry, the same for every cadre, with no upper limit. A journal
  *       paper counts by its indexing (UGC-CARE and others earn nothing), Ph.D. scholars awarded are "guided" and
  *       registered or submitted are "guiding", M.Tech and MBA scholars awarded are "PG guided", and each UG project is
@@ -39,8 +40,8 @@ public class ScoringRules {
         }
     }
 
-    /** Mentees whose number earns the whole of the mentoring marks: a faculty member mentors about this many. */
-    static final int MENTEES_FOR_FULL_MARKS = 50;
+    /** A workshop, FDP, seminar or training program counts towards the marks only when it lasted at least this many days. */
+    static final int MIN_QUALIFYING_DAYS = 5;
 
     /** The first and last day of the appraisal's academic year; each use needs the appraisal id bound to its {@code ?}. */
     private static final String START = "(SELECT ay.start_date FROM appraisals ap JOIN academic_years ay ON ay.id = ap.academic_year_id WHERE ap.id = ?)";
@@ -59,13 +60,16 @@ public class ScoringRules {
         int mentees = jdbc.sql("SELECT COALESCE(SUM(total_students_mentored), 0) FROM student_mentoring WHERE appraisal_id = ?")
                 .param(id).query(Integer.class).single();
         out.put("STUDENT_MENTORING", List.of(
-                capped("Students mentored (6 marks for " + MENTEES_FOR_FULL_MARKS + ")", new BigDecimal("0.12"), Math.min(mentees, MENTEES_FOR_FULL_MARKS), 6),
-                capped("Student project guided (up to 4)", BigDecimal.ONE, count("student_projects", null, id), 4),
+                // 6 marks when any student is mentored, 0 when none: the number of students does not matter
+                capped("Students mentored (6 marks if you mentored any students)", BigDecimal.valueOf(6), mentees > 0 ? 1 : 0, 6),
+                capped("Student project guided (up to 4)", BigDecimal.valueOf(2), count("student_projects", null, id), 4),
                 capped("Student achievement (up to 5)", BigDecimal.ONE, count("student_achievements", null, id, "month:month_year"), 5)));
 
+        // One qualifying program earns all 5 marks and one certification all 10; further ones add nothing (the cap).
         out.put("FDP_CERTIFICATIONS", List.of(
-                capped("Workshop, FDP, seminar or training attended (up to 5)", BigDecimal.ONE, count("fdps", null, id, "date:start_date", "date:end_date"), 5),
-                capped("Certification (up to 10)", BigDecimal.valueOf(2), count("certifications", null, id, "date:start_date", "date:end_date"), 10)));
+                capped("Workshop, FDP, seminar or training of " + MIN_QUALIFYING_DAYS + " days or more (5 marks)", BigDecimal.valueOf(5),
+                        count("fdps", "days >= " + MIN_QUALIFYING_DAYS, id), 5),
+                capped("Certification (10 marks)", BigDecimal.TEN, count("certifications", "duration_weeks >= 1", id), 10)));
 
         out.put("ADMINISTRATIVE", List.of(
                 capped("Department-level role (up to 4)", BigDecimal.valueOf(2), count("administrative_roles", "scope = 'DEPARTMENT'", id, "date:from_date", "date:to_date"), 4),
@@ -75,7 +79,7 @@ public class ScoringRules {
         List<Line> research = new ArrayList<>();
         research.add(line("SCI/SCIE journal paper", 15, count("journal_publications", "indexing = 'SCI_SCIE'", id, "month:month_year")));
         research.add(line("ESCI/Scopus journal paper", 10, count("journal_publications", "indexing = 'SCOPUS'", id, "month:month_year")));
-        research.add(line("Conference paper", 5, count("conference_papers", null, id, "month:month_year")));
+        research.add(line("Conference paper published", 5, count("conference_papers", null, id, "month:month_year")));
         research.add(line("Ph.D. guided (awarded)", 10, count("research_scholars", "degree = 'PHD' AND status = 'AWARDED'", id, "year:year")));
         research.add(line("Ph.D. guiding (registered or submitted)", 5,
                 count("research_scholars", "degree = 'PHD' AND status IN ('REGISTERED', 'SUBMITTED')", id, "year:year")));

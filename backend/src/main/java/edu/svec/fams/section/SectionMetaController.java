@@ -17,7 +17,8 @@ public class SectionMetaController {
 
     public record FieldMeta(String name, String label, String type, boolean required, boolean submitRequired, Integer maxLength,
                             BigDecimal min, BigDecimal max, Integer scale, List<String> allowed,
-                            String dependsOn, Map<String, List<String>> allowedBy, boolean derived, boolean inAcademicYear) {}
+                            String dependsOn, Map<String, List<String>> allowedBy, boolean derived, boolean inAcademicYear,
+                            String onlyWhenField, String onlyWhenEquals) {}
 
     public record DateRangeMeta(String startField, String endField) {}
 
@@ -29,6 +30,10 @@ public class SectionMetaController {
         return Sections.all().values().stream().map(SectionMetaController::toMeta).toList();
     }
 
+    private static SectionSpec.ConditionalField conditional(SectionSpec s, String field) {
+        return s.conditionalFields().stream().filter(c -> c.field().equals(field)).findFirst().orElse(null);
+    }
+
     private static SectionMeta toMeta(SectionSpec s) {
         List<FieldMeta> fields = s.fields().stream().map(f -> new FieldMeta(
                 f.name(), f.label(), f.type().name(), f.required(), f.submitRequired(),
@@ -36,11 +41,13 @@ public class SectionMetaController {
                 f.type() == FieldSpec.Type.INT || f.type() == FieldSpec.Type.DECIMAL ? f.min() : null,
                 f.type() == FieldSpec.Type.INT || f.type() == FieldSpec.Type.DECIMAL ? f.max() : null,
                 f.type() == FieldSpec.Type.DECIMAL ? f.scale() : null,
-                f.type() == FieldSpec.Type.ENUM ? f.allowed() : null,
+                f.allowed().isEmpty() ? null : f.allowed(),
                 s.dependentChoice() != null && s.dependentChoice().field().equals(f.name()) ? s.dependentChoice().onField() : null,
                 s.dependentChoice() != null && s.dependentChoice().field().equals(f.name()) ? s.dependentChoice().allowedBy() : null,
                 s.derivedDays() != null && s.derivedDays().daysField().equals(f.name()),
-                s.inAcademicYear().contains(f.name()))).toList();
+                s.inAcademicYear().contains(f.name()),
+                conditional(s, f.name()) == null ? null : conditional(s, f.name()).onField(),
+                conditional(s, f.name()) == null ? null : conditional(s, f.name()).equals())).toList();
         return new SectionMeta(s.key(), s.singleton(), fields,
                 s.dateRanges().stream().map(r -> new DateRangeMeta(r.startField(), r.endField())).toList(),
                 s.uniqueField());

@@ -41,9 +41,9 @@ The form has eleven pages that follow the printed form. Open them from the secti
 | Page | Form reference | Content |
 |---|---|---|
 | 01 General Information | Part A | Your identity block (read-only, from your profile) and the details you can correct |
-| 02 Teaching & Learning | Part B 1 | Courses handled, pass %, student feedback; totals are computed |
+| 02 Teaching & Learning | Part B 1 | Courses handled (course code, your role in it, section, semester, hours a week from 1 to 6, pass %, feedback %); totals are computed |
 | 03 Mentoring & Projects | Part B 2 | Students mentored, student achievements, projects guided |
-| 04 FDPs & Certifications | Part B 3 | Workshops, FDPs, seminars, training; certifications |
+| 04 FDPs & Certifications | Part B 3 | Workshops, FDPs, seminars, training (duration in days; 5 days or more earn the marks); certifications (duration in whole weeks; name the platform when it is Other) |
 | 05 Administration | Part B 4 | Institute-level and department-level roles; events organised |
 | 06 Research & Publications | Part B 5 | Journals, conference papers, research metrics, scholars, Ph.D. progress |
 | 07 Funded Projects / Consultancy | Part B 6 | Sanctioned and applied projects |

@@ -226,7 +226,7 @@ final class FormPdfBuilder {
                 str(g, "phdStatus"), null)));
 
         pair(t, "Date of Joining (Institution)", date(g == null ? null : g.get("joiningDateInstitution")));
-        pair(t, "Date of Joining (Present Designation)", date(g == null ? null : g.get("joiningDateDesignation")));
+        pair(t, "Date of Promotion", date(g == null ? null : g.get("joiningDateDesignation")));
 
         t.addCell(labelCell("Total Experience (Years)"));
         t.addCell(spanned(new Phrase(pdf("Teaching: " + blank(number(g == null ? null : g.get("teachingExperienceYears")))
@@ -262,10 +262,12 @@ final class FormPdfBuilder {
         push(heading("1. Teaching & Learning:"));
         push(sub("Courses handled during the Academic Year"));
         grid(doc, List.of(
-                new Col("Course Code & Name (Theory / Lab)", 20, r -> str(r, "courseCode") + " – " + str(r, "courseName") + " (" + label(r.get("courseType")) + ")", false),
-                new Col("Program & Branch", 13, r -> label(r.get("program")) + ", " + label(r.get("branch")), false),
-                new Col("Sem", 4.5f, r -> str(r, "semester"), true),
-                new Col("Hours / Week", 6.5f, r -> number(r.get("hoursPerWeek")), true),
+                new Col("Course Code & Name (Theory / Lab)", 18, r -> str(r, "courseCode") + " – " + str(r, "courseName") + " (" + label(r.get("courseType")) + ")", false),
+                new Col("Role (Coordinator / Instructor)", 9, r -> label(r.get("courseRole")), false),
+                new Col("Program & Branch", 12, r -> label(r.get("program")) + ", " + label(r.get("branch")), false),
+                new Col("Sem", 4, r -> str(r, "semester"), true),
+                new Col("Sec", 4, r -> str(r, "section"), true),
+                new Col("Hours / Week", 6, r -> number(r.get("hoursPerWeek")), true),
                 new Col("Pass %", 6, r -> number(r.get("passPercentage")), true),
                 new Col("Phase-1 Feedback %", 8, r -> number(r.get("phase1Feedback")), true),
                 new Col("Phase-2 Feedback %", 8, r -> number(r.get("phase2Feedback")), true)),
@@ -303,15 +305,14 @@ final class FormPdfBuilder {
                 new Col("Title of the Program", 26, r -> str(r, "title"), false),
                 new Col("Mode (Offline / Online / Blended)", 11, r -> label(r.get("mode")), false),
                 new Col("Organizing Institution / Venue", 18, r -> str(r, "institutionVenue"), false),
-                new Col("Duration (From–To)", 16, r -> range(r), false),
-                new Col("No. of Days", 6, r -> str(r, "days"), true)),
+                new Col("Duration (No. of Days)", 14, r -> str(r, "days"), true)),
                 rows("fdps"));
         push(sub("(b) Certifications"));
         grid(doc, List.of(
-                new Col("Platform (NPTEL / Swayam / Coursera / Other)", 14, r -> label(r.get("platform")), false),
-                new Col("Title of the Course", 24, r -> str(r, "title"), false),
-                new Col("Duration (From–To)", 16, r -> range(r), false),
-                new Col("No. of Weeks / Hours", 10, r -> str(r, "durationWeeksHours"), false),
+                new Col("Platform (NPTEL / Swayam / Coursera / Other)", 18,
+                        r -> "OTHER".equals(r.get("platform")) && !str(r, "platformOther").isBlank() ? str(r, "platformOther") : label(r.get("platform")), false),
+                new Col("Title of the Course", 30, r -> str(r, "title"), false),
+                new Col("Duration (Weeks)", 10, r -> str(r, "durationWeeks"), true),
                 new Col("Grade / Score", 9, r -> str(r, "gradeScore"), false)),
                 rows("certifications"));
     }
@@ -354,7 +355,7 @@ final class FormPdfBuilder {
                 new Col("DOI/ISSN", 10, r -> str(r, "doiIssn"), false)),
                 rows("journal-publications"));
 
-        push(sub("(b) Conference papers presented"));
+        push(sub("(b) Conference papers published"));
         grid(doc, List.of(
                 new Col("Title of the Paper", 22, r -> str(r, "title"), false),
                 new Col("Name of the Conference", 16, r -> str(r, "conference"), false),

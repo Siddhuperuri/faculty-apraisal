@@ -25,7 +25,7 @@ const DETAILS: FieldMeta[] = [
   meta("specialization", "Specialization", "TEXT", false, { maxLength: 160 }),
   meta("phdStatus", "Ph.D. status", "ENUM", false, { allowed: ["AWARDED", "PURSUING", "NOT_APPLICABLE"] }),
   meta("joiningDateInstitution", "Date of joining (institution)", "DATE", false),
-  meta("joiningDateDesignation", "Date of joining (present designation)", "DATE", false),
+  meta("joiningDateDesignation", "Date of promotion", "DATE", false),
   meta("teachingExperienceYears", "Teaching experience (years)", "DECIMAL", false, { min: 0, max: 80, scale: 1 }),
   meta("industryExperienceYears", "Industry experience (years)", "DECIMAL", false, { min: 0, max: 80, scale: 1 }),
   meta("researchExperienceYears", "Research experience (years)", "DECIMAL", false, { min: 0, max: 80, scale: 1 }),

@@ -94,12 +94,22 @@ class ListAndMetaIntegrationTest {
                 .andExpect(jsonPath("$[1].key").value("teaching-courses"))
                 .andExpect(jsonPath("$[1].singleton").value(false))
                 .andExpect(jsonPath("$[1].fields[?(@.name=='passPercentage')].max").value(100.0))
-                .andExpect(jsonPath("$[1].fields[2].name").value("courseType"))
-                .andExpect(jsonPath("$[1].fields[2].allowed[0]").value("THEORY"))
-                .andExpect(jsonPath("$[1].fields[2].allowed[1]").value("LAB"))
+                .andExpect(jsonPath("$[1].fields[0].name").value("courseCode"))
+                .andExpect(jsonPath("$[1].fields[1].name").value("courseRole"))   // beside the course code
+                .andExpect(jsonPath("$[1].fields[1].allowed[0]").value("COORDINATOR"))
+                .andExpect(jsonPath("$[1].fields[1].allowed[1]").value("INSTRUCTOR"))
+                .andExpect(jsonPath("$[1].fields[?(@.name=='courseType')].allowed[0]").value("THEORY"))
+                .andExpect(jsonPath("$[1].fields[?(@.name=='courseType')].allowed[1]").value("LAB"))
+                .andExpect(jsonPath("$[1].fields[?(@.name=='section')].allowed.length()").value(5))
+                .andExpect(jsonPath("$[1].fields[?(@.name=='hoursPerWeek')].allowed.length()").value(6))
+                .andExpect(jsonPath("$[1].fields[?(@.name=='hoursPerWeek')].min").value(1.0))
+                .andExpect(jsonPath("$[1].fields[?(@.name=='hoursPerWeek')].max").value(6.0))
+                .andExpect(jsonPath("$[1].fields[?(@.name=='semester')].allowed.length()").value(12))
                 .andExpect(jsonPath("$[1].fields[?(@.name=='courseCode')].maxLength").value(32))
                 .andExpect(jsonPath("$[?(@.key=='mentoring-summary')].singleton").value(true))
-                .andExpect(jsonPath("$[?(@.key=='fdps')].dateRanges[0].endField").value("endDate"));
+                .andExpect(jsonPath("$[?(@.key=='fdps')].dateRanges.length()").value(0))
+                .andExpect(jsonPath("$[?(@.key=='certifications')].fields[?(@.name=='platformOther')].onlyWhenField").value("platform"))
+                .andExpect(jsonPath("$[?(@.key=='certifications')].fields[?(@.name=='platformOther')].onlyWhenEquals").value("OTHER"));
     }
 
     @Test
