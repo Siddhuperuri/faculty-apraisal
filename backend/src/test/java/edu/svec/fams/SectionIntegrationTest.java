@@ -552,7 +552,7 @@ class SectionIntegrationTest {
         Map<String, Object> unknown = course("P2", 4, 90, null, null);
         unknown.put("program", "B.Tech");   // the old free text is no longer a program
         save(faculty, id, "teaching-courses", List.of(unknown)).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors['records[0].program']").value("Program must be one of: B_TECH, DIPLOMA, MBA, PHARMACY."));
+                .andExpect(jsonPath("$.fieldErrors['records[0].program']").value("Program must be one of: B_TECH, M_TECH, DIPLOMA, MBA, PHARMACY."));
     }
 
     @Test

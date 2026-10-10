@@ -31,7 +31,8 @@ public final class Sections {
 
     private static Map<String, List<String>> branches() {
         Map<String, List<String>> m = new LinkedHashMap<>();
-        m.put("B_TECH", List.of("CSE", "AIML", "ECE", "EEE", "ME", "CE", "BSH"));
+        m.put("B_TECH", List.of("CSE", "AIML", "CAI", "AIM", "CSDS", "ECE", "EEE", "ME", "CE", "BSH"));
+        m.put("M_TECH", List.of("CSE", "ECE", "EEE", "ME", "CE"));
         m.put("DIPLOMA", List.of("CSE", "ECE", "EEE", "ME", "CE"));
         m.put("MBA", List.of("MBA"));
         m.put("PHARMACY", List.of("PHARMACEUTICS", "PHARMACEUTICAL_CHEMISTRY", "PHARMACOLOGY", "PHARMACOGNOSY", "PHARMACY_PRACTICE"));
@@ -61,7 +62,7 @@ public final class Sections {
                 text("courseCode", "course_code", "Course code", 32, true),
                 text("courseName", "course_name", "Course name", 160, true),
                 choice("courseType", "course_type", "Course type", true, "THEORY", "LAB"),
-                choice("program", "program", "Program", true, "B_TECH", "DIPLOMA", "MBA", "PHARMACY"),
+                choice("program", "program", "Program", true, "B_TECH", "M_TECH", "DIPLOMA", "MBA", "PHARMACY"),
                 choice("branch", "branch", "Branch", true, BRANCHES_BY_PROGRAM.values().stream().flatMap(List::stream).distinct().toArray(String[]::new)),
                 integer("semester", "semester", "Semester", 1, 12, true),
                 decimal("hoursPerWeek", "hours_per_week", "Hours per week", 0, 168, 1, true),

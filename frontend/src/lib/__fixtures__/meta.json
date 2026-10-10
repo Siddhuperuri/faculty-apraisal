@@ -197,7 +197,7 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "B_TECH", "DIPLOMA", "MBA", "PHARMACY" ],
+    "allowed" : [ "B_TECH", "M_TECH", "DIPLOMA", "MBA", "PHARMACY" ],
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
@@ -212,10 +212,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "CSE", "AIML", "ECE", "EEE", "ME", "CE", "BSH", "MBA", "PHARMACEUTICS", "PHARMACEUTICAL_CHEMISTRY", "PHARMACOLOGY", "PHARMACOGNOSY", "PHARMACY_PRACTICE" ],
+    "allowed" : [ "CSE", "AIML", "CAI", "AIM", "CSDS", "ECE", "EEE", "ME", "CE", "BSH", "MBA", "PHARMACEUTICS", "PHARMACEUTICAL_CHEMISTRY", "PHARMACOLOGY", "PHARMACOGNOSY", "PHARMACY_PRACTICE" ],
     "dependsOn" : "program",
     "allowedBy" : {
-      "B_TECH" : [ "CSE", "AIML", "ECE", "EEE", "ME", "CE", "BSH" ],
+      "B_TECH" : [ "CSE", "AIML", "CAI", "AIM", "CSDS", "ECE", "EEE", "ME", "CE", "BSH" ],
+      "M_TECH" : [ "CSE", "ECE", "EEE", "ME", "CE" ],
       "DIPLOMA" : [ "CSE", "ECE", "EEE", "ME", "CE" ],
       "MBA" : [ "MBA" ],
       "PHARMACY" : [ "PHARMACEUTICS", "PHARMACEUTICAL_CHEMISTRY", "PHARMACOLOGY", "PHARMACOGNOSY", "PHARMACY_PRACTICE" ]
