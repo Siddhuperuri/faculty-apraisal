@@ -33,12 +33,12 @@ public class TestDb {
             jdbc.sql("DELETE FROM " + t).update();
         }
         // Remove policy versions, academic years and departments created by tests; keep the seeded reference data.
-        // Versions 1 and 2 are seeded (V2/V9 and V24); only the ones tests publish after them are removed.
-        String extraPolicies = "SELECT id FROM scoring_policies WHERE version > 2"
+        // Versions 1, 2 and 3 are seeded (V2/V9, V24 and V33); only the ones tests publish after them are removed.
+        String extraPolicies = "SELECT id FROM scoring_policies WHERE version > 3"
                 + " OR academic_year_id IN (SELECT id FROM academic_years WHERE name <> '2025-26')";
         jdbc.sql("DELETE FROM scoring_policy_components WHERE policy_id IN (" + extraPolicies + ")").update();
         jdbc.sql("DELETE FROM scoring_policy_criteria WHERE policy_id IN (" + extraPolicies + ")").update();
-        jdbc.sql("DELETE FROM scoring_policies WHERE version > 2"
+        jdbc.sql("DELETE FROM scoring_policies WHERE version > 3"
                 + " OR academic_year_id IN (SELECT id FROM academic_years WHERE name <> '2025-26')").update();
         jdbc.sql("DELETE FROM academic_years WHERE name <> '2025-26'").update();
         jdbc.sql("UPDATE academic_years SET active = TRUE").update();

@@ -290,7 +290,10 @@ function RecordDialog({
     if (Object.keys(found).length > 0) {
       // Move focus to the first field with a problem.
       const first = meta.fields.find((f) => found[f.name]);
-      if (first) (formRef.current?.elements.namedItem(first.name) as HTMLElement | null)?.focus();
+      const element = first ? formRef.current?.elements.namedItem(first.name) : null;
+      // A group of radio buttons comes back as a list: focus its first button.
+      const target = element instanceof RadioNodeList ? element[0] : element;
+      if (target instanceof HTMLElement) target.focus();
       return;
     }
     setSaving(true);
@@ -305,7 +308,16 @@ function RecordDialog({
     }
     const mapped = serverErrorsFor(result.error.fieldErrors, index);
     setErrors(mapped);
-    setFormError(Object.keys(mapped).length > 0 ? "Please fix the highlighted fields." : result.error.message);
+    // A problem in another record of the list (an older course missing a new required detail) is named, not hidden.
+    const other = Object.entries(result.error.fieldErrors ?? {}).find(([k]) => /^records\[\d+\]\./.test(k) && !k.startsWith(`records[${index}].`));
+    const otherNumber = other ? Number(/^records\[(\d+)\]/.exec(other[0])![1]) + 1 : 0;
+    setFormError(
+      Object.keys(mapped).length > 0
+        ? "Please fix the highlighted fields."
+        : other
+          ? `Another record in this list needs attention first (record ${otherNumber}): ${other[1]} Edit that record, then save again.`
+          : result.error.message,
+    );
   };
 
   const title = `${state.mode === "edit" ? "Edit" : "Add"}: ${ui.title}`;
@@ -319,6 +331,8 @@ function RecordDialog({
           errors={errors}
           hidden={hidden}
           suggestions={ui.suggestions}
+          radios={ui.radios}
+          fieldHints={ui.fieldHints}
           onChange={(name, v) => setValues((cur) => applyDependencies(meta, { ...cur, [name]: v }, name))}
           autoFocusFirst
         />

@@ -36,6 +36,10 @@ export interface SectionUi {
   summary?: { key: string; label: string; format: SummaryFormat }[];
   /** Text-field suggestions (free text is still allowed). */
   suggestions?: Record<string, string[]>;
+  /** Choice fields shown as radio buttons (one of a few options) instead of a drop-down. */
+  radios?: string[];
+  /** Helper text shown under a field in the form, by field name. */
+  fieldHints?: Record<string, string>;
   emptyText?: string;
   /** Rendered as a fixed grid of rows (one per allowed value of this field) instead of an add/remove list. */
   fixedBy?: string;
@@ -74,7 +78,7 @@ export const PAGES: PageUi[] = [
     number: "02",
     title: "Teaching & Learning",
     formRef: "Part B · 1",
-    description: "Courses you handled during the academic year, with pass percentage and student feedback.",
+    description: "Courses you handled during the academic year, with pass percentage and feedback percentages.",
     sections: [
       {
         key: "teaching-courses",
@@ -83,14 +87,17 @@ export const PAGES: PageUi[] = [
         columns: [
           { header: "Course Code & Name (Theory / Lab)", render: (r) => `${s(r.courseCode)} · ${s(r.courseName)} (${enumLabel(s(r.courseType))})` },
           { header: "Program & Branch", render: (r) => `${enumLabel(s(r.program))} · ${enumLabel(s(r.branch))}` },
+          "courseRole",
           "semester",
+          "section",
           "hoursPerWeek",
           "passPercentage",
           "phase1Feedback",
           "phase2Feedback",
         ],
-        headers: { semester: "Sem", hoursPerWeek: "Hours / Week", passPercentage: "Pass %", phase1Feedback: "Phase-1 Feedback %", phase2Feedback: "Phase-2 Feedback %" },
-        filters: ["courseType", "semester", "program", "branch"],
+        radios: ["courseRole"],
+        headers: { courseRole: "Role", semester: "Sem", section: "Sec", hoursPerWeek: "Hours / Week", passPercentage: "Pass %", phase1Feedback: "Phase-1 Feedback %", phase2Feedback: "Phase-2 Feedback %" },
+        filters: ["courseType", "courseRole", "semester", "section", "program", "branch"],
         derivedFilters: [
           {
             name: "semesterType",
@@ -156,16 +163,23 @@ export const PAGES: PageUi[] = [
         key: "fdps",
         title: "Workshops / FDPs / Seminars / Training programs attended",
         addLabel: "Add program",
-        columns: ["title", "mode", "institutionVenue", { header: "Duration (From–To)", render: (r) => duration(r) }, "days"],
-        headers: { title: "Title of the Program", mode: "Mode", institutionVenue: "Organizing Institution / Venue", days: "No. of Days" },
+        columns: ["title", "mode", "institutionVenue", "days"],
+        headers: { title: "Title of the Program", mode: "Mode", institutionVenue: "Organizing Institution / Venue", days: "Duration (No. of Days)" },
+        hint: "A program of 5 days or more earns the 5 marks (once, however many you add). Shorter programs are recorded but earn no marks.",
         emptyText: "No programs added yet.",
       },
       {
         key: "certifications",
         title: "Certifications",
         addLabel: "Add certification",
-        columns: ["platform", "title", { header: "Duration (From–To)", render: (r) => duration(r) }, "durationWeeksHours", "gradeScore"],
-        headers: { platform: "Platform", title: "Title of the Course", durationWeeksHours: "No. of Weeks / Hours", gradeScore: "Grade / Score" },
+        columns: [
+          { header: "Platform", render: (r) => (r.platform === "OTHER" && s(r.platformOther) ? s(r.platformOther) : enumLabel(s(r.platform))) },
+          "title",
+          "durationWeeks",
+          "gradeScore",
+        ],
+        headers: { title: "Title of the Course", durationWeeks: "Duration (Weeks)", gradeScore: "Grade / Score" },
+        hint: "Any valid certification earns the full 10 marks (once, however many you add). Give the duration in whole weeks.",
         emptyText: "No certifications added yet.",
       },
     ],
@@ -187,6 +201,7 @@ export const PAGES: PageUi[] = [
         headers: { role: "Role", description: "Responsibility / Description" },
         hint: "For example: NAAC / NBA criterion coordinator, IQAC, Exam Cell, Training & Placement, NSS / NCC, Anti-Ragging.",
         suggestions: { role: ["NAAC / NBA criterion coordinator", "IQAC", "Exam Cell", "Training & Placement", "NSS / NCC", "Anti-Ragging"] },
+        fieldHints: { role: "Select or enter your role" },
         emptyText: "No institute-level roles added yet.",
       },
       {
@@ -198,6 +213,7 @@ export const PAGES: PageUi[] = [
         headers: { role: "Role", description: "Responsibility / Description" },
         hint: "For example: Class Coordinator, Module Coordinator, Lab In-charge, Time-table In-charge, NAAC / NBA criterion coordinator, IQAC, Exam Cell, Training & Placement, NSS / NCC, Anti-Ragging.",
         suggestions: { role: ["Class Coordinator", "Module Coordinator", "Lab In-charge", "Time-table In-charge", "NAAC / NBA criterion coordinator", "IQAC", "Exam Cell", "Training & Placement", "NSS / NCC", "Anti-Ragging"] },
+        fieldHints: { role: "Select or enter your role" },
         emptyText: "No department-level roles added yet.",
       },
       {
@@ -241,7 +257,7 @@ export const PAGES: PageUi[] = [
       },
       {
         key: "conference-papers",
-        title: "Conference papers presented",
+        title: "Conference papers published",
         addLabel: "Add conference paper",
         columns: ["title", "conference", "level", "monthYear", "venue", "doiIndexedIn", "citations"],
         headers: { title: "Title of the Paper", conference: "Name of the Conference", level: "Level", monthYear: "Month & Year", venue: "Venue", doiIndexedIn: "DOI / Indexed in", citations: "No. of Citations" },

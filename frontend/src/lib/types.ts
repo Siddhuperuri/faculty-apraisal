@@ -118,6 +118,9 @@ export interface FieldMeta {
   derived?: boolean;
   /** Must fall in the academic year being appraised (1 June to 31 May): only what happened in that year is considered. */
   inAcademicYear?: boolean;
+  /** Asked for (and required) only while the field named here holds `onlyWhenEquals`; otherwise hidden and not kept. */
+  onlyWhenField?: string | null;
+  onlyWhenEquals?: string | null;
 }
 
 export interface SectionMeta {

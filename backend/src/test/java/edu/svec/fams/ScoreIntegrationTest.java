@@ -93,18 +93,42 @@ class ScoreIntegrationTest {
         sheet(faculty, id).andExpect(jsonPath("$.scores[7].score").value(0));
     }
 
-    // ---- B1: one eighth of the maximum for each course ----
+    // ---- B1: each component earns an eighth of its maximum for each course; workload is a whole number of marks ----
 
     @Test
-    void eachCourseEarnsAnEighthOfTheCadresTeachingMaximumUpToEightCourses() throws Exception {
+    void eachCourseEarnsAnEighthOfEachComponentAndTheWorkloadIsRoundedToAWholeMark() throws Exception {
+        // Assistant Professor: workload 20 (2.5 a course), course file 10 and innovative practices 10 (1.25 each)
         for (int i = 1; i <= 8; i++) {
             insertCourses(id, 1);   // C1 again and again: the code is not unique
+            double workload = Math.floor(2.5 * i + 0.5);   // half a mark rounds up: 3, 5, 8, 10, 13, 15, 18, 20
             sheet(faculty, id)
-                    .andExpect(jsonPath("$.scores[0].score").value(5.0 * i))                          // 40 / 8 = 5 a course
-                    .andExpect(jsonPath("$.scores[0].components[0].awarded").value(2.5 * i))           // workload 20 / 8
+                    .andExpect(jsonPath("$.scores[0].components[0].awarded").value(workload))
+                    .andExpect(jsonPath("$.scores[0].components[1].awarded").value(1.25 * i))
+                    .andExpect(jsonPath("$.scores[0].components[2].awarded").value(1.25 * i))
+                    .andExpect(jsonPath("$.scores[0].score").value(workload + 2.5 * i))
                     .andExpect(jsonPath("$.scores[0].breakdown[0].count").value(i));
         }
-        sheet(faculty, id).andExpect(jsonPath("$.scores[0].score").value(40));
+        sheet(faculty, id).andExpect(jsonPath("$.scores[0].score").value(40))     // 8 courses are the whole maximum
+                .andExpect(jsonPath("$.scores[0].components.length()").value(3));  // and there is no feedback component
+    }
+
+    @Test
+    void aProfessorsWorkloadIsOnePointEightSevenFiveACourseRoundedToAWholeMark() throws Exception {
+        int[] expected = {2, 4, 6, 8, 9, 11, 13, 15};   // 1.875 x courses, to the nearest whole mark (half up)
+        for (int i = 1; i <= 8; i++) {
+            insertCourses(professorAppraisal, 1);
+            sheet(professor, professorAppraisal)
+                    .andExpect(jsonPath("$.scores[0].components[0].description").value("Workload & course delivery"))
+                    .andExpect(jsonPath("$.scores[0].components[0].maxMarks").value(15))
+                    .andExpect(jsonPath("$.scores[0].components[0].awarded").value(expected[i - 1]))
+                    .andExpect(jsonPath("$.scores[0].breakdown[0].marks").value(expected[i - 1]));
+        }
+        // eight courses are exactly 15 for workload and 30 in all
+        sheet(professor, professorAppraisal)
+                .andExpect(jsonPath("$.scores[0].maxMarks").value(30))
+                .andExpect(jsonPath("$.scores[0].components[1].awarded").value(10))
+                .andExpect(jsonPath("$.scores[0].components[2].awarded").value(5))
+                .andExpect(jsonPath("$.scores[0].score").value(30));
     }
 
     @Test
@@ -112,7 +136,15 @@ class ScoreIntegrationTest {
         insertCourses(professorAppraisal, 4);
         sheet(professor, professorAppraisal)
                 .andExpect(jsonPath("$.scores[0].maxMarks").value(30))
-                .andExpect(jsonPath("$.scores[0].score").value(15));   // half the courses, half of 30
+                // workload 7.5 -> 8, course file 5, innovative practices 2.5: half the courses, a half mark over half of 30
+                .andExpect(jsonPath("$.scores[0].score").value(15.5));
+    }
+
+    @Test
+    void noCoursesAndNoMinimumOfEight() throws Exception {
+        sheet(professor, professorAppraisal).andExpect(jsonPath("$.scores[0].score").value(0));
+        insertCourses(professorAppraisal, 1);
+        sheet(professor, professorAppraisal).andExpect(jsonPath("$.scores[0].score").value(3.88));   // 2 + 1.25 + 0.625, to two decimals
     }
 
     @Test
@@ -126,7 +158,7 @@ class ScoreIntegrationTest {
     @Test
     void mentoringMarksComeFromMenteesProjectsAndAchievements() throws Exception {
         jdbc.sql("INSERT INTO student_mentoring (appraisal_id, total_students_mentored) VALUES (?, 25)").params(id).update();
-        for (int i = 0; i < 6; i++) {   // four earn marks; the rest are over the 4 for project guidance
+        for (int i = 0; i < 6; i++) {   // two marks each, but only 4 in all for project guidance
             jdbc.sql("INSERT INTO student_projects (appraisal_id, level, title, student_count, outcome) VALUES (?, 'PG', 'P', 2, 'NONE')").params(id).update();
         }
         for (int i = 0; i < 2; i++) {
@@ -134,23 +166,65 @@ class ScoreIntegrationTest {
                     .params(id).update();
         }
         sheet(faculty, id)
-                .andExpect(jsonPath("$.scores[1].breakdown[0].marks").value(3.0))   // 25 of 50 mentees: half of 6
+                .andExpect(jsonPath("$.scores[1].breakdown[0].marks").value(6))     // any students mentored: 6, not a share of 6
                 .andExpect(jsonPath("$.scores[1].breakdown[1].marks").value(4))     // six projects, capped at 4
-                .andExpect(jsonPath("$.scores[1].breakdown[2].marks").value(2))
-                .andExpect(jsonPath("$.scores[1].score").value(9.0));
+                .andExpect(jsonPath("$.scores[1].breakdown[2].marks").value(2))     // achievements: unchanged, 1 each
+                .andExpect(jsonPath("$.scores[1].score").value(12));
     }
 
     @Test
-    void fdpAndCertificationMarks() throws Exception {
-        for (int i = 0; i < 2; i++) {
-            jdbc.sql("INSERT INTO fdps (appraisal_id, title, mode, institution_venue, start_date, end_date, days) VALUES (?, 'F', 'ONLINE', 'V', '2025-07-01', '2025-07-02', 2)")
-                    .params(id).update();
+    void anyMenteesEarnSixAndNoneEarnNothingWhateverTheNumber() throws Exception {
+        sheet(faculty, id).andExpect(jsonPath("$.scores[1].breakdown[0].marks").value(0));
+        for (int mentored : new int[] {1, 2, 25, 50}) {
+            jdbc.sql("DELETE FROM student_mentoring WHERE appraisal_id = ?").params(id).update();
+            jdbc.sql("INSERT INTO student_mentoring (appraisal_id, total_students_mentored) VALUES (?, ?)").params(id, mentored).update();
+            sheet(faculty, id).andExpect(jsonPath("$.scores[1].breakdown[0].marks").value(6));
         }
-        for (int i = 0; i < 3; i++) {
-            jdbc.sql("INSERT INTO certifications (appraisal_id, platform, title, start_date, end_date) VALUES (?, 'NPTEL', 'C', '2025-08-01', '2025-10-01')")
-                    .params(id).update();
+        jdbc.sql("DELETE FROM student_mentoring WHERE appraisal_id = ?").params(id).update();
+        jdbc.sql("INSERT INTO student_mentoring (appraisal_id, total_students_mentored) VALUES (?, 0)").params(id).update();
+        sheet(faculty, id).andExpect(jsonPath("$.scores[1].breakdown[0].marks").value(0));
+    }
+
+    @Test
+    void projectGuidanceIsTwoMarksEachUpToFour() throws Exception {
+        String project = "INSERT INTO student_projects (appraisal_id, level, title, student_count, outcome) VALUES (?, 'UG', 'P', 2, 'NONE')";
+        int[] expected = {2, 4, 4, 4};
+        for (int n = 1; n <= 4; n++) {
+            jdbc.sql(project).params(id).update();
+            sheet(faculty, id).andExpect(jsonPath("$.scores[1].breakdown[1].marks").value(expected[n - 1]))
+                    .andExpect(jsonPath("$.scores[1].breakdown[1].count").value(n));
         }
-        sheet(faculty, id).andExpect(jsonPath("$.scores[2].score").value(8));   // 2 x 1 + 3 x 2
+    }
+
+    private static final String FDP = "INSERT INTO fdps (appraisal_id, title, mode, institution_venue, days) VALUES (?, 'F', 'ONLINE', 'V', ?)";
+    private static final String CERT = "INSERT INTO certifications (appraisal_id, platform, title, duration_weeks) VALUES (?, 'NPTEL', 'C', ?)";
+
+    @Test
+    void anFdpEarnsFiveOnlyFromFiveDaysAndOnlyOnce() throws Exception {
+        sheet(faculty, id).andExpect(jsonPath("$.scores[2].breakdown[0].marks").value(0));
+        jdbc.sql(FDP).params(id, 4).update();                                     // one day short
+        sheet(faculty, id).andExpect(jsonPath("$.scores[2].breakdown[0].marks").value(0))
+                .andExpect(jsonPath("$.scores[2].breakdown[0].count").value(0));
+        jdbc.sql(FDP).params(id, 5).update();                                     // exactly five days
+        sheet(faculty, id).andExpect(jsonPath("$.scores[2].breakdown[0].marks").value(5));
+        jdbc.sql(FDP).params(id, 30).update();                                    // more of them add nothing
+        jdbc.sql(FDP).params(id, 6).update();
+        sheet(faculty, id).andExpect(jsonPath("$.scores[2].breakdown[0].marks").value(5))
+                .andExpect(jsonPath("$.scores[2].score").value(5));
+    }
+
+    @Test
+    void aCertificationEarnsTenOnceAndOnlyWithADuration() throws Exception {
+        jdbc.sql("INSERT INTO certifications (appraisal_id, platform, title) VALUES (?, 'NPTEL', 'Old, no duration')").params(id).update();
+        sheet(faculty, id).andExpect(jsonPath("$.scores[2].breakdown[1].marks").value(0));
+        jdbc.sql(CERT).params(id, 1).update();
+        sheet(faculty, id).andExpect(jsonPath("$.scores[2].breakdown[1].marks").value(10));
+        for (int i = 0; i < 3; i++) jdbc.sql(CERT).params(id, 12).update();
+        sheet(faculty, id).andExpect(jsonPath("$.scores[2].breakdown[1].marks").value(10))
+                .andExpect(jsonPath("$.scores[2].score").value(10));
+        // a qualifying FDP as well: 5 + 10 = the criterion's 15
+        jdbc.sql(FDP).params(id, 5).update();
+        sheet(faculty, id).andExpect(jsonPath("$.scores[2].score").value(15));
     }
 
     @Test
@@ -169,10 +243,8 @@ class ScoreIntegrationTest {
     @Test
     void aKindOfEntryStopsEarningAtItsCapAndTheCriterionAtItsMaximum() throws Exception {
         for (int i = 0; i < 20; i++) {
-            jdbc.sql("INSERT INTO certifications (appraisal_id, platform, title, start_date, end_date) VALUES (?, 'NPTEL', 'C', '2025-08-01', '2025-10-01')")
-                    .params(id).update();
-            jdbc.sql("INSERT INTO fdps (appraisal_id, title, mode, institution_venue, start_date, end_date, days) VALUES (?, 'F', 'ONLINE', 'V', '2025-07-01', '2025-07-02', 2)")
-                    .params(id).update();
+            jdbc.sql(CERT).params(id, 8).update();
+            jdbc.sql(FDP).params(id, 7).update();
         }
         sheet(faculty, id).andExpect(jsonPath("$.scores[2].score").value(15))        // 5 + 10, and not a mark more
                 .andExpect(jsonPath("$.scores[2].breakdown[1].marks").value(10));
@@ -254,14 +326,9 @@ class ScoreIntegrationTest {
         jdbc.sql(book).params(id, "2026-06").update();    // the month after: does not
         jdbc.sql("INSERT INTO memberships_awards (appraisal_id, item, awarding_body, level, year) VALUES (?, 'Old', 'IEEE', 'INTL', 2024)").params(id).update();
         jdbc.sql("INSERT INTO memberships_awards (appraisal_id, item, awarding_body, level, year) VALUES (?, 'New', 'IEEE', 'INTL', 2026)").params(id).update();
-        // a training programme counts only when it both starts and ends inside the year
-        String fdp = "INSERT INTO fdps (appraisal_id, title, mode, institution_venue, start_date, end_date, days) VALUES (?, ?, 'ONLINE', 'V', ?, ?, 2)";
-        jdbc.sql(fdp).params(id, "In", "2026-05-30", "2026-05-31").update();
-        jdbc.sql(fdp).params(id, "Across", "2026-05-30", "2026-06-02").update();
         sheet(faculty, id)
                 .andExpect(jsonPath("$.scores[7].breakdown[0].count").value(2))                  // outreach
                 .andExpect(jsonPath("$.scores[6].breakdown[2].count").value(2))                  // books
-                .andExpect(jsonPath("$.scores[8].breakdown[0].count").value(1))                  // memberships
-                .andExpect(jsonPath("$.scores[2].breakdown[0].count").value(1));                 // programmes
+                .andExpect(jsonPath("$.scores[8].breakdown[0].count").value(1));                 // memberships
     }
 }

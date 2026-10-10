@@ -217,15 +217,14 @@ public class AppraisalService {
     /**
      * What must be filled in before the appraisal can go to the HoD: the least that makes it reviewable. The college has
      * not said what is mandatory, so this is a working minimum, easy to change here: the Part A details a reviewer
-     * needs to identify and place the person, at least eight courses taught (four a semester), and a self-score for every criterion that
-     * applies to the cadre. Everything else may be left empty.
+     * needs to identify and place the person (the date of promotion is optional). Everything else may be left empty.
      */
     List<String> submitBlockers(long id) {
         List<String> missing = new ArrayList<>();
-        var part = jdbc.sql("SELECT contact_no, qualification_specialization, joining_date_institution, joining_date_designation FROM general_information WHERE appraisal_id = ?")
-                .param(id).query((rs, n) -> new Object[] {rs.getString(1), rs.getString(2), rs.getObject(3), rs.getObject(4)}).optional().orElse(null);
-        if (part == null || part[0] == null || part[1] == null || part[2] == null || part[3] == null) {
-            missing.add("General Information: contact number, qualification and specialization, date of joining the institution, and date of joining the present designation");
+        var part = jdbc.sql("SELECT contact_no, qualification_specialization, joining_date_institution FROM general_information WHERE appraisal_id = ?")
+                .param(id).query((rs, n) -> new Object[] {rs.getString(1), rs.getString(2), rs.getObject(3)}).optional().orElse(null);
+        if (part == null || part[0] == null || part[1] == null || part[2] == null) {
+            missing.add("General Information: contact number, qualification and specialization, and date of joining the institution");
         }
         return missing;
     }

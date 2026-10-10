@@ -354,8 +354,8 @@ class ConsoleIntegrationTest {
         // a policy that does not total 100 (this cannot be published through the API, so put it in directly)
         long year = jdbc.sql("SELECT id FROM academic_years WHERE name = '2025-26'").query(Long.class).single();
         long cadre = jdbc.sql("SELECT id FROM cadres WHERE code = 'LECTURER'").query(Long.class).single();
-        jdbc.sql("INSERT INTO scoring_policies (academic_year_id, cadre_id, version) VALUES (?,?,3)").params(year, cadre).update();
-        long policy = jdbc.sql("SELECT id FROM scoring_policies WHERE academic_year_id = ? AND cadre_id = ? AND version = 3").params(year, cadre).query(Long.class).single();
+        jdbc.sql("INSERT INTO scoring_policies (academic_year_id, cadre_id, version) VALUES (?,?,4)").params(year, cadre).update();
+        long policy = jdbc.sql("SELECT id FROM scoring_policies WHERE academic_year_id = ? AND cadre_id = ? AND version = 4").params(year, cadre).query(Long.class).single();
         jdbc.sql("INSERT INTO scoring_policy_criteria (policy_id, criterion, max_marks) VALUES (?, 'TEACHING_LEARNING', 90)").param(policy).update();
         o = get("admin@test.edu", "/api/admin/overview");
         assertEquals("problem", levels(o).get("POLICIES"));

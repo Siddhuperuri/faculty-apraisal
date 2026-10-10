@@ -4,8 +4,9 @@ import type { Role, Stage, Status, WithdrawnRole } from "./types";
 const LABELS: Record<string, string> = {
   INST: "Institute", STATE: "State", NAT: "National", INTL: "International",
   THEORY: "Theory", LAB: "Lab",
-  B_TECH: "B.Tech", PHARMACY: "Pharmacy",
-  CSE: "CSE", AIML: "AI & ML", ECE: "ECE", EEE: "EEE", ME: "ME", CE: "CE", BSH: "BSH",
+  B_TECH: "B.Tech", M_TECH: "M.Tech", PHARMACY: "Pharmacy",
+  COORDINATOR: "Course Coordinator", INSTRUCTOR: "Course Instructor",
+  CSE: "CSE", AIML: "AI & ML", CAI: "CAI", AIM: "AIM", CSDS: "CSDS", ECE: "ECE", EEE: "EEE", ME: "ME", CE: "CE", BSH: "BSH",
   PHARMACEUTICS: "Pharmaceutics", PHARMACEUTICAL_CHEMISTRY: "Pharmaceutical Chemistry", PHARMACOLOGY: "Pharmacology",
   PHARMACOGNOSY: "Pharmacognosy", PHARMACY_PRACTICE: "Pharmacy Practice",
   "1": "1st author", "2": "2nd author", "3": "3rd author", "4": "4th author", "5": "5th author", "6": "6th author", "7": "7th author", "8": "8th author",

@@ -129,6 +129,12 @@ one record per appraisal (`appraisal_id` unique): `general_information`, `studen
 | B 9 | `memberships-awards` | `memberships_awards` |
 | B 10 | `other-contributions` | `other_contributions` |
 
+Since `V33`: a course also has `course_role` (COORDINATOR or INSTRUCTOR) and `class_section` (A to E); both are NULL on courses
+entered earlier and required whenever a course is saved. `fdps` and `certifications` no longer take start and end dates (the
+columns stay, nullable, holding what was entered before); a certification has `duration_weeks` (whole weeks, backfilled from the
+old free-text duration only where that was a plain number of weeks) and `platform_other` (required, and kept, only when the platform
+is OTHER). The old `duration_weeks_hours` column is kept for history and no longer written.
+
 Constraints you will meet: `end_date >= start_date`, counts and amounts `>= 0`, percentages 0 to 100, semester 1 to 12,
 years 1950 to 2100, and each enumeration's allowed values. The field list, limits and labels of every table are defined
 once in `section/Sections.java` and published at `GET /api/sections/meta`.

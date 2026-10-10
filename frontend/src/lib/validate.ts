@@ -33,8 +33,13 @@ function convert(f: FieldMeta, raw: string): unknown {
 export function toApiRecord(meta: SectionMeta, values: FormValues, id?: number): Rec {
   const rec: Rec = {};
   if (id != null) rec.id = id;
-  for (const f of meta.fields) rec[f.name] = convert(f, values[f.name] ?? "");
+  for (const f of meta.fields) rec[f.name] = isAsked(f, values) ? convert(f, values[f.name] ?? "") : null;
   return rec;
+}
+
+/** False for a field that is asked only under another choice (a platform name when the platform is Other) and is not now. */
+export function isAsked(f: FieldMeta, values: FormValues): boolean {
+  return !f.onlyWhenField || (values[f.onlyWhenField] ?? "") === f.onlyWhenEquals;
 }
 
 const num = (s: string) => (s.trim() === "" || Number.isNaN(Number(s)) ? null : Number(s));
@@ -48,12 +53,14 @@ function fieldError(f: FieldMeta, raw: string, allowed: string[] | null = f.allo
     case "INT": {
       const n = num(v);
       if (n == null || !Number.isInteger(n)) return `${f.label} must be a whole number.`;
+      if (f.allowed?.length && !f.allowed.includes(String(n))) return `${f.label} must be one of: ${f.allowed.join(", ")}.`;
       if ((f.min != null && n < f.min) || (f.max != null && n > f.max)) return `${f.label} must be between ${f.min} and ${f.max}.`;
       return null;
     }
     case "DECIMAL": {
       const n = num(v);
       if (n == null) return `${f.label} must be a number.`;
+      if (f.allowed?.length && !f.allowed.includes(String(n))) return `${f.label} must be one of: ${f.allowed.join(", ")}.`;
       const dp = (v.split(".")[1] ?? "").replace(/0+$/, "").length;
       if (f.scale != null && dp > f.scale) return `${f.label} can have at most ${f.scale} decimal places.`;
       if ((f.min != null && n < f.min) || (f.max != null && n > f.max)) return `${f.label} must be between ${f.min} and ${f.max}.`;
@@ -92,7 +99,12 @@ export function outsideYear(f: FieldMeta, v: string, year: YearBounds): string |
 export function validate(meta: SectionMeta, values: FormValues, hidden: string[] = [], year?: YearBounds): FieldErrors {
   const errors: FieldErrors = {};
   for (const f of meta.fields) {
-    if (hidden.includes(f.name) || f.derived) continue;   // a derived field is worked out, not typed
+    if (hidden.includes(f.name) || f.derived || !isAsked(f, values)) continue;   // a derived field is worked out, not typed
+    if (f.onlyWhenField && (values[f.name] ?? "").trim() === "") {
+      const parent = meta.fields.find((x) => x.name === f.onlyWhenField);
+      errors[f.name] = `${f.label} is required when ${parent?.label ?? "the choice above"} is Other.`;
+      continue;
+    }
     const e = fieldError(f, values[f.name] ?? "", f.dependsOn ? (f.allowedBy?.[values[f.dependsOn] ?? ""] ?? []) : f.allowed);
     if (e) errors[f.name] = e;
     else if (year && f.inAcademicYear && (values[f.name] ?? "").trim() !== "") {
@@ -135,6 +147,7 @@ export function applyDependencies(meta: SectionMeta, values: FormValues, changed
   const out = { ...values };
   for (const f of meta.fields) {
     if (f.dependsOn === changed && out[f.name] && !choicesFor(f, out).includes(out[f.name])) out[f.name] = "";
+    if (f.onlyWhenField === changed && !isAsked(f, out)) out[f.name] = "";
     if (f.derived && meta.dateRanges[0]) out[f.name] = inclusiveDays(out[meta.dateRanges[0].startField] ?? "", out[meta.dateRanges[0].endField] ?? "");
   }
   return out;

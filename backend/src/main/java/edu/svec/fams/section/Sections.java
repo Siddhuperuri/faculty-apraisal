@@ -31,7 +31,8 @@ public final class Sections {
 
     private static Map<String, List<String>> branches() {
         Map<String, List<String>> m = new LinkedHashMap<>();
-        m.put("B_TECH", List.of("CSE", "AIML", "ECE", "EEE", "ME", "CE", "BSH"));
+        m.put("B_TECH", List.of("CSE", "AIML", "CAI", "AIM", "CSDS", "ECE", "EEE", "ME", "CE", "BSH"));
+        m.put("M_TECH", List.of("CSE", "ECE", "EEE", "ME", "CE"));
         m.put("DIPLOMA", List.of("CSE", "ECE", "EEE", "ME", "CE"));
         m.put("MBA", List.of("MBA"));
         m.put("PHARMACY", List.of("PHARMACEUTICS", "PHARMACEUTICAL_CHEMISTRY", "PHARMACOLOGY", "PHARMACOGNOSY", "PHARMACY_PRACTICE"));
@@ -49,8 +50,7 @@ public final class Sections {
                         "Highest qualification and specialization", 300, false).forSubmission(),
                 choice("phdStatus", "phd_status", "Ph.D. status", true, "AWARDED", "PURSUING", "NOT_APPLICABLE"),
                 date("joiningDateInstitution", "joining_date_institution", "Date of joining (institution)", false).forSubmission(),
-                date("joiningDateDesignation", "joining_date_designation", "Date of joining (present designation)", false)
-                        .forSubmission(),
+                date("joiningDateDesignation", "joining_date_designation", "Date of promotion", false),
                 decimal("teachingExperienceYears", "teaching_experience_years", "Teaching experience (years)", 0, 80, 1, false),
                 decimal("industryExperienceYears", "industry_experience_years", "Industry experience (years)", 0, 80, 1, false),
                 decimal("researchExperienceYears", "research_experience_years", "Research experience (years)", 0, 80, 1, false),
@@ -59,12 +59,14 @@ public final class Sections {
         // Part B, 1. Teaching & Learning
         add(SectionSpec.list("teaching-courses", "teaching_courses",
                 text("courseCode", "course_code", "Course code", 32, true),
+                choice("courseRole", "course_role", "Role in the course", true, "COORDINATOR", "INSTRUCTOR"),
                 text("courseName", "course_name", "Course name", 160, true),
                 choice("courseType", "course_type", "Course type", true, "THEORY", "LAB"),
-                choice("program", "program", "Program", true, "B_TECH", "DIPLOMA", "MBA", "PHARMACY"),
+                choice("program", "program", "Program", true, "B_TECH", "M_TECH", "DIPLOMA", "MBA", "PHARMACY"),
                 choice("branch", "branch", "Branch", true, BRANCHES_BY_PROGRAM.values().stream().flatMap(List::stream).distinct().toArray(String[]::new)),
-                integer("semester", "semester", "Semester", 1, 12, true),
-                decimal("hoursPerWeek", "hours_per_week", "Hours per week", 0, 168, 1, true),
+                integer("semester", "semester", "Semester", 1, 12, true).oneOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+                choice("section", "class_section", "Section", true, "A", "B", "C", "D", "E"),
+                decimal("hoursPerWeek", "hours_per_week", "Hours per week", 1, 6, 0, true).oneOf(1, 2, 3, 4, 5, 6),
                 decimal("passPercentage", "pass_percentage", "Pass percentage", 0, 100, 2, true),
                 decimal("phase1Feedback", "phase1_feedback", "Phase-1 feedback percentage", 0, 100, 2, false),
                 decimal("phase2Feedback", "phase2_feedback", "Phase-2 feedback percentage", 0, 100, 2, false))
@@ -92,19 +94,14 @@ public final class Sections {
                 text("title", "title", "Title", 300, true),
                 choice("mode", "mode", "Mode", true, "OFFLINE", "ONLINE", "BLENDED"),
                 text("institutionVenue", "institution_venue", "Organizing institution or venue", 200, true),
-                date("startDate", "start_date", "Start date", true),
-                date("endDate", "end_date", "End date", true),
-                integer("days", "days", "Number of days", 1, 366, true))
-                .dateRange("startDate", "endDate")
-                .derivedDays("startDate", "endDate", "days"));
+                integer("days", "days", "Duration (in days)", 1, 366, true)));
         add(SectionSpec.list("certifications", "certifications",
                 choice("platform", "platform", "Platform", true, "NPTEL", "SWAYAM", "COURSERA", "OTHER"),
+                text("platformOther", "platform_other", "Name of the platform", 100, false),
                 text("title", "title", "Course title", 300, true),
-                date("startDate", "start_date", "Start date", true),
-                date("endDate", "end_date", "End date", true),
-                text("durationWeeksHours", "duration_weeks_hours", "Duration (weeks or hours)", 40, false),
+                integer("durationWeeks", "duration_weeks", "Duration (in weeks)", 1, 520, true),
                 text("gradeScore", "grade_score", "Grade or score", 40, false))
-                .dateRange("startDate", "endDate"));
+                .conditionalField("platformOther", "platform", "OTHER"));
 
         // 4. Administrative responsibilities
         add(SectionSpec.list("administrative-roles", "administrative_roles",
@@ -227,8 +224,6 @@ public final class Sections {
 
     static {
         inAcademicYear("student-achievements", "monthYear");
-        inAcademicYear("fdps", "startDate", "endDate");
-        inAcademicYear("certifications", "startDate", "endDate");
         inAcademicYear("administrative-roles", "fromDate", "toDate");
         inAcademicYear("events", "startDate", "endDate");
         inAcademicYear("journal-publications", "monthYear");

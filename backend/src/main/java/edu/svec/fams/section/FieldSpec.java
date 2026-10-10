@@ -94,6 +94,17 @@ public final class FieldSpec {
         return this;
     }
 
+    /**
+     * A number field that is chosen from a fixed list of whole numbers (shown as a drop-down) rather than typed:
+     * anything else is refused, whatever the range says.
+     */
+    public FieldSpec oneOf(int... values) {
+        List<String> list = new java.util.ArrayList<>();
+        for (int v : values) list.add(String.valueOf(v));
+        this.allowed = List.copyOf(list);
+        return this;
+    }
+
     public BigDecimal min() { return min; }
     public BigDecimal max() { return max; }
     public List<String> allowed() { return allowed; }
@@ -142,6 +153,7 @@ public final class FieldSpec {
         if (v == null || v.stripTrailingZeros().scale() > 0) {
             return fail(path, errors, label + " must be a whole number.");
         }
+        if (!isOneOf(v)) return fail(path, errors, label + " must be one of: " + String.join(", ", allowed) + ".");
         if (v.compareTo(min) < 0 || v.compareTo(max) > 0) {
             return fail(path, errors, label + " must be between " + min + " and " + max + ".");
         }
@@ -151,6 +163,7 @@ public final class FieldSpec {
     private Object decimalValue(Object raw, String path, Map<String, String> errors) {
         BigDecimal v = toNumber(raw);
         if (v == null) return fail(path, errors, label + " must be a number.");
+        if (!isOneOf(v)) return fail(path, errors, label + " must be one of: " + String.join(", ", allowed) + ".");
         if (v.stripTrailingZeros().scale() > scale) {
             return fail(path, errors, label + " can have at most " + scale + " decimal places.");
         }
@@ -159,6 +172,11 @@ public final class FieldSpec {
                     + " and " + max.stripTrailingZeros().toPlainString() + ".");
         }
         return v.setScale(scale);
+    }
+
+    /** True when no list was set with {@link #oneOf}, or the number is on it. */
+    private boolean isOneOf(BigDecimal v) {
+        return allowed.isEmpty() || allowed.contains(v.stripTrailingZeros().toPlainString());
     }
 
     private Object choiceValue(Object raw, String path, Map<String, String> errors) {

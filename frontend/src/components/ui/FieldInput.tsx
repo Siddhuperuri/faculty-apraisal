@@ -22,6 +22,7 @@ export function FieldInput({
   suggestions,
   autoFocus = false,
   range,
+  radio = false,
 }: {
   meta: FieldMeta;
   value: string;
@@ -34,6 +35,8 @@ export function FieldInput({
   autoFocus?: boolean;
   /** The first and last day (YYYY-MM-DD) a date or month input offers; the whole calendar when omitted. */
   range?: { start: string; end: string };
+  /** Show a choice with few options as radio buttons (one can be picked) instead of a drop-down. */
+  radio?: boolean;
 }) {
   const uid = useId();
   const id = `f-${uid}`;
@@ -47,18 +50,64 @@ export function FieldInput({
     autoFocus,
     "aria-invalid": error ? true : undefined,
     "aria-describedby": describedBy,
-    "aria-required": meta.required || undefined,
+    "aria-required": meta.required || meta.onlyWhenField != null || undefined,
     onBlur,
   } as const;
 
+  // Asked for only under another choice (a platform name when the platform is Other): required while it is shown.
+  const required = meta.required || meta.onlyWhenField != null;
+
+  if (radio && meta.type === "ENUM") {
+    return (
+      <fieldset aria-describedby={describedBy} aria-invalid={error ? true : undefined}>
+        <legend className="mb-1 block text-[13px] font-semibold tracking-wide">
+          {meta.label}
+          <span aria-hidden className="ml-0.5 text-bad">
+            *
+          </span>
+          <span className="sr-only"> (required)</span>
+        </legend>
+        <div className={`flex flex-wrap gap-x-5 gap-y-2 rounded-sm border bg-surface px-3 py-2 ${border}`}>
+          {meta.allowed?.map((a, i) => (
+            <label key={a} className="inline-flex cursor-pointer items-center gap-2 text-[15px]">
+              <input
+                type="radio"
+                name={meta.name}
+                value={a}
+                checked={value === a}
+                disabled={disabled}
+                autoFocus={autoFocus && i === 0}
+                onChange={() => onChange(a)}
+                onBlur={onBlur}
+                className="h-4 w-4 accent-[var(--color-brand,#0070c0)]"
+              />
+              {enumLabel(a)}
+            </label>
+          ))}
+        </div>
+        {hint && (
+          <p id={`${id}-hint`} className="mt-1 text-xs text-muted">
+            {hint}
+          </p>
+        )}
+        {error && (
+          <p id={`${id}-err`} className="mt-1 text-sm font-medium text-bad">
+            {error}
+          </p>
+        )}
+      </fieldset>
+    );
+  }
+
   let control: React.ReactNode;
-  if (meta.type === "ENUM") {
+  const numericChoice = (meta.type === "INT" || meta.type === "DECIMAL") && (meta.allowed?.length ?? 0) > 0;
+  if (meta.type === "ENUM" || numericChoice) {
     control = (
       <select {...common} onChange={(e) => onChange(e.target.value)} className={`${CONTROL} ${border}`}>
         <option value="">Select…</option>
         {meta.allowed?.map((a) => (
           <option key={a} value={a}>
-            {enumLabel(a)}
+            {numericChoice ? a : enumLabel(a)}
           </option>
         ))}
       </select>
@@ -113,12 +162,12 @@ export function FieldInput({
     <div>
       <label htmlFor={id} className="mb-1 block text-[13px] font-semibold tracking-wide">
         {meta.label}
-        {meta.required || meta.submitRequired ? (
+        {required || meta.submitRequired ? (
           <>
             <span aria-hidden className="ml-0.5 text-bad">
               *
             </span>
-            <span className="sr-only"> (required{meta.required ? "" : " to submit"})</span>
+            <span className="sr-only"> (required{required ? "" : " to submit"})</span>
           </>
         ) : (
           <span className="ml-1 text-xs font-normal text-muted">(optional)</span>

@@ -16,6 +16,9 @@ public final class SectionSpec {
     /** The value of {@code field} must be one of {@code allowedBy.get(value of onField)}. */
     public record DependentChoice(String field, String onField, Map<String, List<String>> allowedBy) {}
 
+    /** {@code field} is required (and kept) only when {@code onField} holds {@code equals}; otherwise it is cleared. */
+    public record ConditionalField(String field, String onField, String equals) {}
+
     private final String key;
     private final String table;
     private final boolean singleton;
@@ -26,6 +29,7 @@ public final class SectionSpec {
     private String recordsNoun = "records";
     private DerivedDays derivedDays;
     private DependentChoice dependentChoice;
+    private final List<ConditionalField> conditionalFields = new ArrayList<>();
     private List<String> inAcademicYear = List.of();
     private Function<List<Map<String, Object>>, Map<String, Object>> summary;
 
@@ -77,6 +81,12 @@ public final class SectionSpec {
         return this;
     }
 
+    /** A field that is asked for, and required, only when another field has a given value (a platform named "Other"). */
+    public SectionSpec conditionalField(String field, String onField, String equals) {
+        conditionalFields.add(new ConditionalField(field, onField, equals));
+        return this;
+    }
+
     /**
      * These fields (days, months or years) must fall in the academic year of the appraisal, 1 June to 31 May: only what
      * was achieved, done or received in that year is considered. A year alone must be one of the two calendar years it spans.
@@ -103,6 +113,7 @@ public final class SectionSpec {
     public String recordsNoun() { return recordsNoun; }
     public DerivedDays derivedDays() { return derivedDays; }
     public DependentChoice dependentChoice() { return dependentChoice; }
+    public List<ConditionalField> conditionalFields() { return conditionalFields; }
     public List<String> inAcademicYear() { return inAcademicYear; }
 
     public FieldSpec field(String name) {

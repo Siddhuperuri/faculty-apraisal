@@ -158,6 +158,16 @@ public class SectionService {
                         + " is not offered under the " + spec.field(dependent.onField()).label().toLowerCase(Locale.ROOT) + " you chose.");
             }
 
+            for (SectionSpec.ConditionalField c : spec.conditionalFields()) {
+                boolean asked = c.equals().equals(rec.get(c.onField()));
+                if (!asked) {
+                    rec.put(c.field(), null);   // not asked for under the other choice, so nothing is kept
+                } else if (rec.get(c.field()) == null) {
+                    errors.putIfAbsent(prefix + "." + c.field(), spec.field(c.field()).label() + " is required when "
+                            + spec.field(c.onField()).label() + " is Other.");
+                }
+            }
+
             for (SectionSpec.DateRange r : spec.dateRanges()) {
                 Object s = rec.get(r.startField());
                 Object e = rec.get(r.endField());
@@ -353,7 +363,9 @@ public class SectionService {
             case INT -> rs.getObject(c) == null ? null : rs.getInt(c);
             case DECIMAL -> {
                 BigDecimal d = rs.getBigDecimal(c);
-                yield d == null ? null : d.setScale(f.scale());
+                // A value saved before the field's scale was reduced (3.5 hours a week) is shown as it was, not cut.
+                yield d == null ? null
+                        : d.stripTrailingZeros().scale() > f.scale() ? d : d.setScale(f.scale(), java.math.RoundingMode.UNNECESSARY);
             }
             case DATE -> rs.getObject(c, LocalDate.class);
         };

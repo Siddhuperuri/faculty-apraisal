@@ -15,7 +15,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "qualificationSpecialization",
     "label" : "Highest qualification and specialization",
@@ -30,7 +32,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "phdStatus",
     "label" : "Ph.D. status",
@@ -45,7 +49,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "joiningDateInstitution",
     "label" : "Date of joining (institution)",
@@ -60,13 +66,15 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "joiningDateDesignation",
-    "label" : "Date of joining (present designation)",
+    "label" : "Date of promotion",
     "type" : "DATE",
     "required" : false,
-    "submitRequired" : true,
+    "submitRequired" : false,
     "maxLength" : null,
     "min" : null,
     "max" : null,
@@ -75,7 +83,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "teachingExperienceYears",
     "label" : "Teaching experience (years)",
@@ -90,7 +100,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "industryExperienceYears",
     "label" : "Industry experience (years)",
@@ -105,7 +117,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "researchExperienceYears",
     "label" : "Research experience (years)",
@@ -120,7 +134,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "researchIds",
     "label" : "ORCID / Scopus / Google Scholar / Vidwan ID",
@@ -135,7 +151,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -156,7 +174,26 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
+  }, {
+    "name" : "courseRole",
+    "label" : "Role in the course",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "COORDINATOR", "INSTRUCTOR" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "courseName",
     "label" : "Course name",
@@ -171,7 +208,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "courseType",
     "label" : "Course type",
@@ -186,7 +225,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "program",
     "label" : "Program",
@@ -197,11 +238,13 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "B_TECH", "DIPLOMA", "MBA", "PHARMACY" ],
+    "allowed" : [ "B_TECH", "M_TECH", "DIPLOMA", "MBA", "PHARMACY" ],
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "branch",
     "label" : "Branch",
@@ -212,16 +255,19 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "CSE", "AIML", "ECE", "EEE", "ME", "CE", "BSH", "MBA", "PHARMACEUTICS", "PHARMACEUTICAL_CHEMISTRY", "PHARMACOLOGY", "PHARMACOGNOSY", "PHARMACY_PRACTICE" ],
+    "allowed" : [ "CSE", "AIML", "CAI", "AIM", "CSDS", "ECE", "EEE", "ME", "CE", "BSH", "MBA", "PHARMACEUTICS", "PHARMACEUTICAL_CHEMISTRY", "PHARMACOLOGY", "PHARMACOGNOSY", "PHARMACY_PRACTICE" ],
     "dependsOn" : "program",
     "allowedBy" : {
-      "B_TECH" : [ "CSE", "AIML", "ECE", "EEE", "ME", "CE", "BSH" ],
+      "B_TECH" : [ "CSE", "AIML", "CAI", "AIM", "CSDS", "ECE", "EEE", "ME", "CE", "BSH" ],
+      "M_TECH" : [ "CSE", "ECE", "EEE", "ME", "CE" ],
       "DIPLOMA" : [ "CSE", "ECE", "EEE", "ME", "CE" ],
       "MBA" : [ "MBA" ],
       "PHARMACY" : [ "PHARMACEUTICS", "PHARMACEUTICAL_CHEMISTRY", "PHARMACOLOGY", "PHARMACOGNOSY", "PHARMACY_PRACTICE" ]
     },
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "semester",
     "label" : "Semester",
@@ -232,11 +278,30 @@
     "min" : 1,
     "max" : 12,
     "scale" : null,
-    "allowed" : null,
+    "allowed" : [ "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" ],
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
+  }, {
+    "name" : "section",
+    "label" : "Section",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "A", "B", "C", "D", "E" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "hoursPerWeek",
     "label" : "Hours per week",
@@ -244,14 +309,16 @@
     "required" : true,
     "submitRequired" : false,
     "maxLength" : null,
-    "min" : 0.0,
-    "max" : 168.0,
-    "scale" : 1,
-    "allowed" : null,
+    "min" : 1.0,
+    "max" : 6.0,
+    "scale" : 0,
+    "allowed" : [ "1", "2", "3", "4", "5", "6" ],
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "passPercentage",
     "label" : "Pass percentage",
@@ -266,7 +333,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "phase1Feedback",
     "label" : "Phase-1 feedback percentage",
@@ -281,7 +350,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "phase2Feedback",
     "label" : "Phase-2 feedback percentage",
@@ -296,7 +367,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -317,7 +390,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -338,7 +413,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "rollNo",
     "label" : "Roll number",
@@ -353,7 +430,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "achievement",
     "label" : "Achievement",
@@ -368,7 +447,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "level",
     "label" : "Level",
@@ -383,7 +464,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "monthYear",
     "label" : "Month and year",
@@ -398,7 +481,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : true
+    "inAcademicYear" : true,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -419,7 +504,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "title",
     "label" : "Project title",
@@ -434,7 +521,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "studentCount",
     "label" : "Number of students",
@@ -449,7 +538,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "outcome",
     "label" : "Outcome",
@@ -464,7 +555,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -485,7 +578,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "mode",
     "label" : "Mode",
@@ -500,7 +595,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "institutionVenue",
     "label" : "Organizing institution or venue",
@@ -515,40 +612,12 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
-  }, {
-    "name" : "startDate",
-    "label" : "Start date",
-    "type" : "DATE",
-    "required" : true,
-    "submitRequired" : false,
-    "maxLength" : null,
-    "min" : null,
-    "max" : null,
-    "scale" : null,
-    "allowed" : null,
-    "dependsOn" : null,
-    "allowedBy" : null,
-    "derived" : false,
-    "inAcademicYear" : true
-  }, {
-    "name" : "endDate",
-    "label" : "End date",
-    "type" : "DATE",
-    "required" : true,
-    "submitRequired" : false,
-    "maxLength" : null,
-    "min" : null,
-    "max" : null,
-    "scale" : null,
-    "allowed" : null,
-    "dependsOn" : null,
-    "allowedBy" : null,
-    "derived" : false,
-    "inAcademicYear" : true
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "days",
-    "label" : "Number of days",
+    "label" : "Duration (in days)",
     "type" : "INT",
     "required" : true,
     "submitRequired" : false,
@@ -559,13 +628,12 @@
     "allowed" : null,
     "dependsOn" : null,
     "allowedBy" : null,
-    "derived" : true,
-    "inAcademicYear" : false
+    "derived" : false,
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
-  "dateRanges" : [ {
-    "startField" : "startDate",
-    "endField" : "endDate"
-  } ],
+  "dateRanges" : [ ],
   "uniqueField" : null
 }, {
   "key" : "certifications",
@@ -584,7 +652,26 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
+  }, {
+    "name" : "platformOther",
+    "label" : "Name of the platform",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 100,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false,
+    "onlyWhenField" : "platform",
+    "onlyWhenEquals" : "OTHER"
   }, {
     "name" : "title",
     "label" : "Course title",
@@ -599,52 +686,26 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
-    "name" : "startDate",
-    "label" : "Start date",
-    "type" : "DATE",
+    "name" : "durationWeeks",
+    "label" : "Duration (in weeks)",
+    "type" : "INT",
     "required" : true,
     "submitRequired" : false,
     "maxLength" : null,
-    "min" : null,
-    "max" : null,
+    "min" : 1,
+    "max" : 520,
     "scale" : null,
     "allowed" : null,
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : true
-  }, {
-    "name" : "endDate",
-    "label" : "End date",
-    "type" : "DATE",
-    "required" : true,
-    "submitRequired" : false,
-    "maxLength" : null,
-    "min" : null,
-    "max" : null,
-    "scale" : null,
-    "allowed" : null,
-    "dependsOn" : null,
-    "allowedBy" : null,
-    "derived" : false,
-    "inAcademicYear" : true
-  }, {
-    "name" : "durationWeeksHours",
-    "label" : "Duration (weeks or hours)",
-    "type" : "TEXT",
-    "required" : false,
-    "submitRequired" : false,
-    "maxLength" : 40,
-    "min" : null,
-    "max" : null,
-    "scale" : null,
-    "allowed" : null,
-    "dependsOn" : null,
-    "allowedBy" : null,
-    "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "gradeScore",
     "label" : "Grade or score",
@@ -659,12 +720,11 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
-  "dateRanges" : [ {
-    "startField" : "startDate",
-    "endField" : "endDate"
-  } ],
+  "dateRanges" : [ ],
   "uniqueField" : null
 }, {
   "key" : "administrative-roles",
@@ -683,7 +743,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "role",
     "label" : "Role",
@@ -698,7 +760,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "description",
     "label" : "Responsibility or description",
@@ -713,7 +777,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "fromDate",
     "label" : "From date",
@@ -728,7 +794,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : true
+    "inAcademicYear" : true,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "toDate",
     "label" : "To date",
@@ -743,7 +811,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : true
+    "inAcademicYear" : true,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ {
     "startField" : "fromDate",
@@ -767,7 +837,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "role",
     "label" : "Role",
@@ -782,7 +854,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "title",
     "label" : "Title or details of the event",
@@ -797,7 +871,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "startDate",
     "label" : "Start date",
@@ -812,7 +888,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : true
+    "inAcademicYear" : true,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "endDate",
     "label" : "End date",
@@ -827,7 +905,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : true
+    "inAcademicYear" : true,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "beneficiaries",
     "label" : "Number of beneficiaries",
@@ -842,7 +922,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ {
     "startField" : "startDate",
@@ -866,7 +948,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "authorPosition",
     "label" : "Author position",
@@ -881,7 +965,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "journal",
     "label" : "Journal",
@@ -896,7 +982,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "volumeIssuePage",
     "label" : "Volume, issue and page numbers",
@@ -911,7 +999,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "monthYear",
     "label" : "Month and year",
@@ -926,7 +1016,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : true
+    "inAcademicYear" : true,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "indexing",
     "label" : "Indexing",
@@ -941,7 +1033,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "doiIssn",
     "label" : "DOI or ISSN",
@@ -956,7 +1050,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -977,7 +1073,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "conference",
     "label" : "Conference",
@@ -992,7 +1090,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "level",
     "label" : "Level",
@@ -1007,7 +1107,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "monthYear",
     "label" : "Month and year",
@@ -1022,7 +1124,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : true
+    "inAcademicYear" : true,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "venue",
     "label" : "Venue",
@@ -1037,7 +1141,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "doiIndexedIn",
     "label" : "DOI or indexed in",
@@ -1052,7 +1158,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "citations",
     "label" : "Number of citations",
@@ -1067,7 +1175,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -1088,7 +1198,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "totalPublications",
     "label" : "Total publications",
@@ -1103,7 +1215,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "totalCitations",
     "label" : "Total citations",
@@ -1118,7 +1232,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "hIndex",
     "label" : "h-index",
@@ -1133,7 +1249,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "i10Index",
     "label" : "i10-index",
@@ -1148,7 +1266,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ ],
   "uniqueField" : "platform"
@@ -1169,7 +1289,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "degree",
     "label" : "Degree",
@@ -1184,7 +1306,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "universityRegNo",
     "label" : "University and registration number",
@@ -1199,7 +1323,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "status",
     "label" : "Status",
@@ -1214,7 +1340,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "year",
     "label" : "Year",
@@ -1229,7 +1357,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : true
+    "inAcademicYear" : true,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -1250,7 +1380,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "registrationYear",
     "label" : "Year of registration",
@@ -1265,7 +1397,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "stage",
     "label" : "Current stage",
@@ -1280,7 +1414,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "progress",
     "label" : "Progress during the year",
@@ -1295,7 +1431,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -1316,7 +1454,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "role",
     "label" : "Role",
@@ -1331,7 +1471,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "team",
     "label" : "Team",
@@ -1346,7 +1488,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "type",
     "label" : "Type",
@@ -1361,7 +1505,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "fundingAgencyClient",
     "label" : "Funding agency or client",
@@ -1376,7 +1522,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "amount",
     "label" : "Amount (Rs.)",
@@ -1391,7 +1539,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "startDate",
     "label" : "Start date",
@@ -1406,7 +1556,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "endDate",
     "label" : "End date",
@@ -1421,7 +1573,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "status",
     "label" : "Status",
@@ -1436,7 +1590,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "year",
     "label" : "Year",
@@ -1451,7 +1607,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : true
+    "inAcademicYear" : true,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ {
     "startField" : "startDate",
@@ -1475,7 +1633,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "title",
     "label" : "Title",
@@ -1490,7 +1650,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "applicationPatentNo",
     "label" : "Application or patent number",
@@ -1505,7 +1667,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "type",
     "label" : "Type",
@@ -1520,7 +1684,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "status",
     "label" : "Status",
@@ -1535,7 +1701,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "recordDate",
     "label" : "Date",
@@ -1550,7 +1718,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : true
+    "inAcademicYear" : true,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -1571,7 +1741,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "title",
     "label" : "Title of book or chapter",
@@ -1586,7 +1758,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "publisher",
     "label" : "Publisher",
@@ -1601,7 +1775,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "isbn",
     "label" : "ISBN",
@@ -1616,7 +1792,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "monthYear",
     "label" : "Month and year",
@@ -1631,7 +1809,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : true
+    "inAcademicYear" : true,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "type",
     "label" : "Type",
@@ -1646,7 +1826,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -1667,7 +1849,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "eventActivity",
     "label" : "Event or activity",
@@ -1682,7 +1866,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "organization",
     "label" : "Name of organization or institution",
@@ -1697,7 +1883,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "venue",
     "label" : "Venue",
@@ -1712,7 +1900,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "eventDate",
     "label" : "Date",
@@ -1727,7 +1917,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : true
+    "inAcademicYear" : true,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -1748,7 +1940,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "awardingBody",
     "label" : "Professional or awarding body",
@@ -1763,7 +1957,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "level",
     "label" : "Level",
@@ -1778,7 +1974,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "year",
     "label" : "Year",
@@ -1793,7 +1991,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : true
+    "inAcademicYear" : true,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -1814,7 +2014,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   }, {
     "name" : "instituteContribution",
     "label" : "Contribution at institute level",
@@ -1829,7 +2031,9 @@
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
-    "inAcademicYear" : false
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null

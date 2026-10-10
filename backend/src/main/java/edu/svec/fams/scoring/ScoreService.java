@@ -8,14 +8,16 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 
 /**
  * The score per criterion, worked out from the entries alone and recalculated whenever they are read, so it is always
- * what the entries are worth: nobody types a score. B1 earns the cadre's B1 maximum in eighths, one eighth for each
- * course handled (a faculty member teaches at most {@link Sections#MAX_COURSES} courses); B2 to B4 and B5 to B9 follow
+ * what the entries are worth: nobody types a score. B1 earns each of its components in eighths, one eighth for each
+ * course handled (a faculty member teaches at most {@link Sections#MAX_COURSES} courses), the workload component being
+ * rounded to a whole mark when fewer than 8 courses are entered; B2 to B4 and B5 to B9 follow
  * {@link ScoringRules}. B1 to B4 never exceed the cadre's maximum, which is the snapshot taken when the appraisal was
  * created (so a later policy change never alters it); B5 to B9 have no maximum.
  *
@@ -93,8 +95,10 @@ public class ScoreService {
     }
 
     /**
-     * B1: each course earns one eighth of the criterion's maximum, divided among its components as the policy divides
-     * it (a policy that does not break the maximum down earns it as one line). Fills in each component's awarded marks.
+     * B1: each course earns one eighth of each component's maximum, so 8 courses earn all of it (a policy that does not
+     * break the maximum down earns it as one line). The workload component is rounded to the nearest whole mark (half up),
+     * so no decimal workload marks are shown or counted: for a Professor, 15 marks make 1.875 a course, 3 courses are
+     * 5.625 and earn 6, and 8 courses are exactly 15. Fills in each component's awarded marks.
      */
     private static void teaching(int maxMarks, int courses, Map<String, List<Component>> components, Map<String, List<Line>> breakdowns) {
         BigDecimal eighth = BigDecimal.valueOf(Sections.MAX_COURSES);
@@ -106,7 +110,17 @@ public class ScoreService {
             for (int i = 0; i < parts.size(); i++) {
                 Component c = parts.get(i);
                 BigDecimal perCourse = BigDecimal.valueOf(c.maxMarks()).divide(eighth, 4, RoundingMode.HALF_UP);
-                Line line = ScoringRules.capped(c.description() + " (up to " + c.maxMarks() + ")", perCourse, courses, c.maxMarks());
+                boolean workload = c.description().toLowerCase(Locale.ROOT).startsWith("workload");
+                Line line;
+                if (workload) {
+                    // worked out from the exact figure (max x courses / 8), then rounded once, so there is no rounding drift
+                    BigDecimal marks = BigDecimal.valueOf((long) c.maxMarks() * Math.min(courses, Sections.MAX_COURSES))
+                            .divide(eighth, 0, RoundingMode.HALF_UP);
+                    line = new Line(c.description() + " (up to " + c.maxMarks() + ", rounded to a whole mark)", perCourse, courses,
+                            marks.min(BigDecimal.valueOf(c.maxMarks())), c.maxMarks());
+                } else {
+                    line = ScoringRules.capped(c.description() + " (up to " + c.maxMarks() + ")", perCourse, courses, c.maxMarks());
+                }
                 lines.add(line);
                 parts.set(i, new Component(c.description(), c.maxMarks(), line.marks().setScale(2, RoundingMode.HALF_UP).stripTrailingZeros()));
             }

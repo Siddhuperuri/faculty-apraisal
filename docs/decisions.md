@@ -224,3 +224,18 @@ correct the appraisal and send it again (`RESUBMIT`, HOD_REVIEW -> SUBMITTED); t
 network the students share; the change-password guess limit stays. (5) Form changes: program and branch are lists (a branch must
 belong to its program), the number of sections of a course is gone, the days of a programme are worked out from its dates, roles
 carry from and to dates, the author position is a number 1 to 8, a project may have the outcome "None", and mentees are 0 to 50.
+
+**ADR-036: Course details, FDP and certification durations, B1 re-divided, and mentoring marks (2026-10-10).** Decided by the user
+in one pass. (1) A course records the faculty member's role in it (course coordinator or instructor, one of the two), its section
+(A to E), a semester chosen from the list and hours a week chosen from 1 to 6; older courses lack role and section until edited.
+(2) B1 has no "student feedback" component: policy version 3 (`V33`) divides B1 into workload, course file and innovative
+practices (20/10/10, 20/10/5 and 15/10/5 by cadre; totals 40, 35 and 30 unchanged). Workload is rounded to a whole mark, so a
+Professor's 1.875 a course gives 15 for 8 courses and a whole number below that; the other components are not rounded. Submitted
+and approved appraisals keep the version they began with; drafts move to version 3. (3) Mentoring is 6 marks when any student
+is mentored; project guidance is 2 a project up to 4; student achievements are unchanged. (4) A workshop, FDP, seminar or
+training program has a duration in days instead of dates; one of 5 days or more earns the whole 5 marks and more add nothing
+(shorter ones are recorded and earn nothing). A certification has a duration in whole weeks, and one valid certification
+earns the whole 10; "Other" platform asks for its name. (5) "Date of joining (present designation)" is now "Date of promotion"
+and optional; "Conference papers presented" is "published". Assumption recorded: marks of every appraisal, including submitted
+ones, are recalculated from the current rate card on reading (as before), so only the B1 components, which are data, are held
+to the version an appraisal began with.
