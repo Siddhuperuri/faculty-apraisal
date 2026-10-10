@@ -178,6 +178,7 @@ every department that has faculty, a Principal or Director Technical and a secon
   - **All or nothing:** every row is checked first. If any row is wrong nothing is created, and you are shown each
     problem with its line number; correct the file and upload it again. Up to 1000 accounts at a time.
 - **Reset password** sets the password back to the standard one; the person must change it at next sign-in.
+- **Reset the passwords of these accounts** (above the list) does the same for every account the list shows with its filters applied, in one step: filter first (for example by department or "Has not chosen a password"), read the count, confirm. Your own account and closed accounts are left out, everyone reset is signed out everywhere, and each must choose a new password at their next sign-in. Until they do, anyone who knows the standard password and their e-mail address can sign in as them, so reset only accounts whose owners are about to sign in.
 - **Disable** an account; the person's sessions end immediately.
 - **Edit** details (the form sends only the fields you change). **A role never changes**: create a new account instead.
 - You **cannot disable or reset your own account** (use *Account -> Change password*).

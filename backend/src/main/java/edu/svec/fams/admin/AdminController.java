@@ -3,6 +3,7 @@ package edu.svec.fams.admin;
 import edu.svec.fams.audit.AuditQueryService;
 import edu.svec.fams.auth.FamsUserPrincipal;
 import edu.svec.fams.common.ApiException;
+import edu.svec.fams.common.ValidationException;
 import edu.svec.fams.console.ConsoleService;
 import edu.svec.fams.ops.ImportHistoryService;
 import java.util.List;
@@ -113,6 +114,24 @@ public class AdminController {
     @PostMapping("/users/{id}/reset-password")
     public AdminUserService.IssuedPassword resetPassword(@AuthenticationPrincipal FamsUserPrincipal me, @PathVariable long id) {
         return users.resetPassword(me, id);
+    }
+
+    /** Body {@code {"ids": [..]}}: the accounts to set back to the standard password (see {@link AdminUserService#resetPasswords}). */
+    @PostMapping("/users/reset-passwords")
+    public AdminUserService.BulkReset resetPasswords(@AuthenticationPrincipal FamsUserPrincipal me, @RequestBody Map<String, Object> body) {
+        if (!(body.get("ids") instanceof List<?> raw) || raw.isEmpty()) {
+            throw new ValidationException(Map.of("ids", "Choose at least one account."));
+        }
+        if (raw.size() > AdminUserService.MAX_BULK_RESET) {
+            throw new ValidationException(Map.of("ids", "At most " + AdminUserService.MAX_BULK_RESET + " accounts at a time."));
+        }
+        List<Long> ids = new java.util.ArrayList<>();
+        for (Object o : raw) {
+            Long id = AdminInput.id(o);
+            if (id == null) throw new ValidationException(Map.of("ids", "Every account id must be a whole number."));
+            ids.add(id);
+        }
+        return users.resetPasswords(me, ids);
     }
 
     // ---- departments, academic years, scoring policy ----

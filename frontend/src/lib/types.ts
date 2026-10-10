@@ -247,6 +247,13 @@ export interface IssuedPassword {
   temporaryPassword: string;
 }
 
+/** Returned when several passwords are set back at once: how many were, how many were left as they were. */
+export interface BulkReset {
+  reset: number;
+  skipped: number;
+  temporaryPassword: string;
+}
+
 export interface PolicyVersion {
   id: number;
   academicYearId: number;
