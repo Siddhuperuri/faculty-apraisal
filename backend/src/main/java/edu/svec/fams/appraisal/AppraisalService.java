@@ -6,6 +6,7 @@ import edu.svec.fams.auth.Role;
 import edu.svec.fams.common.ApiException;
 import edu.svec.fams.common.GeneratedKeys;
 import edu.svec.fams.scoring.ScoreService;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,9 +30,10 @@ public class AppraisalService {
                                 OffsetDateTime submittedAt, OffsetDateTime finalApprovedAt,
                                 OffsetDateTime declaredAt,
                                 List<ScoreService.ScoreRow> scores, List<HistoryRow> history,
-                                List<String> submitBlockers, boolean queryRaised) {}
+                                List<String> submitBlockers, boolean queryRaised,
+                                LocalDate academicYearStart, LocalDate academicYearEnd) {}
 
-    private record Head(String academicYear, String facultyName, String employeeId, String email, String department,
+    private record Head(String academicYear, LocalDate academicYearStart, LocalDate academicYearEnd, String facultyName, String employeeId, String email, String department,
                           String cadre, OffsetDateTime submittedAt, OffsetDateTime finalApprovedAt,
                           OffsetDateTime declaredAt) {}
 
@@ -109,7 +111,7 @@ public class AppraisalService {
                            OffsetDateTime updatedAt, boolean queryRaised) {}
 
     /** SQL for "under HoD review and a message has been sent about it", for an appraisals row aliased {@code a}. */
-    static final String QUERY_RAISED_SQL = "(a.status = 'HOD_REVIEW' AND EXISTS (SELECT 1 FROM appraisal_messages m WHERE m.appraisal_id = a.id))";
+    static final String QUERY_RAISED_SQL = "(a.status = 'HOD_REVIEW' AND EXISTS (SELECT 1 FROM appraisal_messages m WHERE m.appraisal_id = a.id AND m.answered_at IS NULL))";
 
     static final int MAX_LIST = 200;
 
@@ -159,7 +161,7 @@ public class AppraisalService {
         AppraisalAccess.Core core = access.loadVisible(id, user);
 
         Head head = jdbc.sql("""
-                SELECT ay.name AS ay, fp.name AS fname, fp.employee_id, u.email, d.name AS dept, c.name AS cadre,
+                SELECT ay.name AS ay, ay.start_date AS ay_start, ay.end_date AS ay_end, fp.name AS fname, fp.employee_id, u.email, d.name AS dept, c.name AS cadre,
                        a.submitted_at, a.final_approved_at, a.declared_at
                 FROM appraisals a
                 JOIN academic_years ay ON ay.id = a.academic_year_id
@@ -169,7 +171,8 @@ public class AppraisalService {
                 JOIN cadres c ON c.id = fp.cadre_id
                 WHERE a.id = ?""")
                 .param(id)
-                .query((rs, n) -> new Head(rs.getString("ay"), rs.getString("fname"), rs.getString("employee_id"),
+                .query((rs, n) -> new Head(rs.getString("ay"), rs.getObject("ay_start", LocalDate.class),
+                        rs.getObject("ay_end", LocalDate.class), rs.getString("fname"), rs.getString("employee_id"),
                         rs.getString("email"), rs.getString("dept"), rs.getString("cadre"),
                         rs.getObject("submitted_at", OffsetDateTime.class),
                         rs.getObject("final_approved_at", OffsetDateTime.class),
@@ -184,12 +187,12 @@ public class AppraisalService {
             history = history.stream().map(h -> new HistoryRow(h.action(), h.fromStatus(), h.toStatus(), h.actorRole(), null, h.at())).toList();
         }
 
-        boolean editable = user.role() == Role.FACULTY && core.status().isEditableByFaculty();
-        List<String> blockers = editable ? submitBlockers(id, scores) : List.of();
+        boolean editable = user.role() == Role.FACULTY && core.editableByFaculty();
+        List<String> blockers = editable ? submitBlockers(id) : List.of();
         return new AppraisalView(id, core.status().name(), head.academicYear(), head.facultyName(),
                 head.employeeId(), head.email(), head.department(), head.cadre(), editable,
                 head.submittedAt(), head.finalApprovedAt(), head.declaredAt(),
-                scores, history, blockers, queryRaised(id));
+                scores, history, blockers, queryRaised(id), head.academicYearStart(), head.academicYearEnd());
     }
 
     private boolean queryRaised(long id) {
@@ -217,19 +220,13 @@ public class AppraisalService {
      * needs to identify and place the person, at least eight courses taught (four a semester), and a self-score for every criterion that
      * applies to the cadre. Everything else may be left empty.
      */
-    List<String> submitBlockers(long id, List<ScoreService.ScoreRow> scores) {
+    List<String> submitBlockers(long id) {
         List<String> missing = new ArrayList<>();
         var part = jdbc.sql("SELECT contact_no, qualification_specialization, joining_date_institution, joining_date_designation FROM general_information WHERE appraisal_id = ?")
                 .param(id).query((rs, n) -> new Object[] {rs.getString(1), rs.getString(2), rs.getObject(3), rs.getObject(4)}).optional().orElse(null);
         if (part == null || part[0] == null || part[1] == null || part[2] == null || part[3] == null) {
             missing.add("General Information: contact number, qualification and specialization, date of joining the institution, and date of joining the present designation");
         }
-        int courses = jdbc.sql("SELECT COUNT(*) FROM teaching_courses WHERE appraisal_id = ?").param(id).query(Integer.class).single();
-        if (courses < ScoreService.MIN_COURSES) {
-            missing.add("Teaching & Learning: at least " + ScoreService.MIN_COURSES + " courses handled (you have " + courses + ")");
-        }
-        List<String> unscored = scores.stream().filter(s -> (s.maxMarks() == null || s.maxMarks() > 0) && s.score() == null).map(ScoreService.ScoreRow::label).toList();
-        if (!unscored.isEmpty()) missing.add("Self-scores for: " + String.join("; ", unscored));
         return missing;
     }
 
@@ -238,7 +235,7 @@ public class AppraisalService {
     public AppraisalStatus submitChecked(long id, FamsUserPrincipal user) {
         if (user.role() == Role.FACULTY) {
             access.loadVisible(id, user);
-            List<String> missing = submitBlockers(id, scoreService.rows(id));
+            List<String> missing = submitBlockers(id);
             if (!missing.isEmpty()) {
                 throw ApiException.badRequest("Not ready to submit. Still needed: " + String.join(". ", missing) + ".");
             }
@@ -255,12 +252,16 @@ public class AppraisalService {
     public AppraisalStatus submit(long id, FamsUserPrincipal user) {
         if (user.role() != Role.FACULTY) throw ApiException.forbidden("Only the faculty member can submit.");
         AppraisalAccess.Core core = access.loadVisible(id, user);
-        if (!core.status().isEditableByFaculty()) {
+        if (!core.editableByFaculty()) {
             throw ApiException.conflict("This action is not available while the appraisal is "
                     + core.status().name() + ".");
         }
         jdbc.sql("UPDATE appraisals SET declared_at = CURRENT_TIMESTAMP WHERE id = ?").param(id).update();
-        return move(id, user, WorkflowAction.SUBMIT, core, null);
+        boolean again = core.status() != AppraisalStatus.DRAFT;
+        AppraisalStatus status = move(id, user, again ? WorkflowAction.RESUBMIT : WorkflowAction.SUBMIT, core, null);
+        // Sending it again answers the Head of the Department's messages: they stay on record but no longer keep it open.
+        if (again) jdbc.sql("UPDATE appraisal_messages SET answered_at = CURRENT_TIMESTAMP WHERE appraisal_id = ? AND answered_at IS NULL").param(id).update();
+        return status;
     }
 
     /** Review steps (start, approve). Submitting goes through {@link #submit}. */

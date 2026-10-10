@@ -33,7 +33,7 @@ export interface ListItem {
 export interface ScoreComponent {
   description: string;
   maxMarks: number;
-  /** Marks the application awards itself (2.5 per course, up to the maximum); null where the faculty member scores. */
+  /** Marks the application works out for this part itself (Teaching & Learning); null where the parts are not marked one by one. */
   awarded: number | null;
 }
 
@@ -45,12 +45,8 @@ export interface ScoreRow {
   label: string;
   /** Null for the criteria marked per entry (B5 to B9): they have no maximum. */
   maxMarks: number | null;
-  /** What the faculty member typed over the calculated marks; null while the calculation stands. */
-  selfScore: number | null;
-  /** The marks worked out from the entries so far (B1's workload, B5 to B9); null where nothing is calculated. */
-  calculated: number | null;
-  /** The marks that count: the typed score if there is one, otherwise the calculation. */
-  score: number | null;
+  /** The marks that count, worked out from the entries so far. Nobody types a score. */
+  score: number;
   /** The parts the maximum is made of for this cadre; empty where the college gives no breakdown. */
   components: ScoreComponent[];
   /** The marks per entry with how many the faculty member has: marks = perEntry x count. */
@@ -62,6 +58,8 @@ export interface ScoreLine {
   perEntry: number;
   count: number;
   marks: number;
+  /** The most this kind of entry can earn; null where there is no such limit. */
+  cap: number | null;
 }
 
 /** A step of the review as it was recorded. Older appraisals may name steps, statuses and roles that no longer exist. */
@@ -93,6 +91,9 @@ export interface AppraisalView {
   submitBlockers: string[];
   /** The HoD is reviewing it and has sent the faculty member a message. */
   queryRaised: boolean;
+  /** The first and last day of the academic year this appraisal is for (YYYY-MM-DD). */
+  academicYearStart: string;
+  academicYearEnd: string;
 }
 
 export type FieldType = "TEXT" | "INT" | "DECIMAL" | "ENUM" | "DATE" | "MONTH_YEAR";
@@ -109,6 +110,14 @@ export interface FieldMeta {
   max: number | null;
   scale: number | null;
   allowed: string[] | null;
+  /** The field whose value decides which choices are offered here (a branch depends on the program). */
+  dependsOn?: string | null;
+  /** For each value of `dependsOn`, the choices offered. */
+  allowedBy?: Record<string, string[]> | null;
+  /** Worked out by the server from other fields (days from the dates); shown, not typed. */
+  derived?: boolean;
+  /** Must fall in the academic year being appraised (1 June to 31 May): only what happened in that year is considered. */
+  inAcademicYear?: boolean;
 }
 
 export interface SectionMeta {

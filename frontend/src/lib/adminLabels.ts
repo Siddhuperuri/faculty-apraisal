@@ -18,6 +18,7 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   SCORING_POLICY_PUBLISHED: "Scoring policy published",
   APPRAISAL_CREATED: "Appraisal started",
   APPRAISAL_SUBMIT: "Appraisal submitted",
+  APPRAISAL_RESUBMIT: "Appraisal corrected and sent again",
   APPRAISAL_START_HOD_REVIEW: "HoD began the review",
   APPRAISAL_MESSAGE_SENT: "HoD sent a message to the faculty member",
   APPRAISAL_MESSAGE_EDITED: "HoD edited a message to the faculty member",

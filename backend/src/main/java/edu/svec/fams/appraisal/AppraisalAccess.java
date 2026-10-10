@@ -16,7 +16,19 @@ import org.springframework.stereotype.Component;
 @Component
 public class AppraisalAccess {
 
-    public record Core(long id, long ownerUserId, long departmentId, AppraisalStatus status) {}
+    /**
+     * @param queryRaised the Head of the Department is reviewing it and has sent a message the faculty member has not
+     *                    yet answered by sending the appraisal again
+     */
+    public record Core(long id, long ownerUserId, long departmentId, AppraisalStatus status, boolean queryRaised) {
+        /**
+         * A draft, or an appraisal under the Head of the Department's review with a query open: from the message until the
+         * Head of the Department approves, the faculty member may correct it and send it again.
+         */
+        public boolean editableByFaculty() {
+            return status.isEditableByFaculty() || (status == AppraisalStatus.HOD_REVIEW && queryRaised);
+        }
+    }
 
     /**
      * The Principal and the Director Technical, who stand at the same level, see an appraisal only once the Head of the
@@ -45,7 +57,7 @@ public class AppraisalAccess {
     public Core loadEditable(long id, FamsUserPrincipal user) {
         Core core = load(id, user, true);
         if (user.role() != Role.FACULTY) throw ApiException.forbidden("Only the faculty member can edit an appraisal.");
-        if (!core.status().isEditableByFaculty()) {
+        if (!core.editableByFaculty()) {
             throw ApiException.conflict("This appraisal is locked while it is " + core.status().name() + ".");
         }
         return core;
@@ -53,12 +65,13 @@ public class AppraisalAccess {
 
     private Core load(long id, FamsUserPrincipal user, boolean lock) {
         Core core = jdbc.sql("""
-                SELECT a.id, fp.user_id AS owner, fp.department_id AS dept, a.status
+                SELECT a.id, fp.user_id AS owner, fp.department_id AS dept, a.status,
+                       (a.status = 'HOD_REVIEW' AND EXISTS (SELECT 1 FROM appraisal_messages m WHERE m.appraisal_id = a.id AND m.answered_at IS NULL)) AS raised
                 FROM appraisals a JOIN faculty_profiles fp ON fp.id = a.faculty_id
                 WHERE a.id = ?""" + (lock ? " FOR UPDATE OF a" : ""))
                 .param(id)
                 .query((rs, n) -> new Core(rs.getLong("id"), rs.getLong("owner"), rs.getLong("dept"),
-                        AppraisalStatus.valueOf(rs.getString("status"))))
+                        AppraisalStatus.valueOf(rs.getString("status")), rs.getBoolean("raised")))
                 .optional()
                 .orElseThrow(ApiException::notFound);
 

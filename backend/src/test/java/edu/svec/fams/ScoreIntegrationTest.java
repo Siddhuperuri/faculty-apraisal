@@ -9,16 +9,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.svec.fams.appraisal.AppraisalService;
 import edu.svec.fams.appraisal.WorkflowAction;
 import edu.svec.fams.auth.FamsUserPrincipal;
 import edu.svec.fams.auth.Role;
 import edu.svec.fams.scoring.Criteria;
-import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +26,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+/** The score sheet: every mark is worked out from the entries (nobody types one), live, whenever the appraisal is read. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -39,51 +36,37 @@ class ScoreIntegrationTest {
     @Autowired TestDb db;
     @Autowired JdbcClient jdbc;
     @Autowired AppraisalService appraisals;
-    @Autowired ObjectMapper json;
 
-    FamsUserPrincipal faculty, lecturer, otherFaculty, hod, otherDeptHod, principal, admin;
-    long id, lecturerAppraisal;
+    FamsUserPrincipal faculty, professor, hod, principal;
+    long id, professorAppraisal;
 
     @BeforeEach
     void setUp() {
         db.reset();
-        faculty = db.faculty("f1@test.edu", "E001", "CSE", "ASST_PROF");      // maxima 30,12,10,15,15,5,3,5,5
-        lecturer = db.faculty("lec@test.edu", "E004", "CSE", "LECTURER");     // funded projects and IPR: 0
-        otherFaculty = db.faculty("f2@test.edu", "E002", "CSE", "PROFESSOR");
+        faculty = db.faculty("f1@test.edu", "E001", "CSE", "ASST_PROF");      // maxima 40, 15, 15, 15
+        professor = db.faculty("prof@test.edu", "E002", "CSE", "PROFESSOR");  // B1 maximum 30
         hod = db.hod("hod@test.edu", "CSE");
-        otherDeptHod = db.hod("hod2@test.edu", "ECE");
         principal = db.user("p@test.edu", Role.PRINCIPAL);
-        admin = db.user("admin@test.edu", Role.ADMIN);
         id = appraisals.create(faculty);
-        lecturerAppraisal = appraisals.create(lecturer);
+        professorAppraisal = appraisals.create(professor);
     }
 
-    private ResultActions save(FamsUserPrincipal who, long appraisal, Map<String, Object> scores) throws Exception {
-        return mvc.perform(put("/api/appraisals/" + appraisal + "/scores").with(user(who)).with(csrf().asHeader())
-                .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(Map.of("scores", scores))));
+    private ResultActions sheet(FamsUserPrincipal who, long appraisal) throws Exception {
+        return mvc.perform(get("/api/appraisals/" + appraisal).with(user(who)));
     }
 
-    private static Map<String, Object> scores(Object... kv) {
-        Map<String, Object> m = new HashMap<>();
-        for (int i = 0; i < kv.length; i += 2) m.put((String) kv[i], kv[i + 1]);
-        return m;
-    }
-
-    private BigDecimal stored(long appraisal, String criterion) {
-        return jdbc.sql("SELECT self_score FROM appraisal_scores WHERE appraisal_id = ? AND criterion = ?")
-                .params(appraisal, criterion).query(BigDecimal.class).optional().orElse(null);
-    }
-
-    private int audits(String action) {
-        return jdbc.sql("SELECT COUNT(*) FROM audit_logs WHERE action = ? AND entity_id = ?")
-                .params(action, id).query(Integer.class).single();
+    private void insertCourses(long appraisal, int n) {
+        for (int i = 1; i <= n; i++) {
+            jdbc.sql("INSERT INTO teaching_courses (appraisal_id, course_code, course_name, course_type, program, branch, semester, hours_per_week, pass_percentage)"
+                    + " VALUES (?, ?, 'Intro', 'THEORY', 'B_TECH', 'CSE', 3, 4, 90)").params(appraisal, "C" + i).update();
+        }
     }
 
     // ---- the sheet itself ----
 
     @Test
-    void theSheetComesInTheFormsOrderWithItsOwnWording() throws Exception {
-        mvc.perform(get("/api/appraisals/" + id).with(user(faculty)))
+    void theSheetComesInTheFormsOrderWithItsOwnWordingAndNothingTyped() throws Exception {
+        sheet(faculty, id)
                 .andExpect(jsonPath("$.scores.length()").value(9))
                 .andExpect(jsonPath("$.scores[0].criterion").value("TEACHING_LEARNING"))
                 .andExpect(jsonPath("$.scores[0].label").value("Teaching & Learning"))
@@ -91,222 +74,194 @@ class ScoreIntegrationTest {
                 .andExpect(jsonPath("$.scores[4].maxMarks").isEmpty()) // B5 to B9 are marked per entry: no maximum
                 .andExpect(jsonPath("$.scores[3].label").value("Administrative, Curriculum & Quality Contributions"))
                 .andExpect(jsonPath("$.scores[8].label").value("Professional Memberships, Awards & Recognitions"))
-                .andExpect(jsonPath("$.scores[0].selfScore").doesNotExist());
+                .andExpect(jsonPath("$.scores[0].selfScore").doesNotExist())
+                .andExpect(jsonPath("$.scores[0].score").value(0));
     }
 
     @Test
-    void everyCriterionTheDatabaseSeedsIsKnownToTheCodeAndViceVersa() {
+    void everyCriterionTheDatabaseSeedsIsKnownToTheCode() {
         List<String> seeded = jdbc.sql("SELECT DISTINCT criterion FROM scoring_policy_criteria").query(String.class).list();
         for (String code : seeded) assertTrue(Criteria.order(code) < Integer.MAX_VALUE, code + " has no label");
-        assertEquals(Criteria.values().length, seeded.size());
-    }
-
-    // ---- saving ----
-
-    @Test
-    void facultyCanEnterScoresAndTheyShowOnTheSheet() throws Exception {
-        save(faculty, id, scores("TEACHING_LEARNING", 25.5, "OUTREACH", 4, "STUDENT_MENTORING", "10"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].selfScore").value(25.5))
-                .andExpect(jsonPath("$[1].selfScore").value(10.0))
-                .andExpect(jsonPath("$[7].selfScore").value(4.0));
-        mvc.perform(get("/api/appraisals/" + id).with(user(faculty)))
-                .andExpect(jsonPath("$.scores[0].selfScore").value(25.5));
-        assertEquals(0, new BigDecimal("25.50").compareTo(stored(id, "TEACHING_LEARNING")));
+        for (Criteria c : Criteria.values()) assertTrue(seeded.contains(c.name()), c + " is not seeded");
     }
 
     @Test
-    void aScoreEqualToTheMaximumOrZeroIsAccepted() throws Exception {
-        save(faculty, id, scores("TEACHING_LEARNING", 40, "OUTREACH", 0)).andExpect(status().isOk());
-        assertEquals(0, new BigDecimal("40").compareTo(stored(id, "TEACHING_LEARNING")));
-        assertEquals(0, BigDecimal.ZERO.compareTo(stored(id, "OUTREACH")));
+    void thereIsNoWayToTypeAScore() throws Exception {
+        mvc.perform(put("/api/appraisals/" + id + "/scores").with(user(faculty)).with(csrf().asHeader())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"scores\":{\"OUTREACH\":99}}"))
+                .andExpect(status().is4xxClientError());
+        sheet(faculty, id).andExpect(jsonPath("$.scores[7].score").value(0));
+    }
+
+    // ---- B1: one eighth of the maximum for each course ----
+
+    @Test
+    void eachCourseEarnsAnEighthOfTheCadresTeachingMaximumUpToEightCourses() throws Exception {
+        for (int i = 1; i <= 8; i++) {
+            insertCourses(id, 1);   // C1 again and again: the code is not unique
+            sheet(faculty, id)
+                    .andExpect(jsonPath("$.scores[0].score").value(5.0 * i))                          // 40 / 8 = 5 a course
+                    .andExpect(jsonPath("$.scores[0].components[0].awarded").value(2.5 * i))           // workload 20 / 8
+                    .andExpect(jsonPath("$.scores[0].breakdown[0].count").value(i));
+        }
+        sheet(faculty, id).andExpect(jsonPath("$.scores[0].score").value(40));
     }
 
     @Test
-    void savingOnlyTouchesTheCriteriaSentAndNullClears() throws Exception {
-        save(faculty, id, scores("TEACHING_LEARNING", 20, "OUTREACH", 3)).andExpect(status().isOk());
-        save(faculty, id, scores("OUTREACH", null)).andExpect(status().isOk());
-        assertEquals(0, new BigDecimal("20").compareTo(stored(id, "TEACHING_LEARNING")));   // untouched
-        assertEquals(null, stored(id, "OUTREACH"));                                         // cleared
-        save(faculty, id, scores("TEACHING_LEARNING", "")).andExpect(status().isOk());       // blank also clears
-        assertEquals(null, stored(id, "TEACHING_LEARNING"));
-    }
-
-    // ---- validation ----
-
-    @Test
-    void aScoreAboveTheCadreMaximumNamesTheCriterionAndTheLimit() throws Exception {
-        save(faculty, id, scores("TEACHING_LEARNING", 41))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors['scores.TEACHING_LEARNING']")
-                        .value("Self-score for Teaching & Learning must be between 0 and 40."));
-        save(lecturer, lecturerAppraisal, scores("TEACHING_LEARNING", 41)).andExpect(status().isBadRequest());
-        save(lecturer, lecturerAppraisal, scores("TEACHING_LEARNING", 40)).andExpect(status().isOk());
+    void theTeachingMarksFollowTheCadresMaximum() throws Exception {
+        insertCourses(professorAppraisal, 4);
+        sheet(professor, professorAppraisal)
+                .andExpect(jsonPath("$.scores[0].maxMarks").value(30))
+                .andExpect(jsonPath("$.scores[0].score").value(15));   // half the courses, half of 30
     }
 
     @Test
-    void negativeNonNumericAndOverPreciseValuesAreRejected() throws Exception {
-        save(faculty, id, scores("OUTREACH", -1)).andExpect(status().isBadRequest());
-        save(faculty, id, scores("OUTREACH", "abc")).andExpect(jsonPath("$.fieldErrors['scores.OUTREACH']")
-                .value("Self-score for Outreach must be a number."));
-        save(faculty, id, scores("OUTREACH", 2.555)).andExpect(jsonPath("$.fieldErrors['scores.OUTREACH']")
-                .value("Self-score for Outreach can have at most 2 decimal places."));
-        save(faculty, id, scores("OUTREACH", true)).andExpect(status().isBadRequest());
-        save(faculty, id, scores("OUTREACH", "1E999999999")).andExpect(status().isBadRequest());
+    void marksNeverExceedTheMaximumEvenIfMoreCoursesGotInByAnOlderRoute() throws Exception {
+        insertCourses(id, 10);
+        sheet(faculty, id).andExpect(jsonPath("$.scores[0].score").value(40));
+    }
+
+    // ---- B2 to B4 ----
+
+    @Test
+    void mentoringMarksComeFromMenteesProjectsAndAchievements() throws Exception {
+        jdbc.sql("INSERT INTO student_mentoring (appraisal_id, total_students_mentored) VALUES (?, 25)").params(id).update();
+        for (int i = 0; i < 6; i++) {   // four earn marks; the rest are over the 4 for project guidance
+            jdbc.sql("INSERT INTO student_projects (appraisal_id, level, title, student_count, outcome) VALUES (?, 'PG', 'P', 2, 'NONE')").params(id).update();
+        }
+        for (int i = 0; i < 2; i++) {
+            jdbc.sql("INSERT INTO student_achievements (appraisal_id, student_name, roll_no, achievement, level, month_year) VALUES (?, 'S', 'R', 'Won', 'INST', '2025-09')")
+                    .params(id).update();
+        }
+        sheet(faculty, id)
+                .andExpect(jsonPath("$.scores[1].breakdown[0].marks").value(3.0))   // 25 of 50 mentees: half of 6
+                .andExpect(jsonPath("$.scores[1].breakdown[1].marks").value(4))     // six projects, capped at 4
+                .andExpect(jsonPath("$.scores[1].breakdown[2].marks").value(2))
+                .andExpect(jsonPath("$.scores[1].score").value(9.0));
     }
 
     @Test
-    void theCriteriaMarkedPerEntryHaveNoMaximumForAnyCadre() throws Exception {
-        save(lecturer, lecturerAppraisal, scores("FUNDED_PROJECTS", 500, "RESEARCH_PUBLICATIONS", 1234.5)).andExpect(status().isOk());
-        save(faculty, id, scores("OUTREACH", 250)).andExpect(status().isOk());
-        assertEquals(0, new BigDecimal("250").compareTo(stored(id, "OUTREACH")));
+    void fdpAndCertificationMarks() throws Exception {
+        for (int i = 0; i < 2; i++) {
+            jdbc.sql("INSERT INTO fdps (appraisal_id, title, mode, institution_venue, start_date, end_date, days) VALUES (?, 'F', 'ONLINE', 'V', '2025-07-01', '2025-07-02', 2)")
+                    .params(id).update();
+        }
+        for (int i = 0; i < 3; i++) {
+            jdbc.sql("INSERT INTO certifications (appraisal_id, platform, title, start_date, end_date) VALUES (?, 'NPTEL', 'C', '2025-08-01', '2025-10-01')")
+                    .params(id).update();
+        }
+        sheet(faculty, id).andExpect(jsonPath("$.scores[2].score").value(8));   // 2 x 1 + 3 x 2
     }
 
     @Test
-    void marksAreCalculatedFromTheEntriesLiveAndATypedScoreOverridesThem() throws Exception {
+    void administrativeMarksCountDepartmentInstituteAndEvents() throws Exception {
+        String role = "INSERT INTO administrative_roles (appraisal_id, scope, role, from_date, to_date) VALUES (?, ?, 'R', '2025-06-01', '2026-05-31')";
+        jdbc.sql(role).params(id, "DEPARTMENT").update();
+        jdbc.sql(role).params(id, "INSTITUTE").update();
+        for (int i = 0; i < 3; i++) {
+            jdbc.sql("INSERT INTO events (appraisal_id, activity_type, role, title, start_date, end_date, beneficiaries)"
+                    + " VALUES (?, 'Workshop', 'Convener', 'E', '2025-10-01', '2025-10-02', 50)")
+                    .params(id).update();
+        }
+        sheet(faculty, id).andExpect(jsonPath("$.scores[3].score").value(6.5));   // 2 + 1.5 + 3
+    }
+
+    @Test
+    void aKindOfEntryStopsEarningAtItsCapAndTheCriterionAtItsMaximum() throws Exception {
+        for (int i = 0; i < 20; i++) {
+            jdbc.sql("INSERT INTO certifications (appraisal_id, platform, title, start_date, end_date) VALUES (?, 'NPTEL', 'C', '2025-08-01', '2025-10-01')")
+                    .params(id).update();
+            jdbc.sql("INSERT INTO fdps (appraisal_id, title, mode, institution_venue, start_date, end_date, days) VALUES (?, 'F', 'ONLINE', 'V', '2025-07-01', '2025-07-02', 2)")
+                    .params(id).update();
+        }
+        sheet(faculty, id).andExpect(jsonPath("$.scores[2].score").value(15))        // 5 + 10, and not a mark more
+                .andExpect(jsonPath("$.scores[2].breakdown[1].marks").value(10));
+    }
+
+    // ---- B5 to B9 ----
+
+    @Test
+    void perEntryMarksAreCalculatedFromTheEntriesLive() throws Exception {
         jdbc.sql("INSERT INTO outreach (appraisal_id, role, event_activity, organization, event_date) VALUES (?, 'RESOURCE_PERSON', 'Talk', 'X', '2026-01-10')")
                 .params(id).update();
         jdbc.sql("INSERT INTO outreach (appraisal_id, role, event_activity, organization, event_date) VALUES (?, 'RESOURCE_PERSON', 'Talk 2', 'X', '2026-02-10')")
                 .params(id).update();
         jdbc.sql("INSERT INTO memberships_awards (appraisal_id, item, awarding_body, level, year) VALUES (?, 'IEEE', 'IEEE', 'INTL', 2025)").params(id).update();
-        jdbc.sql("INSERT INTO books (appraisal_id, authors, title, publisher, month_year, type) VALUES (?, 'A', 'B', 'P', '2025-05', 'BOOK')").params(id).update();
-        jdbc.sql("INSERT INTO books (appraisal_id, authors, title, publisher, month_year, type) VALUES (?, 'A', 'C', 'P', '2025-06', 'CHAPTER')").params(id).update();
+        jdbc.sql("INSERT INTO books (appraisal_id, authors, title, publisher, month_year, type) VALUES (?, 'A', 'B', 'P', '2025-07', 'BOOK')").params(id).update();
+        jdbc.sql("INSERT INTO books (appraisal_id, authors, title, publisher, month_year, type) VALUES (?, 'A', 'C', 'P', '2025-08', 'CHAPTER')").params(id).update();
         String paper = "INSERT INTO journal_publications (appraisal_id, title, author_position, journal, month_year, indexing) VALUES (?, 'T', '1', 'J', '2025-06', ?)";
         jdbc.sql(paper).params(id, "SCI_SCIE").update();
         jdbc.sql(paper).params(id, "OTHERS").update();
         for (String status : new String[] {"SANCTIONED", "APPLIED", "APPLIED"}) {
             jdbc.sql("INSERT INTO funded_projects (appraisal_id, title, role, type, funding_agency_client, amount, start_date, end_date, status, year)"
-                    + " VALUES (?, 'P', 'PI', 'RESEARCH', 'AICTE', 100000, '2025-01-01', '2025-12-31', ?, 2025)").params(id, status).update();
+                    + " VALUES (?, 'P', 'PI', 'RESEARCH', 'AICTE', 100000, '2025-06-01', '2025-12-31', ?, 2025)").params(id, status).update();
         }
-        mvc.perform(get("/api/appraisals/" + id).with(user(faculty)))
-                .andExpect(jsonPath("$.scores[4].calculated").value(15.0))     // one SCI/SCIE paper; the "others" paper earns nothing
-                .andExpect(jsonPath("$.scores[5].calculated").value(60.0))     // one sanctioned (50) and two applied (5 each)
-                .andExpect(jsonPath("$.scores[6].calculated").value(25.0))     // a book (20) and a chapter (5)
-                .andExpect(jsonPath("$.scores[7].calculated").value(10.0))     // two outreach entries
-                .andExpect(jsonPath("$.scores[8].calculated").value(5.0))
-                .andExpect(jsonPath("$.scores[5].score").value(60.0))
-                .andExpect(jsonPath("$.scores[5].selfScore").doesNotExist())
+        sheet(faculty, id)
+                .andExpect(jsonPath("$.scores[4].score").value(15.0))     // one SCI/SCIE paper; the "others" paper earns nothing
+                .andExpect(jsonPath("$.scores[5].score").value(60.0))     // one sanctioned (50) and two applied (5 each)
+                .andExpect(jsonPath("$.scores[6].score").value(25.0))     // a book (20) and a chapter (5)
+                .andExpect(jsonPath("$.scores[7].score").value(10.0))     // two outreach entries
+                .andExpect(jsonPath("$.scores[8].score").value(5.0))
                 .andExpect(jsonPath("$.scores[5].breakdown[0].count").value(1))
                 .andExpect(jsonPath("$.scores[5].breakdown[1].marks").value(10));
-        // the faculty member may adjust; clearing it returns to the calculation
-        save(faculty, id, scores("FUNDED_PROJECTS", 40)).andExpect(status().isOk());
-        mvc.perform(get("/api/appraisals/" + id).with(user(faculty)))
-                .andExpect(jsonPath("$.scores[5].score").value(40.0)).andExpect(jsonPath("$.scores[5].calculated").value(60.0));
-        save(faculty, id, scores("FUNDED_PROJECTS", null)).andExpect(status().isOk());
-        mvc.perform(get("/api/appraisals/" + id).with(user(faculty))).andExpect(jsonPath("$.scores[5].score").value(60.0));
     }
 
     @Test
-    void teachingWorkloadIsTwoAndAHalfMarksACourseUpToItsLimit() throws Exception {
-        for (int i = 1; i <= 10; i++) {   // 8 courses (4 a semester, 2 semesters) earn the 20; more add nothing
-            jdbc.sql("INSERT INTO teaching_courses (appraisal_id, course_code, course_name, course_type, program, branch, semester, sections, hours_per_week, pass_percentage)"
-                    + " VALUES (?, ?, 'Intro', 'THEORY', 'B.Tech', 'CSE', 3, 1, 4, 90)").params(id, "C" + i).update();
-            mvc.perform(get("/api/appraisals/" + id).with(user(faculty)))
-                    .andExpect(jsonPath("$.scores[0].components[0].awarded").value(Math.min(20.0, 2.5 * i)))
-                    .andExpect(jsonPath("$.scores[0].calculated").value(Math.min(20.0, 2.5 * i)));
-        }
+    void aFundedProjectOfAnotherYearEarnsNothing() throws Exception {
+        String project = "INSERT INTO funded_projects (appraisal_id, title, role, type, funding_agency_client, amount, start_date, end_date, status, year)"
+                + " VALUES (?, 'P', 'PI', 'RESEARCH', 'AICTE', 100000, '2024-01-01', '2024-12-31', 'SANCTIONED', ?)";
+        jdbc.sql(project).params(id, 2024).update();
+        sheet(faculty, id).andExpect(jsonPath("$.scores[5].score").value(0));
+        jdbc.sql(project).params(id, 2026).update();   // the appraised year is 2025-26: 2025 and 2026 count
+        sheet(faculty, id).andExpect(jsonPath("$.scores[5].score").value(50));
+    }
+
+    // ---- who sees it ----
+
+    @Test
+    void theHodSeesTheSameMarksOnceItIsSubmitted() throws Exception {
+        jdbc.sql("INSERT INTO outreach (appraisal_id, role, event_activity, organization, event_date) VALUES (?, 'RESOURCE_PERSON', 'Talk', 'X', '2026-01-10')")
+                .params(id).update();
+        db.complete(id);
+        appraisals.submit(id, faculty);
+        sheet(hod, id).andExpect(status().isOk()).andExpect(jsonPath("$.scores[7].score").value(5.0));
+        appraisals.transition(id, hod, WorkflowAction.Verb.START, null);
+        appraisals.transition(id, hod, WorkflowAction.Verb.APPROVE, null);
+        sheet(principal, id).andExpect(jsonPath("$.scores[7].score").value(5.0));
     }
 
     @Test
-    void anUnknownCriterionIsRejected() throws Exception {
-        save(faculty, id, scores("MAGIC", 5)).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors['scores.MAGIC']").value("Not a recognised criterion."));
-    }
-
-    @Test
-    void oneBadValueSavesNothingAtAll() throws Exception {
-        save(faculty, id, scores("TEACHING_LEARNING", 10)).andExpect(status().isOk());
-        save(faculty, id, scores("TEACHING_LEARNING", 12, "OUTREACH", 3, "STUDENT_MENTORING", 99)).andExpect(status().isBadRequest());
-        assertEquals(0, new BigDecimal("10").compareTo(stored(id, "TEACHING_LEARNING"))); // the valid one was not applied
-        assertEquals(null, stored(id, "OUTREACH"));
-    }
-
-    @Test
-    void aMissingScoresObjectIsAClientError() throws Exception {
-        mvc.perform(put("/api/appraisals/" + id + "/scores").with(user(faculty)).with(csrf().asHeader())
-                .contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.scores").value("scores is required."));
-    }
-
-    // ---- the maximum is a snapshot, not the editable part ----
-
-    @Test
-    void theMaximumCannotBeChangedThroughThisEndpoint() throws Exception {
-        save(faculty, id, scores("TEACHING_LEARNING", 20)).andExpect(status().isOk());
+    void theMaximumIsASnapshotOfThePolicyTakenWhenTheAppraisalWasCreated() {
         Integer max = jdbc.sql("SELECT max_marks FROM appraisal_scores WHERE appraisal_id = ? AND criterion = 'TEACHING_LEARNING'")
                 .param(id).query(Integer.class).single();
         assertEquals(40, max);
     }
 
-    // ---- locking and access ----
+    // ---- only what happened in the academic year (1 June 2025 to 31 May 2026) counts ----
 
     @Test
-    void scoresAreLockedOnceSubmittedAndStayLocked() throws Exception {
-        save(faculty, id, scores("OUTREACH", 3)).andExpect(status().isOk());
-        appraisals.submit(id, faculty);
-        save(faculty, id, scores("OUTREACH", 4)).andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("This appraisal is locked while it is SUBMITTED."));
-
-        appraisals.transition(id, hod, WorkflowAction.Verb.START, null);
-        appraisals.transition(id, hod, WorkflowAction.Verb.APPROVE, null);
-        save(faculty, id, scores("OUTREACH", 4)).andExpect(status().isConflict());
-        assertEquals(0, new BigDecimal("3").compareTo(stored(id, "OUTREACH")));
-    }
-
-    @Test
-    void reviewersAndOthersCannotWriteScores() throws Exception {
-        appraisals.submit(id, faculty);
-        save(hod, id, scores("OUTREACH", 1)).andExpect(status().isForbidden());
-        save(otherDeptHod, id, scores("OUTREACH", 1)).andExpect(status().isNotFound());
-        save(otherFaculty, id, scores("OUTREACH", 1)).andExpect(status().isNotFound());
-        save(principal, id, scores("OUTREACH", 1)).andExpect(status().isNotFound());
-        save(admin, id, scores("OUTREACH", 1)).andExpect(status().isNotFound());
-        assertEquals(null, stored(id, "OUTREACH"));
-    }
-
-    @Test
-    void anotherFacultyCannotScoreMyAppraisalEvenWhileItIsADraft() throws Exception {
-        save(otherFaculty, id, scores("OUTREACH", 1)).andExpect(status().isNotFound());
-        assertEquals(null, stored(id, "OUTREACH"));
-    }
-
-    @Test
-    void hodSeesTheSelfScoresReadOnly() throws Exception {
-        save(faculty, id, scores("OUTREACH", 4)).andExpect(status().isOk());
-        appraisals.submit(id, faculty);
-        mvc.perform(get("/api/appraisals/" + id).with(user(hod)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.scores[7].selfScore").value(4.0));
-    }
-
-    @Test
-    void writingWithoutACsrfTokenIsRejected() throws Exception {
-        mvc.perform(put("/api/appraisals/" + id + "/scores").with(user(faculty))
-                .contentType(MediaType.APPLICATION_JSON).content("{\"scores\":{\"OUTREACH\":1}}"))
-                .andExpect(status().isForbidden());
-        assertEquals(null, stored(id, "OUTREACH"));
-    }
-
-    // ---- audit and last-saved ----
-
-    @Test
-    void onlyRealChangesAreAuditedSoAutosaveDoesNotFloodTheTrail() throws Exception {
-        save(faculty, id, scores("OUTREACH", 3)).andExpect(status().isOk());
-        assertEquals(1, audits("SCORES_SAVED"));
-        save(faculty, id, scores("OUTREACH", 3.00)).andExpect(status().isOk());    // same value, different spelling
-        save(faculty, id, scores("OUTREACH", "3")).andExpect(status().isOk());
-        assertEquals(1, audits("SCORES_SAVED"));
-        save(faculty, id, scores("OUTREACH", 4)).andExpect(status().isOk());
-        assertEquals(2, audits("SCORES_SAVED"));
-    }
-
-    @Test
-    void savingAScoreUpdatesTheAppraisalsLastSavedTime() throws Exception {
-        jdbc.sql("UPDATE appraisals SET updated_at = '2020-01-01 00:00:00' WHERE id = ?").param(id).update();
-        save(faculty, id, scores("OUTREACH", 3)).andExpect(status().isOk());
-        Integer year = jdbc.sql("SELECT YEAR(updated_at) FROM appraisals WHERE id = ?").param(id)
-                .query(Integer.class).single();
-        assertTrue(year >= 2026);
+    void anEntryDatedOutsideTheAcademicYearEarnsNothingWhateverGotIntoTheDatabase() throws Exception {
+        // inside the year: the first and last day, and the first and last month
+        jdbc.sql("INSERT INTO outreach (appraisal_id, role, event_activity, organization, event_date) VALUES (?, 'RESOURCE_PERSON', 'A', 'X', '2025-06-01')").params(id).update();
+        jdbc.sql("INSERT INTO outreach (appraisal_id, role, event_activity, organization, event_date) VALUES (?, 'RESOURCE_PERSON', 'B', 'X', '2026-05-31')").params(id).update();
+        // outside it: the day before and the day after
+        jdbc.sql("INSERT INTO outreach (appraisal_id, role, event_activity, organization, event_date) VALUES (?, 'RESOURCE_PERSON', 'C', 'X', '2025-05-31')").params(id).update();
+        jdbc.sql("INSERT INTO outreach (appraisal_id, role, event_activity, organization, event_date) VALUES (?, 'RESOURCE_PERSON', 'D', 'X', '2026-06-01')").params(id).update();
+        String book = "INSERT INTO books (appraisal_id, authors, title, publisher, month_year, type) VALUES (?, 'A', 'B', 'P', ?, 'BOOK')";
+        jdbc.sql(book).params(id, "2025-06").update();    // first month: counts
+        jdbc.sql(book).params(id, "2026-05").update();    // last month: counts
+        jdbc.sql(book).params(id, "2025-05").update();    // the month before: does not
+        jdbc.sql(book).params(id, "2026-06").update();    // the month after: does not
+        jdbc.sql("INSERT INTO memberships_awards (appraisal_id, item, awarding_body, level, year) VALUES (?, 'Old', 'IEEE', 'INTL', 2024)").params(id).update();
+        jdbc.sql("INSERT INTO memberships_awards (appraisal_id, item, awarding_body, level, year) VALUES (?, 'New', 'IEEE', 'INTL', 2026)").params(id).update();
+        // a training programme counts only when it both starts and ends inside the year
+        String fdp = "INSERT INTO fdps (appraisal_id, title, mode, institution_venue, start_date, end_date, days) VALUES (?, ?, 'ONLINE', 'V', ?, ?, 2)";
+        jdbc.sql(fdp).params(id, "In", "2026-05-30", "2026-05-31").update();
+        jdbc.sql(fdp).params(id, "Across", "2026-05-30", "2026-06-02").update();
+        sheet(faculty, id)
+                .andExpect(jsonPath("$.scores[7].breakdown[0].count").value(2))                  // outreach
+                .andExpect(jsonPath("$.scores[6].breakdown[2].count").value(2))                  // books
+                .andExpect(jsonPath("$.scores[8].breakdown[0].count").value(1))                  // memberships
+                .andExpect(jsonPath("$.scores[2].breakdown[0].count").value(1));                 // programmes
     }
 }

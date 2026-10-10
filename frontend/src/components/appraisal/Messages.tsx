@@ -71,7 +71,7 @@ export function MessagesFromHod({ appraisalId, prominent = false }: { appraisalI
           {messages.length === 1 ? "A message from your Head of the Department" : `${messages.length} messages from your Head of the Department`}
         </h2>
         <p className="mt-1 text-sm text-muted">
-          Please arrange to meet them about the query. Your appraisal is with them and cannot be changed in the meantime.
+          Please arrange to meet them about the query. Until they approve your appraisal you may correct it and send it again from the Score & Review page.
         </p>
       </div>
       <ul className="space-y-3">

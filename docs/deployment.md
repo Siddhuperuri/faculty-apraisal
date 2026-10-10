@@ -61,7 +61,7 @@ database and the issued reports go with them. Use `scripts/docker-backup.sh` to 
 |---|---|
 | `FAMS_DB_URL`, `FAMS_DB_USER`, `FAMS_DB_PASSWORD` | Database connection. The URL and the password have no default: the application does not start without them |
 | `FAMS_SECURE_COOKIES` | Default `true`: cookies are sent over HTTPS only. Sign-in does not work over plain HTTP unless this is set to `false`, which exposes passwords and sessions to the network; do that only on a closed test set-up |
-| `FAMS_FORWARD_HEADERS` | `native` when behind the reverse proxy, so the real client address is used (see "Rate limiting" below). `framework` is refused at start-up: it believes an address the client can forge |
+| `FAMS_FORWARD_HEADERS` | `native` when behind the reverse proxy, so the real client address is used (it is written to the log and the audit trail). `framework` is refused at start-up: it believes an address the client can forge |
 | `FAMS_TRUSTED_PROXIES` | Which addresses are the reverse proxy, as a regular expression. Default: this machine. Only needed if the proxy runs elsewhere, for example `10[.]1[.]2[.]3` |
 | `FAMS_BIND_ADDRESS` | The address the backend listens on. Default `127.0.0.1`. Set it (for example `0.0.0.0`) only if the proxy runs on another machine, and firewall port 8080 to that machine |
 | `FAMS_STORAGE_DIR` | **Required.** The absolute path of the directory where issued official reports are kept. It must be on storage that outlives the application (a data disk or a shared volume, not a temporary or working directory): the backend does not start without a directory it can write to. Private, outside any web root, writable by the service account only. With several instances, the same shared volume for all |
@@ -79,13 +79,7 @@ Students and visitors are on the same network as staff, so the usual protections
   from the college's own certificate authority (or the college's wildcard certificate) at the reverse proxy.
 - **Limit who can reach it.** At the firewall or reverse proxy, allow the staff and faculty subnets or VLANs only, and keep
   the database port closed to everything except the application server.
-- **Rate limiting depends on the real client address.** Sign-in attempts are limited per e-mail address *and* client
-  address (5 failures in 10 minutes), with wider limits per account and per address behind that (`docs/security.md`).
-  Behind a proxy without `FAMS_FORWARD_HEADERS=native` every user looks like the proxy, so one student guessing at the
-  Principal's e-mail address could lock the Principal out. Set it. The proxy must add the address it saw to
-  `X-Forwarded-For` (nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`) and should send
-  `X-Forwarded-Proto`. Appending is fine: the backend reads the header from the right and stops at the first address that
-  is not a trusted proxy, so anything the client put in front is ignored.
+- **The real client address is still worth getting right** behind a proxy: it is what the log and the audit trail record for a sign-in.
 - **Send `Strict-Transport-Security` from the reverse proxy** once HTTPS works, so browsers stop trying plain HTTP.
 - **Database account:** the application user needs normal read/write rights, not `DROP` or `TRUNCATE` (those would bypass
   the append-only history tables). Run migrations with a separate account: set `SPRING_FLYWAY_USER` and

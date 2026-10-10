@@ -213,3 +213,14 @@ already issued are stored bytes and are not regenerated. The Director's console 
 and the browser draws both with one `ApprovalConsolePage`. Rejected: putting the Director after the Principal (it would
 remove the Principal's final say and add two statuses, an extra faculty step and a decision about every appraisal already at
 the Principal), and a read-only Director (not what was asked for).
+
+**ADR-034: Automatic marks, the academic-year rule, resubmission after a query, and no sign-in limit (2026-10-09).** Decided by the user in
+one pass. (1) Marks: every criterion is calculated from the entries and nobody types a score; ADR-018 no longer holds and
+`self_score` is gone (see `docs/scoring.md` for the rates, B2 to B4 being a working rule the college has yet to confirm). At most 8
+courses can be added and B1 is an eighth of its maximum a course. (2) Only what was achieved, done or received between 1 June and
+31 May of the appraised year is accepted and counted. (3) While the HoD is reviewing and has sent a message, the faculty member may
+correct the appraisal and send it again (`RESUBMIT`, HOD_REVIEW -> SUBMITTED); this is the only backwards step (`docs/workflow.md`).
+(4) Sign-in attempts are no longer limited: the brute-force defence described in docs/security.md is removed at the user's request, knowingly, on a
+network the students share; the change-password guess limit stays. (5) Form changes: program and branch are lists (a branch must
+belong to its program), the number of sections of a course is gone, the days of a programme are worked out from its dates, roles
+carry from and to dates, the author position is a number 1 to 8, a project may have the outcome "None", and mentees are 0 to 50.

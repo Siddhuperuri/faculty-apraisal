@@ -3,7 +3,6 @@ package edu.svec.fams;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -257,25 +256,6 @@ class ScoringComponentsTest {
                 }
             }
         }
-    }
-
-    @Test
-    void aSelfScoreIsCheckedAgainstTheMaximumOfThatCadre() throws Exception {
-        db.faculty("lec@test.edu", "E1", "CSE", "LECTURER");
-        db.faculty("prof@test.edu", "E2", "CSE", "PROFESSOR");
-        MockHttpSession lecturer = http.login("lec@test.edu"), professor = http.login("prof@test.edu");
-        long l = http.read(http.post(lecturer, "/api/appraisals", null)).get("id").asLong();
-        long p = http.read(http.post(professor, "/api/appraisals", null)).get("id").asLong();
-        Map<String, Object> forty = Map.of("scores", Map.of("TEACHING_LEARNING", 40));
-
-        http.put(lecturer, "/api/appraisals/" + l + "/scores", forty).andExpect(status().isOk());
-        http.put(professor, "/api/appraisals/" + p + "/scores", forty).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors['scores.TEACHING_LEARNING']").value("Self-score for Teaching & Learning must be between 0 and 30."));
-        http.put(professor, "/api/appraisals/" + p + "/scores", Map.of("scores", Map.of("TEACHING_LEARNING", 30))).andExpect(status().isOk());
-        // B5 has no maximum for any cadre
-        Map<String, Object> many = Map.of("scores", Map.of("RESEARCH_PUBLICATIONS", 600));
-        http.put(lecturer, "/api/appraisals/" + l + "/scores", many).andExpect(status().isOk());
-        http.put(professor, "/api/appraisals/" + p + "/scores", many).andExpect(status().isOk());
     }
 
     // ---- when the policy changes ----

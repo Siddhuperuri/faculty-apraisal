@@ -38,15 +38,32 @@ and ignored. The per-entry marks are in code (`ScoringRules`), because they are 
 | B8 Outreach | each entry | 5 |
 | B9 Memberships, Awards & Recognitions | each entry | 5 |
 
-- **Calculated live, adjustable.** The server works the marks out from the entries (`ScoreService.rows`: `calculated`,
-  with the `breakdown` of counts) and each criterion's page shows them, refreshed after every save. The faculty member
-  may type their own score over a calculated one (`selfScore`); the mark that counts (`score`) is the typed score if
-  there is one, otherwise the calculation. Clearing the typed score returns to the calculation.
-- **B2 to B4, and B1 apart from its workload, have no per-entry marks** (the college has not given any): they are typed
-  by the faculty member, from 0 up to the cadre's maximum. B1's calculated marks are only its workload part.
-- **The 8-course rule.** A faculty member teaches 4 courses in each of the academic year's 2 semesters and cannot submit with fewer than 8 courses (`ScoreService.MIN_COURSES`).
-- A criterion's `maxMarks` is `null` in the API for B5 to B9; the score sheet, the printed report and Annexure A show
-  "per entry" and total only B1 to B4.
+- **Every mark is calculated, live, and nobody types one** (decision of 2026-10-09, ADR-034). `ScoreService.rows` works out each
+  criterion's `score` from the entries whenever an appraisal is read, with the `breakdown` of counts, and the pages refresh it
+  after every save. There is no self-score and no endpoint to send one (`appraisal_scores.self_score` was dropped in V28).
+- **Only the academic year counts.** Everything is counted only if it was achieved, done or received in the academic year being
+  appraised, which runs from 1 June to 31 May (the year's own dates). The form refuses an entry dated outside it
+  (`SectionSpec.inAcademicYear`), and the marks also count only entries inside it, so a stray older row earns nothing.
+  Dated fields held to it: student achievements (month), FDPs, certifications and events (start and end day), roles
+  (from and to day), journal and conference papers and books (month), scholars, funded projects and memberships (year, one of
+  the two calendar years the academic year spans), patents (day) and outreach (day). What describes the person (joining dates,
+  the year a Ph.D. was registered, research profile metrics) is not.
+- **B1: courses.** A faculty member teaches 4 courses in each of the academic year's 2 semesters, and **at most 8** can be added.
+  Each course earns one eighth of the cadre's B1 maximum, shared among its components as the policy divides it (an Assistant
+  Professor's 40 is 5 a course: 2.5 workload, 1 feedback, 0.75 course file, 0.75 innovative practices), so 8 courses earn all of it.
+- **B2 to B4: a working rate card** (the college has not published one; change it in `ScoringRules`). Each kind of entry has a rate
+  and a cap, and the caps add up to the criterion's 15:
+
+| Criterion | Entry | Marks each | Stops at |
+|---|---|---|---|
+| B2 | student mentored (50 mentees earn the 6) | 0.12 | 6 |
+| | student project guided | 1 | 4 |
+| | student achievement | 1 | 5 |
+| B3 | workshop, FDP, seminar or training attended | 1 | 5 |
+| | certification | 2 | 10 |
+| B4 | department-level role | 2 | 4 |
+| | institute-level role | 1.5 | 3 |
+| | event organised or coordinated | 1 | 8 |
 
 ## Scoring components (criteria B1 to B4)
 
@@ -101,33 +118,7 @@ a new maximum (none is altered to fit). Each move is an `APPRAISAL_POLICY_MOVED`
 - Creating an appraisal picks the highest active version and **copies** the maximum marks into `appraisal_scores`.
 - Publishing version 2 affects only appraisals created afterwards. A test proves earlier appraisals keep their marks.
 
-## Three separate concepts
+## Maximum and marks
 
-`appraisal_scores` keeps them apart: `max_marks` (snapshot of policy), `self_score` (faculty) and `review_score`
+`appraisal_scores` keeps `max_marks` (snapshot of policy) and `review_score`
 (reviewer, reserved). The database rejects any score below 0 or above the snapshotted maximum.
-
-## Self-score entry
-
-`PUT /api/appraisals/{id}/scores` (owner, while the appraisal is editable). The faculty member types a score per
-criterion; the server checks only what the form states:
-
-- a number from 0 up to that cadre's maximum (the snapshot in `appraisal_scores.max_marks`), at most 2 decimal places;
-- a criterion whose maximum is 0 for the cadre (for example a Lecturer's Funded Projects and Patents) accepts only 0, and
-  the UI shows it as "n/a";
-- empty means "not entered" (null), and entering is optional for now;
-- one invalid value rejects the whole request, so a save never half-applies; criteria not sent are left alone;
-- locked after submission like every section, reopened if returned; only the author may write.
-
-A save that changes nothing writes nothing and adds no audit entry (`SCORES_SAVED` is recorded only for real changes).
-The criteria names and their order come from `scoring/Criteria.java` (the form's wording); a test checks every criterion
-code seeded in the policy is listed there. The total on screen adds the valid scores entered so far; it is not stored.
-The submit panel lists criteria with no self-score as a **non-blocking** note.
-
-## Not decided (not invented)
-
-The form does not say how activities become marks. `calculation_mode` is `SELF_ENTERED` for every criterion, meaning
-the faculty types a score and the system only validates the range. If the institution supplies formulas they become
-versioned rules (`FORMULA` plus `configuration_json`), never code constants. See `docs/requirements.md` C15-C21.
-
-Where the form itself asks for a total or an average (for example teaching load and average pass percentage), those
-will be computed from the records; that is arithmetic on entered data, not a scoring rule.

@@ -18,22 +18,13 @@ against guessing, and the administrator and reviewer areas are still enforced on
   another site under the same parent domain, and a form from there can carry a parameter but not a header.
 - **No account enumeration:** unknown user, wrong password and disabled account return the same 401 message, and take
   the same time: the account's state is checked after the password, and an unknown address costs a dummy hash check.
-- **Brute force** (`SignInThrottle`): three limits over ten minutes, counting only attempts whose password was checked
-  and wrong. Each returns the same 429.
-  - 5 per account *and* client address: the everyday limit. Someone guessing at the Principal's account locks out
-    only their own address.
-  - 25 per account from any address: changing address (trivial on a LAN) or forging a forwarding header does not buy
-    more guesses. The address the account last signed in from successfully is exempt, so the owner at their usual
-    machine is not shut out by other people's guessing.
-  - 100 per client address across all accounts: one machine cannot try a few common passwords against everyone.
-
-  An attempt is counted before the password is checked and given back if it was right, so a burst of parallel requests
-  cannot slip past the limit. The counters are in the database (`sign_in_attempts`, migration V10), not in the server's
-  memory: every instance of the backend counts against the same limits and a restart forgets nothing, including the
-  address each account last signed in from (`users.last_login_address`). Each change is one conditional statement, so
-  the limit holds under parallel requests whichever instance they reach. Only a SHA-256 of each key is stored (no
-  e-mail or client address), dead rows are purged, and the table is bounded (100 000 keys; beyond that it refuses
-  rather than grows).
+- **Sign-in attempts are not limited** (decision of 2026-10-09, ADR-034). The earlier limits (5 failures per account and address,
+  25 per account, 100 per address, in ten minutes) were removed at the college's request, so a wrong password never locks an
+  account or an address and the attempts are not counted. What remains is the strength of the passwords the policy accepts, the
+  same answer for unknown user, wrong password and disabled account, a failed sign-in line in the log (account and address,
+  never the password), and the audit trail. Guessing is therefore possible at the speed bcrypt allows (a fraction of a second
+  a try); the **password-change** guard below still limits wrong *current* passwords. To limit sign-in again, restore
+  `SignInThrottle` from version control; its table `sign_in_attempts` is still there.
 - **Client address:** taken from the connection. Behind a reverse proxy (`FAMS_FORWARD_HEADERS=native`) it is read from
   `X-Forwarded-For`, but only when the request comes from a trusted proxy (`FAMS_TRUSTED_PROXIES`, this machine by
   default) and from the right-hand end, so a value the client put there itself is never used. The setting that does

@@ -20,8 +20,7 @@ and sign in with your college e-mail address. After sign-in you land on the page
 - **Password rules:** at least 10 characters, with a letter and a number; no leading or trailing space; at least five
   different characters; not containing your e-mail name; not a common password or the college's name with digits added
   (`Password@2026`, `Svec@123456`). The page shows hints as you type.
-- **Too many wrong passwords** (5 for your account from one machine in 10 minutes) locks sign-in from that machine for
-  ten minutes. Wait, then try again.
+- **Wrong passwords never lock you out.** You can try again at once. If you have forgotten yours, ask an administrator to reset it.
 - You are signed out after **30 minutes of inactivity**.
 - **Forgotten password:** ask an administrator to reset it. They set it back to the standard password and you choose your own at
   next sign-in. There is no "forgot password" link and no e-mail is sent.
@@ -208,6 +207,5 @@ sign in, change the password, create the real accounts, then remove both variabl
 | Signed out suddenly | 30 minutes idle, or an administrator disabled, re-roled or reset your account, or you changed your password elsewhere |
 | 404 on an appraisal | It does not exist **or you may not see it**; the system does not say which |
 | "Not saved" with a field named | That value breaks a rule (a limit, a date order, a format). Fix the field and save again |
-| 429 / "too many attempts" | Sign-in limit reached. Wait ten minutes, or ask an administrator |
 | Conflict (409) on review | Another reviewer acted first. Refresh |
 | Report says DRAFT | The appraisal is not yet finally approved |

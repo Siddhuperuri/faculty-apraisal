@@ -9,6 +9,7 @@ import static edu.svec.fams.section.FieldSpec.text;
 import static edu.svec.fams.section.FieldSpec.year;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -21,6 +22,21 @@ public final class Sections {
     private Sections() {}
 
     private static final Map<String, SectionSpec> ALL = new LinkedHashMap<>();
+
+    /** A faculty member teaches 4 courses in each of the year's 2 semesters; no more can be added. */
+    public static final int MAX_COURSES = 8;
+
+    /** The branches the college offers under each program; the branch chosen must belong to the program chosen. */
+    private static final Map<String, List<String>> BRANCHES_BY_PROGRAM = branches();
+
+    private static Map<String, List<String>> branches() {
+        Map<String, List<String>> m = new LinkedHashMap<>();
+        m.put("B_TECH", List.of("CSE", "AIML", "ECE", "EEE", "ME", "CE", "BSH"));
+        m.put("DIPLOMA", List.of("CSE", "ECE", "EEE", "ME", "CE"));
+        m.put("MBA", List.of("MBA"));
+        m.put("PHARMACY", List.of("PHARMACEUTICS", "PHARMACEUTICAL_CHEMISTRY", "PHARMACOLOGY", "PHARMACOGNOSY", "PHARMACY_PRACTICE"));
+        return Collections.unmodifiableMap(m);
+    }
 
     private static void add(SectionSpec s) { ALL.put(s.key(), s); }
 
@@ -45,19 +61,20 @@ public final class Sections {
                 text("courseCode", "course_code", "Course code", 32, true),
                 text("courseName", "course_name", "Course name", 160, true),
                 choice("courseType", "course_type", "Course type", true, "THEORY", "LAB"),
-                text("program", "program", "Program", 40, true),
-                text("branch", "branch", "Branch", 40, true),
+                choice("program", "program", "Program", true, "B_TECH", "DIPLOMA", "MBA", "PHARMACY"),
+                choice("branch", "branch", "Branch", true, BRANCHES_BY_PROGRAM.values().stream().flatMap(List::stream).distinct().toArray(String[]::new)),
                 integer("semester", "semester", "Semester", 1, 12, true),
-                integer("sections", "sections", "Number of sections", 0, 100, true),
                 decimal("hoursPerWeek", "hours_per_week", "Hours per week", 0, 168, 1, true),
                 decimal("passPercentage", "pass_percentage", "Pass percentage", 0, 100, 2, true),
                 decimal("phase1Feedback", "phase1_feedback", "Phase-1 feedback percentage", 0, 100, 2, false),
                 decimal("phase2Feedback", "phase2_feedback", "Phase-2 feedback percentage", 0, 100, 2, false))
+                .dependentChoice("branch", "program", BRANCHES_BY_PROGRAM)
+                .maxRecords(MAX_COURSES, "courses")
                 .summary(TeachingSummary::of));
 
         // 2. Student mentoring, project guidance & achievements
         add(SectionSpec.single("mentoring-summary", "student_mentoring",
-                integer("totalStudentsMentored", "total_students_mentored", "Total students mentored", 0, 10000, true)));
+                integer("totalStudentsMentored", "total_students_mentored", "Total students mentored", 0, 50, true)));
         add(SectionSpec.list("student-achievements", "student_achievements",
                 text("studentName", "student_name", "Student name", 120, true),
                 text("rollNo", "roll_no", "Roll number", 32, true),
@@ -68,7 +85,7 @@ public final class Sections {
                 choice("level", "level", "Level", true, "DIPLOMA", "UG", "PG"),
                 text("title", "title", "Project title", 300, true),
                 integer("studentCount", "student_count", "Number of students", 0, 1000, true),
-                choice("outcome", "outcome", "Outcome", true, "PAPER", "PATENT", "PROTOTYPE", "COMPETITION")));
+                choice("outcome", "outcome", "Outcome", true, "PAPER", "PATENT", "PROTOTYPE", "COMPETITION", "NONE")));
 
         // 3. FDPs / Certifications
         add(SectionSpec.list("fdps", "fdps",
@@ -78,7 +95,8 @@ public final class Sections {
                 date("startDate", "start_date", "Start date", true),
                 date("endDate", "end_date", "End date", true),
                 integer("days", "days", "Number of days", 1, 366, true))
-                .dateRange("startDate", "endDate"));
+                .dateRange("startDate", "endDate")
+                .derivedDays("startDate", "endDate", "days"));
         add(SectionSpec.list("certifications", "certifications",
                 choice("platform", "platform", "Platform", true, "NPTEL", "SWAYAM", "COURSERA", "OTHER"),
                 text("title", "title", "Course title", 300, true),
@@ -93,7 +111,9 @@ public final class Sections {
                 choice("scope", "scope", "Level", true, "INSTITUTE", "DEPARTMENT"),
                 text("role", "role", "Role", 160, true),
                 text("description", "description", "Responsibility or description", 1000, false),
-                text("period", "period", "Period", 60, true)));
+                date("fromDate", "from_date", "From date", true),
+                date("toDate", "to_date", "To date", true))
+                .dateRange("fromDate", "toDate"));
         add(SectionSpec.list("events", "events",
                 text("activityType", "activity_type", "Type of activity", 80, true),
                 text("role", "role", "Role", 80, true),
@@ -106,7 +126,7 @@ public final class Sections {
         // 5. Research & publications
         add(SectionSpec.list("journal-publications", "journal_publications",
                 text("title", "title", "Title of paper", 400, true),
-                text("authorPosition", "author_position", "Author position", 40, true),
+                choice("authorPosition", "author_position", "Author position", true, "1", "2", "3", "4", "5", "6", "7", "8"),
                 text("journal", "journal", "Journal", 200, true),
                 text("volumeIssuePage", "volume_issue_page", "Volume, issue and page numbers", 80, false),
                 monthYear("monthYear", "month_year", "Month and year", true),
@@ -196,6 +216,29 @@ public final class Sections {
         add(SectionSpec.single("other-contributions", "other_contributions",
                 text("departmentContribution", "department_contribution", "Contribution at department level", 5000, false),
                 text("instituteContribution", "institute_contribution", "Contribution at institute level", 5000, false)));
+    }
+
+    /**
+     * Only what was achieved, done or received in the academic year being appraised (1 June to 31 May) is considered, so the
+     * entries below must be dated inside it. A field not listed here (joining dates, the year a Ph.D. was registered)
+     * describes the person, not something done in the year.
+     */
+    private static void inAcademicYear(String section, String... fields) { ALL.get(section).inAcademicYear(fields); }
+
+    static {
+        inAcademicYear("student-achievements", "monthYear");
+        inAcademicYear("fdps", "startDate", "endDate");
+        inAcademicYear("certifications", "startDate", "endDate");
+        inAcademicYear("administrative-roles", "fromDate", "toDate");
+        inAcademicYear("events", "startDate", "endDate");
+        inAcademicYear("journal-publications", "monthYear");
+        inAcademicYear("conference-papers", "monthYear");
+        inAcademicYear("research-scholars", "year");
+        inAcademicYear("funded-projects", "year");
+        inAcademicYear("patents-ipr", "recordDate");
+        inAcademicYear("books", "monthYear");
+        inAcademicYear("outreach", "eventDate");
+        inAcademicYear("memberships-awards", "year");
     }
 
     public static Map<String, SectionSpec> all() { return Collections.unmodifiableMap(ALL); }

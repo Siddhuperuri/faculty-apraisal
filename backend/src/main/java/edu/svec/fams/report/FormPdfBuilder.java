@@ -263,9 +263,8 @@ final class FormPdfBuilder {
         push(sub("Courses handled during the Academic Year"));
         grid(doc, List.of(
                 new Col("Course Code & Name (Theory / Lab)", 20, r -> str(r, "courseCode") + " – " + str(r, "courseName") + " (" + label(r.get("courseType")) + ")", false),
-                new Col("Program & Branch", 13, r -> str(r, "program") + ", " + str(r, "branch"), false),
+                new Col("Program & Branch", 13, r -> label(r.get("program")) + ", " + label(r.get("branch")), false),
                 new Col("Sem", 4.5f, r -> str(r, "semester"), true),
-                new Col("No. of Sections", 6.5f, r -> str(r, "sections"), true),
                 new Col("Hours / Week", 6.5f, r -> number(r.get("hoursPerWeek")), true),
                 new Col("Pass %", 6, r -> number(r.get("passPercentage")), true),
                 new Col("Phase-1 Feedback %", 8, r -> number(r.get("phase1Feedback")), true),
@@ -322,7 +321,7 @@ final class FormPdfBuilder {
         List<Col> roleCols = List.of(
                 new Col("Role", 20, r -> str(r, "role"), false),
                 new Col("Responsibility / Description", 44, r -> str(r, "description"), false),
-                new Col("Period", 12, r -> str(r, "period"), false));
+                new Col("Duration (From–To)", 12, r -> range(r, "fromDate", "toDate"), false));
         push(sub("(a) Institute level roles"));
         push(note("e.g., NAAC/NBA criterion coordinator, IQAC, Exam Cell, Training & Placement,  NSS/NCC, Anti-Ragging.,  etc."));
         grid(doc, roleCols, rowsWhere("administrative-roles", "scope", "INSTITUTE"));
@@ -347,7 +346,7 @@ final class FormPdfBuilder {
         push(line("SCI/SCIE: " + dash(number(j.get("sciScie"))) + "        Scopus: " + dash(number(j.get("scopus")))
                 + "        UGC-CARE / ABDC: " + dash(number(j.get("ugcCareAbdc"))) + "        Others: " + dash(number(j.get("others")))));
         grid(doc, List.of(
-                new Col("Title of Paper (mark your position in author list)", 24, r -> str(r, "title") + " (" + str(r, "authorPosition") + ")", false),
+                new Col("Title of Paper (mark your position in author list)", 24, r -> str(r, "title") + " (" + ordinal(str(r, "authorPosition")) + ")", false),
                 new Col("Name of the Journal", 15, r -> str(r, "journal"), false),
                 new Col("Vol. / Issue / Page No.", 10, r -> str(r, "volumeIssuePage"), false),
                 new Col("Month & Year", 8, r -> monthYear(r.get("monthYear")), false),
@@ -500,8 +499,8 @@ final class FormPdfBuilder {
         t.addCell(th("S. No"));
         t.addCell(th("Criteria"));
         t.addCell(th("Max. Marks (my cadre)"));
-        t.addCell(th("Self-Score"));
-        int i = 1, max = 0;
+        t.addCell(th("Score"));
+        int i = 1;
         double self = 0;
         boolean any = false;
         for (ScoreRow r : d.view().scores()) {
@@ -522,8 +521,7 @@ final class FormPdfBuilder {
             }
             t.addCell(criterion);
             t.addCell(td(r.maxMarks() == null ? "Per entry" : String.valueOf(r.maxMarks()), true, false));
-            t.addCell(td(r.score() == null ? "" : number(r.score()) + (r.selfScore() != null && r.calculated() != null ? "*" : ""), true, false));
-            if (r.maxMarks() != null) max += r.maxMarks();
+            t.addCell(td(r.score() == null ? "" : number(r.score()), true, false));
             if (r.score() != null) {
                 self += r.score().doubleValue();
                 any = true;
@@ -535,9 +533,8 @@ final class FormPdfBuilder {
         total.setBackgroundColor(PALE);
         total.setPhrase(new Phrase("Total", BODY_BOLD));
         t.addCell(total);
-        PdfPCell m = td(max + " + per entry", true, false);
+        PdfPCell m = td("", true, false);
         m.setBackgroundColor(PALE);
-        m.setPhrase(new Phrase(max + " + per entry", BODY_BOLD));
         t.addCell(m);
         PdfPCell sc = td(any ? number(BigDecimal.valueOf(self)) : "", true, false);
         sc.setBackgroundColor(PALE);
@@ -959,9 +956,24 @@ final class FormPdfBuilder {
     }
 
     private static String range(Map<String, Object> r) {
-        String a = date(r.get("startDate"));
-        String b = date(r.get("endDate"));
+        return range(r, "startDate", "endDate");
+    }
+
+    private static String range(Map<String, Object> r, String from, String to) {
+        String a = date(r.get(from));
+        String b = date(r.get(to));
         return a.isEmpty() || b.isEmpty() ? a + b : a + " to " + b;
+    }
+
+    /** "1" -> "1st author", the position of a journal paper's author. */
+    private static String ordinal(String position) {
+        return switch (position) {
+            case "1" -> "1st author";
+            case "2" -> "2nd author";
+            case "3" -> "3rd author";
+            case "" -> "";
+            default -> position + "th author";
+        };
     }
 
     private static String dash(String s) { return s == null || s.isEmpty() ? "—" : s; }

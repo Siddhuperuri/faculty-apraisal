@@ -27,7 +27,7 @@ departments ──< faculty_profiles >── cadres
                                                       ├──< scoring_policy_criteria ──< scoring_policy_components
  faculty_profiles ──< appraisals >── academic_years    │
                           │  └── scoring_policy_id ───┘   (the policy version the appraisal started with)
-                          ├──< appraisal_scores            (snapshot of the maxima + self-scores)
+                          ├──< appraisal_scores            (snapshot of the maxima; marks are calculated, none stored)
                           ├──< review_actions              (append-only)
                           ├── 1 appraisal_reports          (append-only, one per approved appraisal)
                           └──< 20 section tables           (Part A and Part B records)
@@ -48,7 +48,6 @@ departments ──< faculty_profiles >── cadres
 | `must_change_password` | Set on creation and reset; the user can do nothing but change it |
 | `session_version` | Bumped on password change or reset; older sessions end |
 | `password_changed_at`, `last_login_at` | Informational |
-| `last_login_address` | Where the account last signed in successfully; exempt from the per-account sign-in limit |
 | `created_at`, `updated_at` | Timestamps |
 
 ### `faculty_profiles`

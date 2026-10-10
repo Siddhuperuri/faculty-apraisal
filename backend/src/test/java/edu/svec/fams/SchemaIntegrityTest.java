@@ -59,15 +59,10 @@ class SchemaIntegrityTest {
     }
 
     @Test
-    void selfScoreCannotBeNegative() {
-        assertRejected("UPDATE appraisal_scores SET self_score = -1 WHERE appraisal_id = ? AND criterion = 'TEACHING_LEARNING'", appraisalId);
-    }
-
-    @Test
-    void selfScoreWithinRangeIsAccepted() {
-        int n = jdbc.sql("UPDATE appraisal_scores SET self_score = max_marks WHERE appraisal_id = ? AND criterion = 'TEACHING_LEARNING'")
-                .param(appraisalId).update();
-        assertEquals(1, n);
+    void marksAreWorkedOutFromTheEntriesSoNoScoreIsStored() {
+        int columns = jdbc.sql("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() "
+                + "AND table_name = 'appraisal_scores' AND column_name = 'self_score'").query(Integer.class).single();
+        assertEquals(0, columns, "a score typed by the faculty member was removed in V28");
     }
 
     @Test
@@ -105,13 +100,13 @@ class SchemaIntegrityTest {
     @Test
     void sectionRowsEnforceRangesEnumsAndFormats() {
         String teaching = "INSERT INTO teaching_courses (appraisal_id, course_code, course_name, course_type, program, branch,"
-                + " semester, sections, hours_per_week, pass_percentage) VALUES (?, 'CS101', 'Intro', ?, 'BTech', 'CSE', 3, 1, 4, ?)";
+                + " semester, hours_per_week, pass_percentage) VALUES (?, 'CS101', 'Intro', ?, 'B_TECH', 'CSE', 3, 4, ?)";
         assertEquals(1, jdbc.sql(teaching).params(appraisalId, "THEORY", 95).update());
         assertRejected(teaching, appraisalId, "THEORY", 101);      // pass % > 100
         assertRejected(teaching, appraisalId, "SEMINAR", 90);      // not THEORY/LAB
 
         String journal = "INSERT INTO journal_publications (appraisal_id, title, author_position, journal, month_year, indexing)"
-                + " VALUES (?, 'T', 'First', 'J', ?, 'SCOPUS')";
+                + " VALUES (?, 'T', '1', 'J', ?, 'SCOPUS')";
         assertEquals(1, jdbc.sql(journal).params(appraisalId, "2026-09").update());
         assertRejected(journal, appraisalId, "2026-13");           // month 13
         assertRejected(journal, appraisalId, "09/2026");           // wrong format

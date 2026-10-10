@@ -11,7 +11,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "qualificationSpecialization",
     "label" : "Highest qualification and specialization",
@@ -22,7 +26,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "phdStatus",
     "label" : "Ph.D. status",
@@ -33,7 +41,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "AWARDED", "PURSUING", "NOT_APPLICABLE" ]
+    "allowed" : [ "AWARDED", "PURSUING", "NOT_APPLICABLE" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "joiningDateInstitution",
     "label" : "Date of joining (institution)",
@@ -44,7 +56,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "joiningDateDesignation",
     "label" : "Date of joining (present designation)",
@@ -55,7 +71,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "teachingExperienceYears",
     "label" : "Teaching experience (years)",
@@ -66,7 +86,11 @@
     "min" : 0.0,
     "max" : 80.0,
     "scale" : 1,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "industryExperienceYears",
     "label" : "Industry experience (years)",
@@ -77,7 +101,11 @@
     "min" : 0.0,
     "max" : 80.0,
     "scale" : 1,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "researchExperienceYears",
     "label" : "Research experience (years)",
@@ -88,7 +116,11 @@
     "min" : 0.0,
     "max" : 80.0,
     "scale" : 1,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "researchIds",
     "label" : "ORCID / Scopus / Google Scholar / Vidwan ID",
@@ -99,7 +131,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -116,7 +152,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "courseName",
     "label" : "Course name",
@@ -127,7 +167,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "courseType",
     "label" : "Course type",
@@ -138,29 +182,46 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "THEORY", "LAB" ]
+    "allowed" : [ "THEORY", "LAB" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "program",
     "label" : "Program",
-    "type" : "TEXT",
+    "type" : "ENUM",
     "required" : true,
     "submitRequired" : false,
-    "maxLength" : 40,
+    "maxLength" : null,
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : [ "B_TECH", "DIPLOMA", "MBA", "PHARMACY" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "branch",
     "label" : "Branch",
-    "type" : "TEXT",
+    "type" : "ENUM",
     "required" : true,
     "submitRequired" : false,
-    "maxLength" : 40,
+    "maxLength" : null,
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : [ "CSE", "AIML", "ECE", "EEE", "ME", "CE", "BSH", "MBA", "PHARMACEUTICS", "PHARMACEUTICAL_CHEMISTRY", "PHARMACOLOGY", "PHARMACOGNOSY", "PHARMACY_PRACTICE" ],
+    "dependsOn" : "program",
+    "allowedBy" : {
+      "B_TECH" : [ "CSE", "AIML", "ECE", "EEE", "ME", "CE", "BSH" ],
+      "DIPLOMA" : [ "CSE", "ECE", "EEE", "ME", "CE" ],
+      "MBA" : [ "MBA" ],
+      "PHARMACY" : [ "PHARMACEUTICS", "PHARMACEUTICAL_CHEMISTRY", "PHARMACOLOGY", "PHARMACOGNOSY", "PHARMACY_PRACTICE" ]
+    },
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "semester",
     "label" : "Semester",
@@ -171,18 +232,11 @@
     "min" : 1,
     "max" : 12,
     "scale" : null,
-    "allowed" : null
-  }, {
-    "name" : "sections",
-    "label" : "Number of sections",
-    "type" : "INT",
-    "required" : true,
-    "submitRequired" : false,
-    "maxLength" : null,
-    "min" : 0,
-    "max" : 100,
-    "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "hoursPerWeek",
     "label" : "Hours per week",
@@ -193,7 +247,11 @@
     "min" : 0.0,
     "max" : 168.0,
     "scale" : 1,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "passPercentage",
     "label" : "Pass percentage",
@@ -204,7 +262,11 @@
     "min" : 0.0,
     "max" : 100.0,
     "scale" : 2,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "phase1Feedback",
     "label" : "Phase-1 feedback percentage",
@@ -215,7 +277,11 @@
     "min" : 0.0,
     "max" : 100.0,
     "scale" : 2,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "phase2Feedback",
     "label" : "Phase-2 feedback percentage",
@@ -226,7 +292,11 @@
     "min" : 0.0,
     "max" : 100.0,
     "scale" : 2,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -241,9 +311,13 @@
     "submitRequired" : false,
     "maxLength" : null,
     "min" : 0,
-    "max" : 10000,
+    "max" : 50,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -260,7 +334,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "rollNo",
     "label" : "Roll number",
@@ -271,7 +349,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "achievement",
     "label" : "Achievement",
@@ -282,7 +364,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "level",
     "label" : "Level",
@@ -293,7 +379,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "INST", "STATE", "NAT", "INTL" ]
+    "allowed" : [ "INST", "STATE", "NAT", "INTL" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "monthYear",
     "label" : "Month and year",
@@ -304,7 +394,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -321,7 +415,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "DIPLOMA", "UG", "PG" ]
+    "allowed" : [ "DIPLOMA", "UG", "PG" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "title",
     "label" : "Project title",
@@ -332,7 +430,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "studentCount",
     "label" : "Number of students",
@@ -343,7 +445,11 @@
     "min" : 0,
     "max" : 1000,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "outcome",
     "label" : "Outcome",
@@ -354,7 +460,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "PAPER", "PATENT", "PROTOTYPE", "COMPETITION" ]
+    "allowed" : [ "PAPER", "PATENT", "PROTOTYPE", "COMPETITION", "NONE" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -371,7 +481,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "mode",
     "label" : "Mode",
@@ -382,7 +496,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "OFFLINE", "ONLINE", "BLENDED" ]
+    "allowed" : [ "OFFLINE", "ONLINE", "BLENDED" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "institutionVenue",
     "label" : "Organizing institution or venue",
@@ -393,7 +511,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "startDate",
     "label" : "Start date",
@@ -404,7 +526,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   }, {
     "name" : "endDate",
     "label" : "End date",
@@ -415,7 +541,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   }, {
     "name" : "days",
     "label" : "Number of days",
@@ -426,7 +556,11 @@
     "min" : 1,
     "max" : 366,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : true,
+    "inAcademicYear" : false
   } ],
   "dateRanges" : [ {
     "startField" : "startDate",
@@ -446,7 +580,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "NPTEL", "SWAYAM", "COURSERA", "OTHER" ]
+    "allowed" : [ "NPTEL", "SWAYAM", "COURSERA", "OTHER" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "title",
     "label" : "Course title",
@@ -457,7 +595,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "startDate",
     "label" : "Start date",
@@ -468,7 +610,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   }, {
     "name" : "endDate",
     "label" : "End date",
@@ -479,7 +625,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   }, {
     "name" : "durationWeeksHours",
     "label" : "Duration (weeks or hours)",
@@ -490,7 +640,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "gradeScore",
     "label" : "Grade or score",
@@ -501,7 +655,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   } ],
   "dateRanges" : [ {
     "startField" : "startDate",
@@ -521,7 +679,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "INSTITUTE", "DEPARTMENT" ]
+    "allowed" : [ "INSTITUTE", "DEPARTMENT" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "role",
     "label" : "Role",
@@ -532,7 +694,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "description",
     "label" : "Responsibility or description",
@@ -543,20 +709,46 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
-    "name" : "period",
-    "label" : "Period",
-    "type" : "TEXT",
+    "name" : "fromDate",
+    "label" : "From date",
+    "type" : "DATE",
     "required" : true,
     "submitRequired" : false,
-    "maxLength" : 60,
+    "maxLength" : null,
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
+  }, {
+    "name" : "toDate",
+    "label" : "To date",
+    "type" : "DATE",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   } ],
-  "dateRanges" : [ ],
+  "dateRanges" : [ {
+    "startField" : "fromDate",
+    "endField" : "toDate"
+  } ],
   "uniqueField" : null
 }, {
   "key" : "events",
@@ -571,7 +763,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "role",
     "label" : "Role",
@@ -582,7 +778,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "title",
     "label" : "Title or details of the event",
@@ -593,7 +793,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "startDate",
     "label" : "Start date",
@@ -604,7 +808,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   }, {
     "name" : "endDate",
     "label" : "End date",
@@ -615,7 +823,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   }, {
     "name" : "beneficiaries",
     "label" : "Number of beneficiaries",
@@ -626,7 +838,11 @@
     "min" : 0,
     "max" : 100000,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   } ],
   "dateRanges" : [ {
     "startField" : "startDate",
@@ -646,18 +862,26 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "authorPosition",
     "label" : "Author position",
-    "type" : "TEXT",
+    "type" : "ENUM",
     "required" : true,
     "submitRequired" : false,
-    "maxLength" : 40,
+    "maxLength" : null,
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : [ "1", "2", "3", "4", "5", "6", "7", "8" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "journal",
     "label" : "Journal",
@@ -668,7 +892,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "volumeIssuePage",
     "label" : "Volume, issue and page numbers",
@@ -679,7 +907,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "monthYear",
     "label" : "Month and year",
@@ -690,7 +922,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   }, {
     "name" : "indexing",
     "label" : "Indexing",
@@ -701,7 +937,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "SCI_SCIE", "SCOPUS", "UGC_CARE_ABDC", "OTHERS" ]
+    "allowed" : [ "SCI_SCIE", "SCOPUS", "UGC_CARE_ABDC", "OTHERS" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "doiIssn",
     "label" : "DOI or ISSN",
@@ -712,7 +952,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -729,7 +973,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "conference",
     "label" : "Conference",
@@ -740,7 +988,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "level",
     "label" : "Level",
@@ -751,7 +1003,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "NAT", "INTL" ]
+    "allowed" : [ "NAT", "INTL" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "monthYear",
     "label" : "Month and year",
@@ -762,7 +1018,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   }, {
     "name" : "venue",
     "label" : "Venue",
@@ -773,7 +1033,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "doiIndexedIn",
     "label" : "DOI or indexed in",
@@ -784,7 +1048,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "citations",
     "label" : "Number of citations",
@@ -795,7 +1063,11 @@
     "min" : 0,
     "max" : 1000000,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -812,7 +1084,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "GOOGLE_SCHOLAR", "SCOPUS", "WEB_OF_SCIENCE" ]
+    "allowed" : [ "GOOGLE_SCHOLAR", "SCOPUS", "WEB_OF_SCIENCE" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "totalPublications",
     "label" : "Total publications",
@@ -823,7 +1099,11 @@
     "min" : 0,
     "max" : 1000000,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "totalCitations",
     "label" : "Total citations",
@@ -834,7 +1114,11 @@
     "min" : 0,
     "max" : 10000000,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "hIndex",
     "label" : "h-index",
@@ -845,7 +1129,11 @@
     "min" : 0,
     "max" : 1000,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "i10Index",
     "label" : "i10-index",
@@ -856,7 +1144,11 @@
     "min" : 0,
     "max" : 100000,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : "platform"
@@ -873,7 +1165,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "degree",
     "label" : "Degree",
@@ -884,7 +1180,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "PHD", "MTECH", "MBA" ]
+    "allowed" : [ "PHD", "MTECH", "MBA" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "universityRegNo",
     "label" : "University and registration number",
@@ -895,7 +1195,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "status",
     "label" : "Status",
@@ -906,7 +1210,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "REGISTERED", "SUBMITTED", "AWARDED" ]
+    "allowed" : [ "REGISTERED", "SUBMITTED", "AWARDED" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "year",
     "label" : "Year",
@@ -917,7 +1225,11 @@
     "min" : 1950,
     "max" : 2100,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -934,7 +1246,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "registrationYear",
     "label" : "Year of registration",
@@ -945,7 +1261,11 @@
     "min" : 1950,
     "max" : 2100,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "stage",
     "label" : "Current stage",
@@ -956,7 +1276,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "COURSE_WORK", "COMPREHENSIVE_PROPOSAL", "SYNOPSIS", "THESIS_SUBMITTED", "VIVA_COMPLETED" ]
+    "allowed" : [ "COURSE_WORK", "COMPREHENSIVE_PROPOSAL", "SYNOPSIS", "THESIS_SUBMITTED", "VIVA_COMPLETED" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "progress",
     "label" : "Progress during the year",
@@ -967,7 +1291,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -984,7 +1312,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "role",
     "label" : "Role",
@@ -995,7 +1327,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "PI", "CO_PI" ]
+    "allowed" : [ "PI", "CO_PI" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "team",
     "label" : "Team",
@@ -1006,7 +1342,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "type",
     "label" : "Type",
@@ -1017,7 +1357,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "RESEARCH", "CONSULTANCY" ]
+    "allowed" : [ "RESEARCH", "CONSULTANCY" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "fundingAgencyClient",
     "label" : "Funding agency or client",
@@ -1028,7 +1372,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "amount",
     "label" : "Amount (Rs.)",
@@ -1039,7 +1387,11 @@
     "min" : 0.0,
     "max" : 1.0E11,
     "scale" : 2,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "startDate",
     "label" : "Start date",
@@ -1050,7 +1402,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "endDate",
     "label" : "End date",
@@ -1061,7 +1417,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "status",
     "label" : "Status",
@@ -1072,7 +1432,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "SANCTIONED", "APPLIED" ]
+    "allowed" : [ "SANCTIONED", "APPLIED" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "year",
     "label" : "Year",
@@ -1083,7 +1447,11 @@
     "min" : 1950,
     "max" : 2100,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   } ],
   "dateRanges" : [ {
     "startField" : "startDate",
@@ -1103,7 +1471,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "title",
     "label" : "Title",
@@ -1114,7 +1486,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "applicationPatentNo",
     "label" : "Application or patent number",
@@ -1125,7 +1501,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "type",
     "label" : "Type",
@@ -1136,7 +1516,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "DESIGN", "UTILITY", "COPYRIGHT" ]
+    "allowed" : [ "DESIGN", "UTILITY", "COPYRIGHT" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "status",
     "label" : "Status",
@@ -1147,7 +1531,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "FILED", "PUBLISHED", "GRANTED" ]
+    "allowed" : [ "FILED", "PUBLISHED", "GRANTED" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "recordDate",
     "label" : "Date",
@@ -1158,7 +1546,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -1175,7 +1567,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "title",
     "label" : "Title of book or chapter",
@@ -1186,7 +1582,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "publisher",
     "label" : "Publisher",
@@ -1197,7 +1597,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "isbn",
     "label" : "ISBN",
@@ -1208,7 +1612,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "monthYear",
     "label" : "Month and year",
@@ -1219,7 +1627,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   }, {
     "name" : "type",
     "label" : "Type",
@@ -1230,7 +1642,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "BOOK", "CHAPTER" ]
+    "allowed" : [ "BOOK", "CHAPTER" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -1247,7 +1663,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "CONFERENCE_SESSION_CHAIR", "EXPERT_LECTURE_DELIVERED", "RESOURCE_PERSON", "EDITORIAL_BOARD_MEMBER", "JOURNAL_REVIEWER", "EXTERNAL_EXAMINER", "EXTERNAL_THESIS_EVALUATED", "VISITING_RESEARCHER", "INDUSTRY_INTERACTION_MOU", "INTERNATIONAL_CONFERENCE_ATTENDED", "OTHERS" ]
+    "allowed" : [ "CONFERENCE_SESSION_CHAIR", "EXPERT_LECTURE_DELIVERED", "RESOURCE_PERSON", "EDITORIAL_BOARD_MEMBER", "JOURNAL_REVIEWER", "EXTERNAL_EXAMINER", "EXTERNAL_THESIS_EVALUATED", "VISITING_RESEARCHER", "INDUSTRY_INTERACTION_MOU", "INTERNATIONAL_CONFERENCE_ATTENDED", "OTHERS" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "eventActivity",
     "label" : "Event or activity",
@@ -1258,7 +1678,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "organization",
     "label" : "Name of organization or institution",
@@ -1269,7 +1693,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "venue",
     "label" : "Venue",
@@ -1280,7 +1708,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "eventDate",
     "label" : "Date",
@@ -1291,7 +1723,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -1308,7 +1744,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "awardingBody",
     "label" : "Professional or awarding body",
@@ -1319,7 +1759,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "level",
     "label" : "Level",
@@ -1330,7 +1774,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "INST", "STATE", "NAT", "INTL" ]
+    "allowed" : [ "INST", "STATE", "NAT", "INTL" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "year",
     "label" : "Year",
@@ -1341,7 +1789,11 @@
     "min" : 1950,
     "max" : 2100,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : true
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -1358,7 +1810,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   }, {
     "name" : "instituteContribution",
     "label" : "Contribution at institute level",
@@ -1369,7 +1825,11 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : null
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null

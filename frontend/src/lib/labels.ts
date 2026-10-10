@@ -4,8 +4,13 @@ import type { Role, Stage, Status, WithdrawnRole } from "./types";
 const LABELS: Record<string, string> = {
   INST: "Institute", STATE: "State", NAT: "National", INTL: "International",
   THEORY: "Theory", LAB: "Lab",
+  B_TECH: "B.Tech", PHARMACY: "Pharmacy",
+  CSE: "CSE", AIML: "AI & ML", ECE: "ECE", EEE: "EEE", ME: "ME", CE: "CE", BSH: "BSH",
+  PHARMACEUTICS: "Pharmaceutics", PHARMACEUTICAL_CHEMISTRY: "Pharmaceutical Chemistry", PHARMACOLOGY: "Pharmacology",
+  PHARMACOGNOSY: "Pharmacognosy", PHARMACY_PRACTICE: "Pharmacy Practice",
+  "1": "1st author", "2": "2nd author", "3": "3rd author", "4": "4th author", "5": "5th author", "6": "6th author", "7": "7th author", "8": "8th author",
   DIPLOMA: "Diploma", UG: "UG", PG: "PG",
-  PAPER: "Paper", PATENT: "Patent", PROTOTYPE: "Prototype", COMPETITION: "Competition",
+  PAPER: "Paper", PATENT: "Patent", PROTOTYPE: "Prototype", COMPETITION: "Competition", NONE: "None",
   OFFLINE: "Offline", ONLINE: "Online", BLENDED: "Blended",
   NPTEL: "NPTEL", SWAYAM: "Swayam", COURSERA: "Coursera", OTHER: "Other",
   INSTITUTE: "Institute level", DEPARTMENT: "Department level",
@@ -39,7 +44,7 @@ export function enumLabel(value: string): string {
 }
 
 export const STATUS_INFO: Record<Status, { label: string; tone: "neutral" | "info" | "warn" | "ok"; faculty: string }> = {
-  DRAFT: { label: "Draft", tone: "neutral", faculty: "Complete your sections, then submit to your HoD. It cannot be changed after that." },
+  DRAFT: { label: "Draft", tone: "neutral", faculty: "Complete your sections, then submit to your HoD. It cannot be changed after that, unless your HoD sends you a message about it." },
   SUBMITTED: { label: "Submitted", tone: "info", faculty: "Submitted. Waiting for your HoD to begin the review." },
   HOD_REVIEW: { label: "With HoD", tone: "info", faculty: "Your HoD is reviewing your appraisal." },
   HOD_APPROVED: { label: "HoD recommended", tone: "info", faculty: "Approved by your HoD and forwarded to the Principal or Director Technical." },
@@ -55,7 +60,7 @@ export const STATUS_INFO: Record<Status, { label: string; tone: "neutral" | "inf
 export function statusLine(status: Status, queryRaised: boolean, forFaculty: boolean): string {
   if (status === "HOD_REVIEW" && queryRaised) {
     return forFaculty
-      ? "Your HoD has sent you a message about your appraisal. Please arrange to meet them."
+      ? "Your HoD has sent you a message about your appraisal. Please arrange to meet them. Until they approve it you may correct your appraisal and send it again."
       : "A query has been raised with the faculty member. It is waiting for them to meet you.";
   }
   return forFaculty ? STATUS_INFO[status].faculty : STATUS_INFO[status].label;
@@ -86,6 +91,7 @@ export function roleLabel(role: Role | WithdrawnRole): string {
  */
 export const ACTION_LABEL: Record<string, string> = {
   SUBMIT: "Submitted by faculty",
+  RESUBMIT: "Corrected and sent again by faculty",
   START_HOD_REVIEW: "HoD began the review",
   HOD_APPROVE: "HoD approved it and forwarded it to the Principal or Director Technical",
   START_PRINCIPAL_REVIEW: "Principal began the review",

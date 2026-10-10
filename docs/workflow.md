@@ -5,7 +5,9 @@ States and transitions are defined in `AppraisalStatus` and enforced on the back
 The approval chain is **faculty -> Head of the Department -> Principal or Director Technical**. A faculty member submits to
 the HoD of their department. The HoD begins the review, may write a comment, and approves, which forwards the appraisal to
 the Principal and the Director Technical. They stand at the same level (see below): either one's approval is final.
-**Nothing moves backwards:** there is no return or revert step, so a submitted appraisal can no longer be edited by anyone.
+**Nothing moves backwards, with one exception.** There is no return or revert step by a reviewer, and a submitted appraisal is locked. The exception is
+the faculty member's own: while the HoD is reviewing and has sent them a message (a query), they may correct the appraisal and send it again
+(`RESUBMIT`), which puts it back at SUBMITTED for the HoD to begin the review afresh. Once the HoD approves, it is locked for good.
 
 ```mermaid
 stateDiagram-v2
@@ -13,6 +15,7 @@ stateDiagram-v2
     DRAFT --> SUBMITTED: faculty submits
     SUBMITTED --> HOD_REVIEW: HoD starts review
     HOD_REVIEW --> HOD_APPROVED: HoD approves and forwards (comment optional)
+    HOD_REVIEW --> SUBMITTED: faculty corrects it and sends it again (only after an HoD message)
     HOD_APPROVED --> PRINCIPAL_REVIEW: Principal or Director Technical starts review
     PRINCIPAL_REVIEW --> APPROVED: Principal or Director Technical approves (final)
     APPROVED --> [*]
@@ -23,7 +26,8 @@ stateDiagram-v2
 | Action | Role | From state | Notes |
 |---|---|---|---|
 | Create | Faculty | none | One per academic year |
-| Submit | Owner | DRAFT | Needs the accepted declaration (the form's Declaration; the date is recorded by the server) and the essentials: Part A contact number, qualification and specialization and joining date, at least eight courses handled (4 in each of the year's 2 semesters; 2.5 marks each towards the workload component), and a self-score for every criterion that applies to the cadre. The API refuses with 400 and says what is missing, and the appraisal view lists it as `submitBlockers`. Everything else may be empty |
+| Submit | Owner | DRAFT | Needs the accepted declaration (the form's Declaration; the date is recorded by the server) and the essentials: Part A contact number, qualification and specialization and joining date. Nothing else is required: marks come from the entries and no score is typed. The API refuses with 400 and says what is missing, and the appraisal view lists it as `submitBlockers`. Everything else may be empty |
+| Edit and send again | Owner | HOD_REVIEW with an open query | An open query is an HoD message the faculty member has not yet answered by sending the appraisal again (`appraisal_messages.answered_at IS NULL`). While one is open every section is editable and the declaration is made again; sending it records `RESUBMIT` (HOD_REVIEW -> SUBMITTED), stamps the open messages as answered and locks the appraisal until the HoD begins the review again. A new message opens it again. The same checks as the first submission apply |
 | Start / Approve | Assigned HoD | SUBMITTED / HOD_REVIEW | The comment (max 2000 chars) is optional and is printed as "Recommendations of HoD"; approving forwards to the Principal or the Director Technical |
 | Start / Approve | Principal | HOD_APPROVED / PRINCIPAL_REVIEW | Whole college; comment optional ("Remarks of the Principal"); approve is final |
 | Start / Approve | Director Technical | HOD_APPROVED / PRINCIPAL_REVIEW | The same as the Principal: whole college; comment optional ("Remarks of the Director Technical"); approve is final |

@@ -26,7 +26,7 @@ It runs **inside the college network only**; nothing in it needs the internet on
 | [architecture.md](architecture.md) | Packages, the path of a request, where each kind of rule lives, what a change must pass |
 | [database.md](database.md) | Every table, what it holds, the constraints and triggers, how the schema evolved |
 | [workflow.md](workflow.md) | Appraisal states, who may do what, who may see what |
-| [scoring.md](scoring.md) | Maximum marks per cadre, scoring components B1 to B5, policy versioning, self-scores |
+| [scoring.md](scoring.md) | Maximum marks per cadre, scoring components B1 to B5, policy versioning, automatic marks |
 | [requirements.md](requirements.md) | What the official form says, assumptions made, questions still open for the college |
 | [security.md](security.md) | Controls that are implemented and tested, and known gaps |
 | [deployment.md](deployment.md) | Shape of an installation, every setting, backups and recovery |
@@ -43,7 +43,7 @@ accounts and never reads appraisal content. (Dean and Vice Principal roles exist
 [workflow.md](workflow.md#the-earlier-longer-chain).)
 
 **The appraisal.** One per faculty member per academic year. Part A (general information), Part B items 1 to 10
-(twenty sections, grouped into eleven form pages), the self-scored score sheet over nine criteria
+(twenty sections, grouped into eleven form pages), the automatically scored score sheet over nine criteria
 and the declaration.
 
 **The chain.** `DRAFT -> SUBMITTED -> HOD_REVIEW -> HOD_APPROVED -> PRINCIPAL_REVIEW -> APPROVED`. Nothing moves

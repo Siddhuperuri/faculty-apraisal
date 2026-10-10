@@ -72,10 +72,9 @@ public class TestDb {
                 .param(appraisalId).update();
         for (int i = 1; i <= 8; i++) {
             jdbc.sql("""
-                INSERT INTO teaching_courses (appraisal_id, course_code, course_name, course_type, program, branch, semester, sections, hours_per_week, pass_percentage)
-                VALUES (?, 'CS101', 'Intro', 'THEORY', 'B.Tech', 'CSE', 3, 1, 4, 90)""").param(appraisalId).update();
+                INSERT INTO teaching_courses (appraisal_id, course_code, course_name, course_type, program, branch, semester, hours_per_week, pass_percentage)
+                VALUES (?, 'CS101', 'Intro', 'THEORY', 'B_TECH', 'CSE', 3, 4, 90)""").param(appraisalId).update();
         }
-        jdbc.sql("UPDATE appraisal_scores SET self_score = 0 WHERE appraisal_id = ? AND max_marks > 0").param(appraisalId).update();
     }
 
     public FamsUserPrincipal hod(String email, String dept) {

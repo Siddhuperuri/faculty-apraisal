@@ -54,16 +54,14 @@ public class AuthController {
     private static final Pattern LOGGABLE_EMAIL = Pattern.compile("[A-Za-z0-9._%+'-]{1,64}@[A-Za-z0-9.-]{1,120}");
 
     private final AuthenticationManager authenticationManager;
-    private final SignInThrottle throttle;
     private final AccountService accounts;
     private final CsrfTokenRepository csrfTokens;
     private final SecurityContextHolderStrategy holder = SecurityContextHolder.getContextHolderStrategy();
     private final SecurityContextRepository contextRepository = new HttpSessionSecurityContextRepository();
 
-    public AuthController(AuthenticationManager authenticationManager, SignInThrottle throttle,
+    public AuthController(AuthenticationManager authenticationManager,
                           AccountService accounts, CsrfTokenRepository csrfTokens) {
         this.authenticationManager = authenticationManager;
-        this.throttle = throttle;
         this.accounts = accounts;
         this.csrfTokens = csrfTokens;
     }
@@ -88,12 +86,6 @@ public class AuthController {
         String email = body.email().strip().toLowerCase(Locale.ROOT);
         String address = request.getRemoteAddr();
 
-        // Counted before the password is looked at, so parallel requests cannot all slip in under the limit.
-        SignInThrottle.Attempt attempt = throttle.begin(email, address);
-        if (attempt == null) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body(Map.of("message", "Too many failed attempts. Try again later."));
-        }
         if (body.password().getBytes(StandardCharsets.UTF_8).length > PasswordPolicy.MAX_BYTES) {   // longer than BCrypt reads: cannot be anyone's password
             log.warn("Sign-in failed for {} from {}", loggable(email), address);
             return BAD_CREDENTIALS;
@@ -115,11 +107,9 @@ public class AuthController {
             // A CSRF token handed out before sign-in is not carried into the signed-in session.
             csrfTokens.saveToken(null, request, response);
             accounts.recordLogin(safe.id());
-            throttle.succeeded(attempt);
             log.info("Signed in: user {} ({}) from {}", safe.id(), safe.role(), address);
             return ResponseEntity.ok(toMe(safe));
         } catch (InternalAuthenticationServiceException e) {
-            throttle.abandoned(attempt);
             throw e; // infrastructure failure (e.g. database down): a server error, not a bad credential
         } catch (AuthenticationException e) {
             log.warn("Sign-in failed for {} from {}", loggable(email), address);

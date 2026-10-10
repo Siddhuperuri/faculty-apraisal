@@ -68,7 +68,7 @@ class SectionIntegrationTest {
 
     private static Map<String, Object> course(String code, double hours, double pass, Double ph1, Double ph2) {
         Map<String, Object> m = rec("courseCode", code, "courseName", "Course " + code, "courseType", "THEORY",
-                "program", "B.Tech", "branch", "CSE", "semester", 3, "sections", 1, "hoursPerWeek", hours,
+                "program", "B_TECH", "branch", "CSE", "semester", 3, "hoursPerWeek", hours,
                 "passPercentage", pass);
         if (ph1 != null) m.put("phase1Feedback", ph1);
         if (ph2 != null) m.put("phase2Feedback", ph2);
@@ -187,7 +187,6 @@ class SectionIntegrationTest {
         Map<String, Object> c = course("CS101", 4, 101, null, null);
         c.put("courseType", "SEMINAR");
         c.put("semester", 13);
-        c.put("sections", 1.5);
         c.put("hoursPerWeek", 4.25);
         c.remove("courseName");
         c.put("surprise", "x");
@@ -201,8 +200,6 @@ class SectionIntegrationTest {
                         .value("Course type must be one of: THEORY, LAB."))
                 .andExpect(jsonPath("$.fieldErrors['records[0].semester']")
                         .value("Semester must be between 1 and 12."))
-                .andExpect(jsonPath("$.fieldErrors['records[0].sections']")
-                        .value("Number of sections must be a whole number."))
                 .andExpect(jsonPath("$.fieldErrors['records[0].hoursPerWeek']")
                         .value("Hours per week can have at most 1 decimal places."))
                 .andExpect(jsonPath("$.fieldErrors['records[0].surprise']").value("Not a recognised field."));
@@ -211,7 +208,7 @@ class SectionIntegrationTest {
     @Test
     void textRulesDatesAndRanges() throws Exception {
         save(faculty, id, "fdps", List.of(rec("title", "x".repeat(301), "mode", "ONLINE",
-                "institutionVenue", "V\u0000", "startDate", "2026-09-10", "endDate", "2026-09-01", "days", 2)))
+                "institutionVenue", "V\u0000", "startDate", "2026-03-10", "endDate", "2026-03-01", "days", 2)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors['records[0].title']")
                         .value("Title must be at most 300 characters."))
@@ -228,7 +225,7 @@ class SectionIntegrationTest {
                 .andExpect(jsonPath("$.fieldErrors['records[0].endDate']")
                         .value("End date must be a valid date (YYYY-MM-DD)."));
 
-        save(faculty, id, "journal-publications", List.of(rec("title", "T", "authorPosition", "First", "journal", "J",
+        save(faculty, id, "journal-publications", List.of(rec("title", "T", "authorPosition", "1", "journal", "J",
                 "monthYear", "2026-13", "indexing", "SCOPUS")))
                 .andExpect(jsonPath("$.fieldErrors['records[0].monthYear']")
                         .value("Month and year must be a month and year (YYYY-MM)."));
@@ -450,7 +447,7 @@ class SectionIntegrationTest {
     void journalCountsFollowTheIndexingColumnsOfTheForm() throws Exception {
         List<Object> rows = new ArrayList<>();
         for (String idx : new String[] {"SCI_SCIE", "SCOPUS", "SCOPUS", "UGC_CARE_ABDC", "OTHERS", "OTHERS", "OTHERS"}) {
-            rows.add(rec("title", "T" + rows.size(), "authorPosition", "First", "journal", "J",
+            rows.add(rec("title", "T" + rows.size(), "authorPosition", "1", "journal", "J",
                     "monthYear", "2026-05", "indexing", idx));
         }
         save(faculty, id, "journal-publications", rows).andExpect(status().isOk())
@@ -511,5 +508,144 @@ class SectionIntegrationTest {
         bad.put("role", "Keynote speaker");
         save(faculty, id, "outreach", List.of(bad)).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors['records[0].role']").exists());
+    }
+
+    // ---- changes of 2026-10-09 ----
+
+    @Test
+    void theNumberOfDaysOfAnFdpIsWorkedOutFromItsDatesWhateverIsSent() throws Exception {
+        save(faculty, id, "fdps", List.of(rec("title", "T", "mode", "ONLINE", "institutionVenue", "V",
+                "startDate", "2026-01-30", "endDate", "2026-02-02", "days", 99)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.records[0].days").value(4));   // both end days count
+        save(faculty, id, "fdps", List.of(rec("title", "T", "mode", "ONLINE", "institutionVenue", "V",
+                "startDate", "2026-03-05", "endDate", "2026-03-05")))                              // no days sent at all
+                .andExpect(status().isOk()).andExpect(jsonPath("$.records[0].days").value(1));
+        save(faculty, id, "fdps", List.of(rec("title", "T", "mode", "ONLINE", "institutionVenue", "V",
+                "startDate", "2026-01-01", "endDate", "2027-06-01")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors['records[0].endDate']").value("Number of days can be at most 366."));
+    }
+
+    @Test
+    void atMostEightCoursesCanBeAdded() throws Exception {
+        List<Object> eight = new ArrayList<>();
+        for (int i = 0; i < 8; i++) eight.add(course("C" + i, 4, 90, null, null));
+        save(faculty, id, "teaching-courses", eight).andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary.courseCount").value(8));
+        eight.add(course("C9", 4, 90, null, null));
+        save(faculty, id, "teaching-courses", eight).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.records").value("At most 8 courses are allowed here."));
+        assertEquals(8, dbRows("teaching_courses"));
+    }
+
+    @Test
+    void theProgramIsChosenFromTheListAndTheBranchMustBelongToIt() throws Exception {
+        Map<String, Object> pharmacy = course("P1", 4, 90, null, null);
+        pharmacy.put("program", "PHARMACY");
+        pharmacy.put("branch", "PHARMACOLOGY");
+        save(faculty, id, "teaching-courses", List.of(pharmacy)).andExpect(status().isOk());
+
+        pharmacy.put("branch", "CSE");   // not a branch of Pharmacy
+        save(faculty, id, "teaching-courses", List.of(pharmacy)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors['records[0].branch']").value("Branch is not offered under the program you chose."));
+
+        Map<String, Object> unknown = course("P2", 4, 90, null, null);
+        unknown.put("program", "B.Tech");   // the old free text is no longer a program
+        save(faculty, id, "teaching-courses", List.of(unknown)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors['records[0].program']").value("Program must be one of: B_TECH, DIPLOMA, MBA, PHARMACY."));
+    }
+
+    @Test
+    void aRoleHasAFromDateAndAToDateAndTheyMustBeInOrder() throws Exception {
+        save(faculty, id, "administrative-roles", List.of(rec("scope", "INSTITUTE", "role", "IQAC member",
+                "fromDate", "2025-07-01", "toDate", "2026-05-31"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.records[0].fromDate").value("2025-07-01"));
+        save(faculty, id, "administrative-roles", List.of(rec("scope", "INSTITUTE", "role", "IQAC member",
+                "fromDate", "2026-05-31", "toDate", "2025-07-01"))).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors['records[0].toDate']").value("To date must not be before from date."));
+        save(faculty, id, "administrative-roles", List.of(rec("scope", "INSTITUTE", "role", "IQAC member", "period", "2025-26")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors['records[0].fromDate']").value("From date is required."))
+                .andExpect(jsonPath("$.fieldErrors['records[0].period']").value("Not a recognised field."));
+    }
+
+    @Test
+    void theAuthorPositionIsANumberFromOneToEight() throws Exception {
+        Map<String, Object> paper = rec("title", "T", "authorPosition", "8", "journal", "J", "monthYear", "2026-05", "indexing", "SCOPUS");
+        save(faculty, id, "journal-publications", List.of(paper)).andExpect(status().isOk());
+        paper.put("authorPosition", "9");
+        save(faculty, id, "journal-publications", List.of(paper)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors['records[0].authorPosition']").value("Author position must be one of: 1, 2, 3, 4, 5, 6, 7, 8."));
+    }
+
+    @Test
+    void aFundedProjectsYearMustBeOneOfTheAcademicYearsTwoYears() throws Exception {
+        Map<String, Object> p = project("Edge AI", "RESEARCH", "SANCTIONED", 1000);   // year 2026
+        save(faculty, id, "funded-projects", List.of(p)).andExpect(status().isOk());
+        p.put("year", 2025);
+        save(faculty, id, "funded-projects", List.of(p)).andExpect(status().isOk());
+        p.put("year", 2024);
+        save(faculty, id, "funded-projects", List.of(p)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors['records[0].year']")
+                        .value("Year must be 2025 or 2026, the years of the academic year 2025-26."));
+        p.put("year", 2027);
+        save(faculty, id, "funded-projects", List.of(p)).andExpect(status().isBadRequest());
+    }
+
+    // ---- only what happened in the academic year counts (1 June to 31 May) ----
+
+    @Test
+    void everyDatedEntryMustFallInTheAcademicYearBeingAppraised() throws Exception {
+        String within = " must be within the academic year 2025-26 (01-06-2025 to 31-05-2026).";
+        // the first and last day are inside; the day before and the day after are not
+        save(faculty, id, "outreach", List.of(
+                rec("role", "RESOURCE_PERSON", "eventActivity", "A", "organization", "X", "eventDate", "2025-06-01"),
+                rec("role", "RESOURCE_PERSON", "eventActivity", "B", "organization", "X", "eventDate", "2026-05-31")))
+                .andExpect(status().isOk());
+        save(faculty, id, "outreach", List.of(rec("role", "RESOURCE_PERSON", "eventActivity", "A", "organization", "X", "eventDate", "2025-05-31")))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors['records[0].eventDate']").value("Date" + within));
+        save(faculty, id, "outreach", List.of(rec("role", "RESOURCE_PERSON", "eventActivity", "A", "organization", "X", "eventDate", "2026-06-01")))
+                .andExpect(status().isBadRequest());
+
+        // months: June 2025 to May 2026
+        String book = "authors";
+        save(faculty, id, "books", List.of(rec(book, "A", "title", "T", "publisher", "P", "monthYear", "2025-05", "type", "BOOK")))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors['records[0].monthYear']").value("Month and year" + within));
+        save(faculty, id, "books", List.of(rec(book, "A", "title", "T", "publisher", "P", "monthYear", "2026-06", "type", "BOOK"))).andExpect(status().isBadRequest());
+        save(faculty, id, "books", List.of(rec(book, "A", "title", "T", "publisher", "P", "monthYear", "2025-06", "type", "BOOK"),
+                rec(book, "A", "title", "U", "publisher", "P", "monthYear", "2026-05", "type", "BOOK"))).andExpect(status().isOk());
+
+        // a programme must both start and end inside the year
+        save(faculty, id, "fdps", List.of(rec("title", "T", "mode", "ONLINE", "institutionVenue", "V", "startDate", "2026-05-30", "endDate", "2026-06-02")))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors['records[0].endDate']").value("End date" + within));
+        save(faculty, id, "fdps", List.of(rec("title", "T", "mode", "ONLINE", "institutionVenue", "V", "startDate", "2025-05-30", "endDate", "2025-06-02")))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors['records[0].startDate']").value("Start date" + within));
+
+        // a role's dates, a patent's date, a conference paper's month and a membership's year
+        save(faculty, id, "administrative-roles", List.of(rec("scope", "INSTITUTE", "role", "R", "fromDate", "2024-07-01", "toDate", "2026-05-31")))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors['records[0].fromDate']").value("From date" + within));
+        save(faculty, id, "patents-ipr", List.of(rec("applicantInventors", "A", "title", "P", "type", "UTILITY", "status", "FILED", "recordDate", "2024-02-01")))
+                .andExpect(status().isBadRequest());
+        save(faculty, id, "conference-papers", List.of(rec("title", "T", "conference", "C", "level", "NAT", "monthYear", "2026-07", "citations", 0)))
+                .andExpect(status().isBadRequest());
+        save(faculty, id, "memberships-awards", List.of(rec("item", "I", "awardingBody", "B", "level", "NAT", "year", 2024)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors['records[0].year']").value("Year must be 2025 or 2026, the years of the academic year 2025-26."));
+        save(faculty, id, "memberships-awards", List.of(rec("item", "I", "awardingBody", "B", "level", "NAT", "year", 2026))).andExpect(status().isOk());
+    }
+
+    @Test
+    void thingsThatDescribeThePersonRatherThanTheYearAreNotHeldToIt() throws Exception {
+        save(faculty, id, "research-metrics", List.of(rec("platform", "SCOPUS", "totalPublications", 3, "totalCitations", 4, "hIndex", 1, "i10Index", 0)))
+                .andExpect(status().isOk());
+        save(faculty, id, "phd-progress", List.of(rec("registrationYear", 2019))).andExpect(status().isOk());
+        save(faculty, id, "general-information", List.of(rec("joiningDateInstitution", "2012-06-15", "phdStatus", "PURSUING"))).andExpect(status().isOk());
+    }
+
+    @Test
+    void theAppraisalViewSaysWhichDaysTheAcademicYearSpans() throws Exception {
+        mvc.perform(get("/api/appraisals/" + id).with(user(faculty)))
+                .andExpect(jsonPath("$.academicYearStart").value("2025-06-01"))
+                .andExpect(jsonPath("$.academicYearEnd").value("2026-05-31"));
     }
 }

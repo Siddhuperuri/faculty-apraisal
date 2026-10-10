@@ -55,7 +55,7 @@ public class YearReadinessService {
         byState.put("NOT_STARTED", notStarted);
         int queries = jdbc.sql("""
                 SELECT COUNT(*) FROM appraisals a WHERE a.academic_year_id = ? AND a.status = 'HOD_REVIEW'
-                  AND EXISTS (SELECT 1 FROM appraisal_messages m WHERE m.appraisal_id = a.id)""").param(yearId).query(Integer.class).single();
+                  AND EXISTS (SELECT 1 FROM appraisal_messages m WHERE m.appraisal_id = a.id AND m.answered_at IS NULL)""").param(yearId).query(Integer.class).single();
 
         List<Item> items = new ArrayList<>();
         // Policy copies: every open cadre needs a scoring policy for the year, or its faculty cannot start.

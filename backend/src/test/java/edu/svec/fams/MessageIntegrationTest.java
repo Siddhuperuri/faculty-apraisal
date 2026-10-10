@@ -114,7 +114,7 @@ class MessageIntegrationTest {
         assertEquals("HOD_REVIEW", statusOf());                                           // not returned, not moved
         assertEquals(0, jdbc.sql("SELECT COUNT(*) FROM review_actions WHERE action NOT IN ('SUBMIT', 'START_HOD_REVIEW')")
                 .query(Integer.class).single());
-        call(faculty, "GET", "/api/appraisals/" + appraisal, null).andExpect(jsonPath("$.editable").value(false));
+        call(faculty, "GET", "/api/appraisals/" + appraisal, null).andExpect(jsonPath("$.editable").value(true));   // see the resubmission tests
 
         // the Head of the Department can still approve afterwards
         call(hod, "POST", "/api/appraisals/" + appraisal + "/review/approve", Map.of("comment", "Met and resolved.")).andExpect(status().isOk());
@@ -416,5 +416,91 @@ class MessageIntegrationTest {
         jdbc.sql("UPDATE appraisals SET updated_at = '2020-01-01 00:00:00' WHERE id = ?").param(appraisal).update();
         call(hod, "PUT", messages() + "/" + id, Map.of("message", "Please come and see me tomorrow.")).andExpect(status().isOk());
         assertTrue(jdbc.sql("SELECT updated_at > '2020-01-01 00:00:00' FROM appraisals WHERE id = ?").param(appraisal).query(Boolean.class).single());
+    }
+
+    // ---- the faculty member's answer: correct the appraisal and send it again ----
+
+    private ResultActions saveCourses(int n) throws Exception {
+        java.util.List<Map<String, Object>> records = new java.util.ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            records.add(new java.util.LinkedHashMap<>(Map.<String, Object>of("courseCode", "X" + i, "courseName", "Course", "courseType", "THEORY",
+                    "program", "B_TECH", "branch", "CSE", "semester", 3, "hoursPerWeek", 4, "passPercentage", 90)));
+        }
+        return call(faculty, "PUT", "/api/appraisals/" + appraisal + "/sections/teaching-courses", Map.of("records", records));
+    }
+
+    @Test
+    void untilTheHeadOfTheDepartmentMessagesTheAppraisalStaysLockedForTheFacultyMember() throws Exception {
+        saveCourses(1).andExpect(status().isConflict());                     // submitted
+        beginReview();
+        saveCourses(1).andExpect(status().isConflict());                     // reviewing, but no query yet
+        call(faculty, "GET", "/api/appraisals/" + appraisal, null).andExpect(jsonPath("$.editable").value(false));
+        call(faculty, "POST", "/api/appraisals/" + appraisal + "/submit", DECLARATION).andExpect(status().isConflict());
+    }
+
+    @Test
+    void afterAMessageTheFacultyMemberMayEditAndSendItAgainAndTheHeadBeginsTheReviewAfresh() throws Exception {
+        beginReview();
+        call(hod, "POST", messages(), Map.of("message", ASK)).andExpect(status().isCreated());
+
+        call(faculty, "GET", "/api/appraisals/" + appraisal, null).andExpect(jsonPath("$.editable").value(true))
+                .andExpect(jsonPath("$.queryRaised").value(true)).andExpect(jsonPath("$.status").value("HOD_REVIEW"));
+        saveCourses(3).andExpect(status().isOk());                           // the correction
+        assertEquals(3, jdbc.sql("SELECT COUNT(*) FROM teaching_courses WHERE appraisal_id = ?").param(appraisal).query(Integer.class).single());
+
+        call(faculty, "POST", "/api/appraisals/" + appraisal + "/submit", DECLARATION).andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUBMITTED"));
+        assertEquals("SUBMITTED", statusOf());
+        // recorded as its own step, and the earlier history is intact
+        assertEquals(1, jdbc.sql("SELECT COUNT(*) FROM review_actions WHERE appraisal_id = ? AND action = 'RESUBMIT' AND from_status = 'HOD_REVIEW' AND to_status = 'SUBMITTED'")
+                .param(appraisal).query(Integer.class).single());
+        assertEquals(1, jdbc.sql("SELECT COUNT(*) FROM review_actions WHERE appraisal_id = ? AND action = 'SUBMIT'").param(appraisal).query(Integer.class).single());
+        // sent again, it is locked once more, and the earlier message no longer holds it open
+        saveCourses(1).andExpect(status().isConflict());
+        call(faculty, "GET", "/api/appraisals/" + appraisal, null).andExpect(jsonPath("$.editable").value(false)).andExpect(jsonPath("$.queryRaised").value(false));
+
+        beginReview();   // the Head begins afresh: the answered message does not raise a query again
+        call(faculty, "GET", "/api/appraisals/" + appraisal, null).andExpect(jsonPath("$.queryRaised").value(false)).andExpect(jsonPath("$.editable").value(false));
+        call(hod, "POST", "/api/appraisals/" + appraisal + "/review/approve", null).andExpect(status().isOk());
+        assertEquals("HOD_APPROVED", statusOf());
+    }
+
+    @Test
+    void aNewMessageAfterTheResubmissionOpensTheAppraisalAgain() throws Exception {
+        beginReview();
+        call(hod, "POST", messages(), Map.of("message", ASK)).andExpect(status().isCreated());
+        call(faculty, "POST", "/api/appraisals/" + appraisal + "/submit", DECLARATION).andExpect(status().isOk());
+        beginReview();
+        call(hod, "POST", messages(), Map.of("message", "One more thing.")).andExpect(status().isCreated());
+        call(faculty, "GET", "/api/appraisals/" + appraisal, null).andExpect(jsonPath("$.editable").value(true)).andExpect(jsonPath("$.queryRaised").value(true));
+        saveCourses(2).andExpect(status().isOk());
+    }
+
+    @Test
+    void onceTheHeadApprovesTheFacultyMemberCanNoLongerEditOrSendItAgain() throws Exception {
+        beginReview();
+        call(hod, "POST", messages(), Map.of("message", ASK)).andExpect(status().isCreated());
+        call(hod, "POST", "/api/appraisals/" + appraisal + "/review/approve", null).andExpect(status().isOk());
+        saveCourses(1).andExpect(status().isConflict());
+        call(faculty, "POST", "/api/appraisals/" + appraisal + "/submit", DECLARATION).andExpect(status().isConflict());
+        call(faculty, "GET", "/api/appraisals/" + appraisal, null).andExpect(jsonPath("$.editable").value(false));
+    }
+
+    @Test
+    void sendingItAgainStillNeedsTheDeclarationAndTheEssentials() throws Exception {
+        beginReview();
+        call(hod, "POST", messages(), Map.of("message", ASK)).andExpect(status().isCreated());
+        call(faculty, "POST", "/api/appraisals/" + appraisal + "/submit", "{\"declarationAccepted\":false}").andExpect(status().isBadRequest());
+        jdbc.sql("UPDATE general_information SET contact_no = NULL WHERE appraisal_id = ?").param(appraisal).update();
+        call(faculty, "POST", "/api/appraisals/" + appraisal + "/submit", DECLARATION).andExpect(status().isBadRequest());
+        assertEquals("HOD_REVIEW", statusOf());
+    }
+
+    @Test
+    void onlyTheOwnerCanSendItAgain() throws Exception {
+        beginReview();
+        call(hod, "POST", messages(), Map.of("message", ASK)).andExpect(status().isCreated());
+        call(otherFaculty, "POST", "/api/appraisals/" + appraisal + "/submit", DECLARATION).andExpect(status().isNotFound());
+        call(hod, "POST", "/api/appraisals/" + appraisal + "/submit", DECLARATION).andExpect(status().isForbidden());
     }
 }
