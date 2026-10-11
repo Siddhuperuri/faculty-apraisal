@@ -31,6 +31,8 @@ public final class FieldSpec {
     private BigDecimal max;
     private int scale;
     private List<String> allowed = List.of();
+    private String listCode;
+    private boolean isbn;
 
     private FieldSpec(String name, String column, String label, Type type, boolean required) {
         this.name = name;
@@ -43,6 +45,17 @@ public final class FieldSpec {
     public static FieldSpec text(String name, String column, String label, int maxLength, boolean required) {
         FieldSpec f = new FieldSpec(name, column, label, Type.TEXT, required);
         f.maxLength = maxLength;
+        return f;
+    }
+
+    /**
+     * An ISBN-10 or ISBN-13, typed with or without hyphens and spaces. It is kept as digits only (a trailing X of an ISBN-10
+     * in capitals) and refused unless its length, characters and check digit are right.
+     */
+    public static FieldSpec isbn(String name, String column, String label, boolean required) {
+        FieldSpec f = new FieldSpec(name, column, label, Type.TEXT, required);
+        f.maxLength = 24;
+        f.isbn = true;
         return f;
     }
 
@@ -66,9 +79,17 @@ public final class FieldSpec {
         return f;
     }
 
+    /** A choice from a short list that is part of the application itself (it is not edited by an administrator). */
     public static FieldSpec choice(String name, String column, String label, boolean required, String... allowed) {
         FieldSpec f = new FieldSpec(name, column, label, Type.ENUM, required);
         f.allowed = List.of(allowed);
+        return f;
+    }
+
+    /** A choice from a database-managed reference list: what is offered and accepted is whatever the list holds. */
+    public static FieldSpec listed(String name, String column, String label, boolean required, String listCode) {
+        FieldSpec f = new FieldSpec(name, column, label, Type.ENUM, required);
+        f.listCode = listCode;
         return f;
     }
 
@@ -95,13 +116,11 @@ public final class FieldSpec {
     }
 
     /**
-     * A number field that is chosen from a fixed list of whole numbers (shown as a drop-down) rather than typed:
-     * anything else is refused, whatever the range says.
+     * A number field chosen from a database-managed list of whole numbers (shown as a drop-down) rather than typed:
+     * a value that is not on the list is refused, and the list, not a fixed range, sets what is allowed.
      */
-    public FieldSpec oneOf(int... values) {
-        List<String> list = new java.util.ArrayList<>();
-        for (int v : values) list.add(String.valueOf(v));
-        this.allowed = List.copyOf(list);
+    public FieldSpec fromList(String listCode) {
+        this.listCode = listCode;
         return this;
     }
 
@@ -109,11 +128,22 @@ public final class FieldSpec {
     public BigDecimal max() { return max; }
     public List<String> allowed() { return allowed; }
 
+    /** The reference list this field's values come from, or null when it is not backed by one. */
+    public String listCode() { return listCode; }
+
+    /** True for an ISBN field: kept as digits and refused unless its check digit is right. */
+    public boolean isbn() { return isbn; }
+
     /**
      * @return the normalised value (String, Integer, BigDecimal, LocalDate) or null when empty/invalid.
      *         Problems are added to {@code errors} under {@code path}.
      */
     public Object normalize(Object raw, String path, Map<String, String> errors) {
+        return normalize(raw, path, errors, ChoiceSource.NONE);
+    }
+
+    /** As above, with the reference lists the field's choices are read from. */
+    public Object normalize(Object raw, String path, Map<String, String> errors, ChoiceSource choices) {
         if (raw == null || (raw instanceof String s && s.isBlank())) {
             if (required) errors.put(path, label + " is required.");
             return null;
@@ -121,9 +151,9 @@ public final class FieldSpec {
         try {
             return switch (type) {
                 case TEXT -> text(raw, path, errors);
-                case INT -> integerValue(raw, path, errors);
-                case DECIMAL -> decimalValue(raw, path, errors);
-                case ENUM -> choiceValue(raw, path, errors);
+                case INT -> integerValue(raw, path, errors, choices);
+                case DECIMAL -> decimalValue(raw, path, errors, choices);
+                case ENUM -> choiceValue(raw, path, errors, choices);
                 case DATE -> dateValue(raw, path, errors);
                 case MONTH_YEAR -> monthYearValue(raw, path, errors);
             };
@@ -145,43 +175,72 @@ public final class FieldSpec {
                 return fail(path, errors, label + " contains characters that are not allowed.");
             }
         }
+        if (isbn) {
+            String digits = v.replace("-", "").replace(" ", "").toUpperCase(java.util.Locale.ROOT);
+            if (!validIsbn(digits)) {
+                return fail(path, errors, label + " must be a valid ISBN-10 or ISBN-13 (for example 978-0-13-468599-1).");
+            }
+            return digits;
+        }
         return v;
     }
 
-    private Object integerValue(Object raw, String path, Map<String, String> errors) {
+    /** ISBN-10: nine digits and a check digit (0 to 9 or X); ISBN-13: 978 or 979 and ten more digits; check digits verified. */
+    static boolean validIsbn(String d) {
+        if (d.length() == 10 && d.matches("[0-9]{9}[0-9X]")) {
+            int sum = 0;
+            for (int i = 0; i < 10; i++) sum += (10 - i) * (d.charAt(i) == 'X' ? 10 : d.charAt(i) - '0');
+            return sum % 11 == 0;
+        }
+        if (d.length() == 13 && d.matches("97[89][0-9]{10}")) {
+            int sum = 0;
+            for (int i = 0; i < 13; i++) sum += (d.charAt(i) - '0') * (i % 2 == 0 ? 1 : 3);
+            return sum % 10 == 0;
+        }
+        return false;
+    }
+
+    private Object integerValue(Object raw, String path, Map<String, String> errors, ChoiceSource choices) {
         BigDecimal v = toNumber(raw);
         if (v == null || v.stripTrailingZeros().scale() > 0) {
             return fail(path, errors, label + " must be a whole number.");
         }
-        if (!isOneOf(v)) return fail(path, errors, label + " must be one of: " + String.join(", ", allowed) + ".");
+        if (listCode != null) {
+            if (!isOneOf(v, choices)) return fail(path, errors, notOnList(choices));
+            return v.intValueExact();
+        }
         if (v.compareTo(min) < 0 || v.compareTo(max) > 0) {
             return fail(path, errors, label + " must be between " + min + " and " + max + ".");
         }
         return v.intValueExact();
     }
 
-    private Object decimalValue(Object raw, String path, Map<String, String> errors) {
+    private Object decimalValue(Object raw, String path, Map<String, String> errors, ChoiceSource choices) {
         BigDecimal v = toNumber(raw);
         if (v == null) return fail(path, errors, label + " must be a number.");
-        if (!isOneOf(v)) return fail(path, errors, label + " must be one of: " + String.join(", ", allowed) + ".");
+        if (listCode != null && !isOneOf(v, choices)) return fail(path, errors, notOnList(choices));
         if (v.stripTrailingZeros().scale() > scale) {
             return fail(path, errors, label + " can have at most " + scale + " decimal places.");
         }
-        if (v.compareTo(min) < 0 || v.compareTo(max) > 0) {
+        if (listCode == null && (v.compareTo(min) < 0 || v.compareTo(max) > 0)) {
             return fail(path, errors, label + " must be between " + min.stripTrailingZeros().toPlainString()
                     + " and " + max.stripTrailingZeros().toPlainString() + ".");
         }
         return v.setScale(scale);
     }
 
-    /** True when no list was set with {@link #oneOf}, or the number is on it. */
-    private boolean isOneOf(BigDecimal v) {
-        return allowed.isEmpty() || allowed.contains(v.stripTrailingZeros().toPlainString());
+    private boolean isOneOf(BigDecimal v, ChoiceSource choices) {
+        return choices.active(listCode).contains(v.stripTrailingZeros().toPlainString());
     }
 
-    private Object choiceValue(Object raw, String path, Map<String, String> errors) {
-        if (raw instanceof String s && allowed.contains(s)) return s;
-        return fail(path, errors, label + " must be one of: " + String.join(", ", allowed) + ".");
+    private String notOnList(ChoiceSource choices) {
+        return label + " must be one of: " + String.join(", ", choices.active(listCode)) + ".";
+    }
+
+    private Object choiceValue(Object raw, String path, Map<String, String> errors, ChoiceSource choices) {
+        List<String> offered = listCode != null ? choices.active(listCode) : allowed;
+        if (raw instanceof String s && offered.contains(s)) return s;
+        return fail(path, errors, label + " must be one of: " + String.join(", ", offered) + ".");
     }
 
     private Object dateValue(Object raw, String path, Map<String, String> errors) {

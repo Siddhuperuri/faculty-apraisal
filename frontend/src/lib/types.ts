@@ -121,6 +121,34 @@ export interface FieldMeta {
   /** Asked for (and required) only while the field named here holds `onlyWhenEquals`; otherwise hidden and not kept. */
   onlyWhenField?: string | null;
   onlyWhenEquals?: string | null;
+  /** For a field chosen from a list: the label of every value, including values switched off (old records keep them). */
+  labels?: Record<string, string> | null;
+  /** Words offered while typing, by the value of the section's scope ("" when there is none). Free text is still allowed. */
+  suggestions?: Record<string, string[]> | null;
+}
+
+/** One value of a database-managed dropdown list (Admin > Lists). */
+export interface ReferenceValue {
+  id: number;
+  list: string;
+  code: string;
+  parent: string;
+  label: string;
+  reportLabel: string | null;
+  sortOrder: number;
+  active: boolean;
+  /** The application's own rules depend on it: its wording can change but it cannot be switched off. */
+  locked: boolean;
+}
+
+export interface ReferenceList {
+  code: string;
+  name: string;
+  description: string | null;
+  parentList: string | null;
+  /** CODE (letters and underscores), NUMBER (whole numbers) or FREE (suggested words). */
+  kind: "CODE" | "NUMBER" | "FREE";
+  values: ReferenceValue[];
 }
 
 export interface SectionMeta {
@@ -170,6 +198,8 @@ export interface CriterionInfo {
   label: string;
   /** Marked per entry with no maximum (B5 to B9). */
   perEntry: boolean;
+  /** Marked per entry, but the policy may set a limit (Funded projects, Outreach, Memberships): 0 means no limit. */
+  cappable?: boolean;
 }
 
 export interface AdminReference {
@@ -493,4 +523,44 @@ export interface HandoverNote {
   value: string;
   updatedBy: string | null;
   updatedAt: string | null;
+}
+
+// ---- analytics and institutional roles (administration) ----
+
+export interface AnalyticsYear {
+  id: number;
+  name: string;
+  active: boolean;
+}
+
+export interface DepartmentFigures {
+  id: number;
+  code: string;
+  name: string;
+  active: boolean;
+  faculty: number;
+  headsOfDepartment: number;
+  started: number;
+  submitted: number;
+  approved: number;
+  byStatus: Record<string, number>;
+  submissionRate: number;
+  approvalRate: number;
+}
+
+export interface Analytics {
+  year: AnalyticsYear;
+  years: AnalyticsYear[];
+  totals: { faculty: number; started: number; notStarted: number; submitted: number; approved: number; submissionRate: number; approvalRate: number };
+  byStatus: Record<string, number>;
+  departments: DepartmentFigures[];
+  users: { role: string; active: number; disabled: number }[];
+  neverSignedIn: number;
+}
+
+export interface RoleMarks {
+  code: string;
+  label: string;
+  active: boolean;
+  marks: number;
 }

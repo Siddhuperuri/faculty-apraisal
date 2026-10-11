@@ -1,47 +1,46 @@
 import type { Role, Stage, Status, WithdrawnRole } from "./types";
 
-/** Readable text for stored enum values, using the wording printed on the official form. */
-const LABELS: Record<string, string> = {
-  INST: "Institute", STATE: "State", NAT: "National", INTL: "International",
-  THEORY: "Theory", LAB: "Lab",
-  B_TECH: "B.Tech", M_TECH: "M.Tech", PHARMACY: "Pharmacy",
-  COORDINATOR: "Course Coordinator", INSTRUCTOR: "Course Instructor",
-  CSE: "CSE", AIML: "AI & ML", CAI: "CAI", AIM: "AIM", CSDS: "CSDS", ECE: "ECE", EEE: "EEE", ME: "ME", CE: "CE", BSH: "BSH",
-  PHARMACEUTICS: "Pharmaceutics", PHARMACEUTICAL_CHEMISTRY: "Pharmaceutical Chemistry", PHARMACOLOGY: "Pharmacology",
-  PHARMACOGNOSY: "Pharmacognosy", PHARMACY_PRACTICE: "Pharmacy Practice",
-  "1": "1st author", "2": "2nd author", "3": "3rd author", "4": "4th author", "5": "5th author", "6": "6th author", "7": "7th author", "8": "8th author",
-  DIPLOMA: "Diploma", UG: "UG", PG: "PG",
-  PAPER: "Paper", PATENT: "Patent", PROTOTYPE: "Prototype", COMPETITION: "Competition", NONE: "None",
-  OFFLINE: "Offline", ONLINE: "Online", BLENDED: "Blended",
-  NPTEL: "NPTEL", SWAYAM: "Swayam", COURSERA: "Coursera", OTHER: "Other",
-  INSTITUTE: "Institute level", DEPARTMENT: "Department level",
-  SCI_SCIE: "SCI / SCIE", SCOPUS: "Scopus", UGC_CARE_ABDC: "UGC-CARE / ABDC", OTHERS: "Others",
-  GOOGLE_SCHOLAR: "Google Scholar", WEB_OF_SCIENCE: "Web of Science",
-  PHD: "Ph.D.", MTECH: "M.Tech", MBA: "MBA",
-  REGISTERED: "Registered", SUBMITTED: "Submitted", AWARDED: "Awarded",
-  PURSUING: "Pursuing", NOT_APPLICABLE: "Not applicable",
-  COURSE_WORK: "Course work", COMPREHENSIVE_PROPOSAL: "Comprehensive / Proposal",
-  SYNOPSIS: "Synopsis / Pre-Ph.D.", THESIS_SUBMITTED: "Thesis submitted", VIVA_COMPLETED: "Viva-voce completed",
-  PI: "PI", CO_PI: "Co-PI", RESEARCH: "Research", CONSULTANCY: "Consultancy",
-  SANCTIONED: "Sanctioned", APPLIED: "Applied",
-  DESIGN: "Design", UTILITY: "Utility", COPYRIGHT: "Copyright",
-  FILED: "Filed", PUBLISHED: "Published", GRANTED: "Granted",
-  BOOK: "Book", CHAPTER: "Chapter",
-  CONFERENCE_SESSION_CHAIR: "Conference Session Chair",
-  EXPERT_LECTURE_DELIVERED: "Expert Lectures Delivered",
-  RESOURCE_PERSON: "Resource Person",
-  EDITORIAL_BOARD_MEMBER: "Editorial Board Member",
-  JOURNAL_REVIEWER: "Reviewer for Journals",
-  EXTERNAL_EXAMINER: "External Examiner",
-  EXTERNAL_THESIS_EVALUATED: "External Thesis Evaluated",
-  VISITING_RESEARCHER: "Visiting Researcher",
-  INDUSTRY_INTERACTION_MOU: "Industry Interaction or MoU",
-  INTERNATIONAL_CONFERENCE_ATTENDED: "International Conferences Attended",
+/**
+ * Wording of the dropdown values comes from the database-managed lists (served with each field by /api/sections/meta and
+ * registered here when the definitions load); only the two structural codes below are known to the screens themselves.
+ */
+const FIXED: Record<string, string> = {
+  INSTITUTE: "Institute level",
+  DEPARTMENT: "Department level",
 };
 
+/** code -> label across every list, and label by section.field for lists whose codes mean different things in different fields. */
+let byCode: Record<string, string> = {};
+let byField: Record<string, Record<string, string>> = {};
+
+/** Registers the labels the server sent with the section definitions (called when they are loaded). */
+export function registerLabels(sections: { key: string; fields: { name: string; labels?: Record<string, string> | null }[] }[]) {
+  const codes: Record<string, string> = {};
+  const fields: Record<string, Record<string, string>> = {};
+  for (const sec of sections) {
+    for (const f of sec.fields) {
+      if (!f.labels) continue;
+      fields[`${sec.key}.${f.name}`] = f.labels;
+      // numbers (semester, hours, author position) mean different things in different fields: only a field can label them
+      if (Object.keys(f.labels).every((c) => /^\d+$/.test(c))) continue;
+      for (const [code, label] of Object.entries(f.labels)) if (!(code in codes)) codes[code] = label;
+    }
+  }
+  byCode = codes;
+  byField = fields;
+}
+
 export function enumLabel(value: string): string {
-  if (LABELS[value]) return LABELS[value];
+  if (byCode[value]) return byCode[value];
+  if (FIXED[value]) return FIXED[value];
   return value.toLowerCase().replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+}
+
+/** The label of a value of one field of one section ("1" is "1st author" for the author position, "1" for a semester). */
+export function fieldLabel(section: string, field: string, value: unknown): string {
+  if (value == null || value === "") return "";
+  const v = String(value);
+  return byField[`${section}.${field}`]?.[v] ?? enumLabel(v);
 }
 
 export const STATUS_INFO: Record<Status, { label: string; tone: "neutral" | "info" | "warn" | "ok"; faculty: string }> = {
@@ -95,6 +94,7 @@ export const ACTION_LABEL: Record<string, string> = {
   RESUBMIT: "Corrected and sent again by faculty",
   START_HOD_REVIEW: "HoD began the review",
   HOD_APPROVE: "HoD approved it and forwarded it to the Principal or Director Technical",
+  HOD_REVOKE: "HoD revoked it",
   START_PRINCIPAL_REVIEW: "Principal began the review",
   PRINCIPAL_APPROVE: "Principal approved it",
   START_DIRECTOR_REVIEW: "Director Technical began the review",

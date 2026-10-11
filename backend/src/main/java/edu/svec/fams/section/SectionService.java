@@ -5,6 +5,7 @@ import edu.svec.fams.audit.AuditService;
 import edu.svec.fams.auth.FamsUserPrincipal;
 import edu.svec.fams.common.ApiException;
 import edu.svec.fams.common.ValidationException;
+import edu.svec.fams.ecap.EcapClient;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -45,11 +46,15 @@ public class SectionService {
     private final JdbcClient jdbc;
     private final AppraisalAccess access;
     private final AuditService audit;
+    private final ChoiceSource choices;
+    private final EcapClient ecap;
 
-    public SectionService(JdbcClient jdbc, AppraisalAccess access, AuditService audit) {
+    public SectionService(JdbcClient jdbc, AppraisalAccess access, AuditService audit, ChoiceSource choices, EcapClient ecap) {
         this.jdbc = jdbc;
         this.access = access;
         this.audit = audit;
+        this.choices = choices;
+        this.ecap = ecap;
     }
 
     @Transactional(readOnly = true)
@@ -98,6 +103,7 @@ public class SectionService {
 
         List<Map<String, Object>> existing = loadRows(spec, appraisalId);
         List<Map<String, Object>> wanted = validate(spec, appraisalId, incoming, existing);
+        if (spec.key().equals("teaching-courses")) verifyCourses(wanted, existing);
 
         int changes = spec.singleton() ? applySingle(spec, appraisalId, existing, wanted)
                                        : applyList(spec, appraisalId, existing, wanted);
@@ -107,6 +113,38 @@ public class SectionService {
                     "{\"section\":\"" + spec.key() + "\",\"changes\":" + changes + "}");
         }
         return view(spec, appraisalId);
+    }
+
+    // ---- courses come from ECAP ----
+
+    /**
+     * A course's code and name are ECAP's, not typed: a course that is new or whose code or name changed must be a course
+     * ECAP has, and its name is taken from ECAP. A course that is saved again unchanged is not looked up, so an
+     * appraisal can still be saved while ECAP is down. When ECAP cannot be reached for a new course the save is refused
+     * with a plain message ({@link EcapUnavailableException}, a 503) and nothing is changed.
+     */
+    private void verifyCourses(List<Map<String, Object>> wanted, List<Map<String, Object>> existing) {
+        Map<Long, Map<String, Object>> byId = new HashMap<>();
+        for (Map<String, Object> r : existing) byId.put((Long) r.get("id"), r);
+        Map<String, String> errors = new LinkedHashMap<>();
+        for (int i = 0; i < wanted.size(); i++) {
+            Map<String, Object> rec = wanted.get(i);
+            Map<String, Object> before = rec.get("id") == null ? null : byId.get((Long) rec.get("id"));
+            Object code = rec.get("courseCode");
+            if (code == null) continue;
+            if (before != null && Objects.equals(before.get("courseCode"), code)
+                    && Objects.equals(before.get("courseName"), rec.get("courseName"))) {
+                continue;
+            }
+            var found = ecap.find(code.toString());
+            if (found.isEmpty()) {
+                errors.put("records[" + i + "].courseCode", "This course is not in ECAP. Choose it from the list of ECAP courses.");
+            } else {
+                rec.put("courseCode", found.get().code());
+                rec.put("courseName", found.get().name());
+            }
+        }
+        if (!errors.isEmpty()) throw new ValidationException(errors);
     }
 
     // ---- validation ----
@@ -125,6 +163,8 @@ public class SectionService {
         AcademicYear year = spec.inAcademicYear().isEmpty() ? null : academicYear(appraisalId);
 
         Set<Long> existingIds = existing.stream().map(r -> (Long) r.get("id")).collect(Collectors.toSet());
+        Map<Long, Map<String, Object>> existingById = new HashMap<>();
+        for (Map<String, Object> r : existing) existingById.put((Long) r.get("id"), r);
         Set<Long> seenIds = new HashSet<>();
         Set<Object> seenUnique = new HashSet<>();
         Set<String> known = spec.fields().stream().map(FieldSpec::name).collect(Collectors.toSet());
@@ -144,16 +184,25 @@ public class SectionService {
             Map<String, Object> rec = new LinkedHashMap<>();
             rec.put("id", spec.singleton() ? null : validateId(raw.get("id"), prefix, existingIds, seenIds, errors));
             SectionSpec.DerivedDays derived = spec.derivedDays();
+            Map<String, Object> before = rec.get("id") == null ? null : existingById.get((Long) rec.get("id"));
             for (FieldSpec f : spec.fields()) {
                 if (derived != null && f.name().equals(derived.daysField())) continue;   // worked out below
-                rec.put(f.name(), f.normalize(raw.get(f.name()), prefix + "." + f.name(), errors));
+                Object raw1 = raw.get(f.name());
+                if (keepsSavedValue(f, raw1, before)) {
+                    rec.put(f.name(), before.get(f.name()));
+                } else {
+                    rec.put(f.name(), f.normalize(raw1, prefix + "." + f.name(), errors, choices));
+                }
             }
             if (derived != null) rec.put(derived.daysField(), derivedDays(spec, derived, rec, prefix, errors));
 
             SectionSpec.DependentChoice dependent = spec.dependentChoice();
-            if (dependent != null && rec.get(dependent.field()) instanceof String chosen
+            boolean pairUnchanged = before != null && dependent != null
+                    && Objects.equals(before.get(dependent.field()), rec.get(dependent.field()))
+                    && Objects.equals(before.get(dependent.onField()), rec.get(dependent.onField()));
+            if (dependent != null && !pairUnchanged && rec.get(dependent.field()) instanceof String chosen
                     && rec.get(dependent.onField()) instanceof String on
-                    && !dependent.allowedBy().getOrDefault(on, List.of()).contains(chosen)) {
+                    && !choices.activeUnder(dependent.list(), on).contains(chosen)) {
                 errors.putIfAbsent(prefix + "." + dependent.field(), spec.field(dependent.field()).label()
                         + " is not offered under the " + spec.field(dependent.onField()).label().toLowerCase(Locale.ROOT) + " you chose.");
             }
@@ -195,6 +244,25 @@ public class SectionService {
         }
         if (!errors.isEmpty()) throw new ValidationException(errors);
         return out;
+    }
+
+    /**
+     * A value a list no longer offers (it was switched off) may stay on a record that already holds it: only a new or
+     * changed choice has to be one of the values offered now.
+     */
+    private boolean keepsSavedValue(FieldSpec f, Object sent, Map<String, Object> before) {
+        if (before == null || f.listCode() == null || sent == null) return false;
+        Object saved = before.get(f.name());
+        if (saved == null) return false;
+        BigDecimal a = null;
+        BigDecimal b = null;
+        if (saved instanceof Number n1 && sent instanceof Number n2) {
+            a = new BigDecimal(n1.toString());
+            b = new BigDecimal(n2.toString());
+        }
+        boolean same = a != null ? a.compareTo(b) == 0 : saved.toString().equals(sent.toString());
+        String code = saved instanceof BigDecimal d ? d.stripTrailingZeros().toPlainString() : saved.toString();
+        return same && choices.known(f.listCode(), code);
     }
 
     /** From the start date to the end date, both days counted; null while either date is missing or the range is reversed. */

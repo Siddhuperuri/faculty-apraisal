@@ -121,11 +121,45 @@ describe("form structure vs server definitions", () => {
     expect(titles).not.toContain("Conference papers presented");
   });
 
+  it("the course is chosen from ECAP: its code and name are real fields and not typed", () => {
+    const ui = PAGES.flatMap((p) => p.sections).find((x) => x.key === "teaching-courses")!;
+    expect(ui.ecapCourse).toEqual({ code: "courseCode", name: "courseName" });
+    const fields = new Set(byKey.get("teaching-courses")!.fields.map((f) => f.name));
+    expect(fields.has(ui.ecapCourse!.code)).toBe(true);
+    expect(fields.has(ui.ecapCourse!.name)).toBe(true);
+  });
+
+  it("institutional roles are on the Teaching & Learning page, from a database list", () => {
+    const page = PAGES.find((p) => p.slug === "teaching")!;
+    expect(page.sections.map((x) => x.key)).toContain("institutional-roles");
+    const role = byKey.get("institutional-roles")!.fields.find((f) => f.name === "role")!;
+    expect(role.allowed).toEqual(expect.arrayContaining(["HOD", "ASSOCIATE_DEAN"]));
+    expect(role.labels?.HOD).toBeTruthy();
+  });
+
+  it("funded projects are limited to two, an ISBN is required, and institute roles come before department roles", () => {
+    const funded = PAGES.flatMap((p) => p.sections).find((x) => x.key === "funded-projects")!;
+    expect(funded.maxRecords).toBe(2);
+    expect(byKey.get("books")!.fields.find((f) => f.name === "isbn")!.required).toBe(true);
+    const roles = PAGES.find((p) => p.slug === "administration")!.sections.filter((x) => x.key === "administrative-roles");
+    expect(roles.map((x) => x.scope?.value)).toEqual(["INSTITUTE", "DEPARTMENT"]);
+  });
+
+  it("every value of a list-backed field comes with its label from the server", () => {
+    for (const s of sections)
+      for (const f of s.fields) {
+        if (f.type === "ENUM" && f.name !== "scope") {
+          expect(f.labels, `${s.key}.${f.name} has labels`).toBeTruthy();
+          for (const v of f.allowed ?? []) expect(f.labels![v], `${s.key}.${f.name}=${v}`).toBeTruthy();
+        }
+      }
+  });
+
   it("every allowed value has a readable label (no raw codes on screen)", () => {
     for (const s of sections)
       for (const f of s.fields)
         for (const v of f.allowed ?? []) {
-          const label = enumLabel(v);
+          const label = f.labels?.[v] ?? enumLabel(v);
           expect(label, `${s.key}.${f.name}=${v}`).not.toBe("");
           // Codes with underscores (CO_PI, SCI_SCIE...) must never reach the screen as-is.
           if (v.includes("_")) expect(label, `${s.key}.${f.name}=${v}`).not.toContain("_");

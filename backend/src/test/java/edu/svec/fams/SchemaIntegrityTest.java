@@ -98,12 +98,13 @@ class SchemaIntegrityTest {
     }
 
     @Test
-    void sectionRowsEnforceRangesEnumsAndFormats() {
+    void sectionRowsEnforceRangesAndFormats() {
         String teaching = "INSERT INTO teaching_courses (appraisal_id, course_code, course_name, course_type, program, branch,"
                 + " semester, hours_per_week, pass_percentage) VALUES (?, 'CS101', 'Intro', ?, 'B_TECH', 'CSE', 3, 4, ?)";
         assertEquals(1, jdbc.sql(teaching).params(appraisalId, "THEORY", 95).update());
         assertRejected(teaching, appraisalId, "THEORY", 101);      // pass % > 100
-        assertRejected(teaching, appraisalId, "SEMINAR", 90);      // not THEORY/LAB
+        // which values a dropdown allows is no longer a database CHECK: it is checked against the reference lists
+        // by the application (see ReferenceDataTest), so the database accepts any text here.
 
         String journal = "INSERT INTO journal_publications (appraisal_id, title, author_position, journal, month_year, indexing)"
                 + " VALUES (?, 'T', '1', 'J', ?, 'SCOPUS')";

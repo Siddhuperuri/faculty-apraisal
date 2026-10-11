@@ -42,9 +42,12 @@ public class AdminController {
     private final AdminSetupService setup;
     private final AuditQueryService audit;
     private final ConsoleService console;
+    private final AdminAnalyticsService analytics;
 
     public AdminController(AdminUserService users, AccountImportService imports, ImportHistoryService importHistory,
-                           AdminSetupService setup, AuditQueryService audit, ConsoleService console) {
+                           AdminSetupService setup, AuditQueryService audit, ConsoleService console,
+                           AdminAnalyticsService analytics) {
+        this.analytics = analytics;
         this.users = users;
         this.imports = imports;
         this.importHistory = importHistory;
@@ -60,12 +63,37 @@ public class AdminController {
     @GetMapping("/reference")
     public AdminSetupService.Reference reference() { return setup.reference(); }
 
+    /** The marks each institutional role carries in the latest scoring policy of a year. */
+    @GetMapping("/role-marks")
+    public List<AdminSetupService.RoleMarks> roleMarks(@RequestParam long academicYearId) { return setup.roleMarks(academicYearId); }
+
+    @PutMapping("/role-marks")
+    public List<AdminSetupService.RoleMarks> setRoleMarks(@AuthenticationPrincipal FamsUserPrincipal me,
+                                                          @RequestBody Map<String, Object> body) {
+        return setup.setRoleMarks(me, body);
+    }
+
     // ---- users ----
 
     @GetMapping("/users")
     public List<AdminUserService.UserRow> users(@RequestParam(required = false) String q,
-                                                @RequestParam(required = false) String role) {
-        return users.list(q, role);
+                                                @RequestParam(required = false) String role,
+                                                @RequestParam(required = false) String status,
+                                                @RequestParam(required = false) Long departmentId) {
+        return users.list(q, role, status, departmentId);
+    }
+
+    /** Body {@code {"role": "ADMIN"}} (and {@code hodDepartmentIds} for a Head of the Department): a different role for the account. */
+    @PutMapping("/users/{id}/role")
+    public AdminUserService.UserDetail changeRole(@AuthenticationPrincipal FamsUserPrincipal me, @PathVariable long id,
+                                                  @RequestBody Map<String, Object> body) {
+        return users.changeRole(me, id, body);
+    }
+
+    /** Appraisal progress and user counts, aggregated, for the dashboard (no names and no appraisal content). */
+    @GetMapping("/analytics")
+    public AdminAnalyticsService.Analytics analytics(@RequestParam(required = false) Long academicYearId) {
+        return analytics.analytics(academicYearId);
     }
 
     @GetMapping("/users/{id}")

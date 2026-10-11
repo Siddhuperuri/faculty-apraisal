@@ -7,11 +7,13 @@ import { IdentityBlock } from "@/components/appraisal/IdentityBlock";
 import { FocusOnArrival, RequirementsSummary } from "@/components/appraisal/RequirementsSummary";
 import { SectionView } from "@/components/appraisal/SectionView";
 import { Alert, Card, linkButton } from "@/components/ui/primitives";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { nextPrev, pageBySlug } from "@/lib/formStructure";
 
 
 export default function SectionPage() {
   const { id, page } = useParams<{ id: string; page: string }>();
+  const { user } = useAuth();
   const ui = pageBySlug(page);
   if (!ui) return <Alert tone="error" title="Page not found">There is no such section in this form.</Alert>;
 
@@ -58,7 +60,7 @@ export default function SectionPage() {
           <span />
         )}
         <Link href={next ? `${base}/${next.slug}` : base} className={linkButton("primary")}>
-          {next ? `Next: ${next.title} →` : "Next: Score & Review →"}
+          {next ? `Next: ${next.title} →` : user?.role === "FACULTY" ? "Next: Submit →" : "Next: Score & Review →"}
         </Link>
       </nav>
     </div>

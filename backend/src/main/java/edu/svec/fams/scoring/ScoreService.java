@@ -76,7 +76,10 @@ public class ScoreService {
 
         int courses = jdbc.sql("SELECT COUNT(*) FROM teaching_courses WHERE appraisal_id = ?").param(appraisalId).query(Integer.class).single();
         for (Stored s : stored) {
-            if (s.criterion().equals("TEACHING_LEARNING")) teaching(s.maxMarks(), courses, components, breakdowns);
+            if (s.criterion().equals("TEACHING_LEARNING")) {
+                teaching(s.maxMarks(), courses, components, breakdowns);
+                breakdowns.get("TEACHING_LEARNING").addAll(roleLines(appraisalId));
+            }
         }
 
         return stored.stream()
@@ -86,12 +89,34 @@ public class ScoreService {
                     List<Line> lines = breakdowns.getOrDefault(code, List.of());
                     BigDecimal total = ScoringRules.total(lines).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros();
                     if (total.scale() < 0) total = total.setScale(0);
-                    if (!perEntry) total = total.min(BigDecimal.valueOf(s.maxMarks()));
-                    return new ScoreRow(code, Criteria.referenceOf(code), Criteria.labelOf(code), perEntry ? null : s.maxMarks(), total,
+                    // B1 to B4 never exceed their maximum; B6, B8 and B9 stop at the limit the policy sets (when it sets one)
+                    Integer limit = null;
+                    if (!perEntry || (Criteria.isCappable(code) && s.maxMarks() > 0)) limit = s.maxMarks();
+                    if (limit != null) total = total.min(BigDecimal.valueOf(limit));
+                    return new ScoreRow(code, Criteria.referenceOf(code), Criteria.labelOf(code), limit, total,
                             List.copyOf(components.getOrDefault(code, List.of())), List.copyOf(lines));
                 })
                 .sorted(Comparator.comparingInt(r -> Criteria.order(r.criterion())))
                 .toList();
+    }
+
+    /**
+     * The institutional roles the faculty member holds (Head of the Department, Associate Dean ...), each earning the marks
+     * the appraisal's scoring policy sets for that role. A role with no marks set earns nothing.
+     */
+    private List<Line> roleLines(long appraisalId) {
+        return jdbc.sql("""
+                SELECT COALESCE(rv.label, h.role_code), COALESCE(m.marks, 0)
+                FROM institutional_roles_held h
+                JOIN appraisals a ON a.id = h.appraisal_id
+                LEFT JOIN scoring_policy_role_marks m ON m.policy_id = a.scoring_policy_id AND m.role_code = h.role_code
+                LEFT JOIN reference_values rv ON rv.list_code = 'INSTITUTIONAL_ROLE' AND rv.code = h.role_code AND rv.parent_code = ''
+                WHERE h.appraisal_id = ? ORDER BY h.id""")
+                .param(appraisalId)
+                .query((rs, n) -> {
+                    BigDecimal marks = BigDecimal.valueOf(rs.getInt(2));
+                    return new Line("Institutional role: " + rs.getString(1), marks, 1, marks);
+                }).list();
     }
 
     /**
@@ -116,7 +141,11 @@ public class ScoreService {
                     // worked out from the exact figure (max x courses / 8), then rounded once, so there is no rounding drift
                     BigDecimal marks = BigDecimal.valueOf((long) c.maxMarks() * Math.min(courses, Sections.MAX_COURSES))
                             .divide(eighth, 0, RoundingMode.HALF_UP);
-                    line = new Line(c.description() + " (up to " + c.maxMarks() + ", rounded to a whole mark)", perCourse, courses,
+                    BigDecimal exact = BigDecimal.valueOf(c.maxMarks()).multiply(BigDecimal.valueOf(Math.min(courses, Sections.MAX_COURSES)))
+                            .divide(eighth, 4, RoundingMode.HALF_UP).stripTrailingZeros();
+                    String working = courses + " course" + (courses == 1 ? "" : "s") + " x " + c.maxMarks() + " / " + Sections.MAX_COURSES
+                            + " = " + exact.toPlainString() + ", to a whole mark";
+                    line = new Line(c.description() + " (" + working + "; up to " + c.maxMarks() + ")", perCourse, courses,
                             marks.min(BigDecimal.valueOf(c.maxMarks())), c.maxMarks());
                 } else {
                     line = ScoringRules.capped(c.description() + " (up to " + c.maxMarks() + ")", perCourse, courses, c.maxMarks());

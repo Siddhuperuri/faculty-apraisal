@@ -2,6 +2,7 @@ package edu.svec.fams;
 
 import edu.svec.fams.auth.FamsUserPrincipal;
 import edu.svec.fams.auth.Role;
+import edu.svec.fams.reference.ReferenceData;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -13,13 +14,20 @@ public class TestDb {
 
     private final JdbcClient jdbc;
     private final PasswordEncoder encoder;
+    private final ReferenceData reference;
 
-    public TestDb(JdbcClient jdbc, PasswordEncoder encoder) {
+    public TestDb(JdbcClient jdbc, PasswordEncoder encoder, ReferenceData reference) {
         this.jdbc = jdbc;
         this.encoder = encoder;
+        this.reference = reference;
     }
 
     public void reset() {
+        // Reference lists: values an administrator added during a test go; switched-off values come back on. (Tests that
+        // rename a value put its wording back themselves.)
+        jdbc.sql("DELETE FROM reference_values WHERE created_by IS NOT NULL").update();
+        jdbc.sql("UPDATE reference_values SET active = TRUE").update();
+        reference.refresh();
         // The history tables are append-only via triggers; TRUNCATE is the test-only way to clear them.
         jdbc.sql("TRUNCATE TABLE audit_logs").update();
         jdbc.sql("TRUNCATE TABLE review_actions").update();
@@ -33,14 +41,22 @@ public class TestDb {
             jdbc.sql("DELETE FROM " + t).update();
         }
         // Remove policy versions, academic years and departments created by tests; keep the seeded reference data.
-        // Versions 1, 2 and 3 are seeded (V2/V9, V24 and V33); only the ones tests publish after them are removed.
-        String extraPolicies = "SELECT id FROM scoring_policies WHERE version > 3"
+        // Versions 1 to 4 are seeded (V2/V9, V24, V33 and V35); only the ones tests publish after them are removed.
+        String extraPolicies = "SELECT id FROM scoring_policies WHERE version > 4"
                 + " OR academic_year_id IN (SELECT id FROM academic_years WHERE name <> '2025-26')";
+        jdbc.sql("DELETE FROM scoring_policy_role_marks WHERE policy_id IN (" + extraPolicies + ")").update();
         jdbc.sql("DELETE FROM scoring_policy_components WHERE policy_id IN (" + extraPolicies + ")").update();
         jdbc.sql("DELETE FROM scoring_policy_criteria WHERE policy_id IN (" + extraPolicies + ")").update();
-        jdbc.sql("DELETE FROM scoring_policies WHERE version > 3"
+        jdbc.sql("DELETE FROM scoring_policies WHERE version > 4"
                 + " OR academic_year_id IN (SELECT id FROM academic_years WHERE name <> '2025-26')").update();
         jdbc.sql("DELETE FROM academic_years WHERE name <> '2025-26'").update();
+        // the marks of the institutional roles go back to what the migration set (HoD 5, Associate Dean 3)
+        jdbc.sql("DELETE FROM scoring_policy_role_marks").update();
+        jdbc.sql("""
+                INSERT INTO scoring_policy_role_marks (policy_id, role_code, marks)
+                SELECT p.id, r.c, r.m FROM scoring_policies p
+                CROSS JOIN (SELECT 'HOD' AS c, 5 AS m UNION ALL SELECT 'ASSOCIATE_DEAN', 3) r
+                WHERE p.version = 4""").update();
         jdbc.sql("UPDATE academic_years SET active = TRUE").update();
         for (String t : new String[] {"hod_assignments", "dean_assignments", "faculty_profiles", "users"}) {
             jdbc.sql("DELETE FROM " + t).update();

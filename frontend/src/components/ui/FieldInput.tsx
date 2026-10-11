@@ -81,7 +81,7 @@ export function FieldInput({
                 onBlur={onBlur}
                 className="h-4 w-4 accent-[var(--color-brand,#0070c0)]"
               />
-              {enumLabel(a)}
+              {meta.labels?.[a] ?? enumLabel(a)}
             </label>
           ))}
         </div>
@@ -107,7 +107,7 @@ export function FieldInput({
         <option value="">Select…</option>
         {meta.allowed?.map((a) => (
           <option key={a} value={a}>
-            {numericChoice ? a : enumLabel(a)}
+            {numericChoice ? a : (meta.labels?.[a] ?? enumLabel(a))}
           </option>
         ))}
       </select>

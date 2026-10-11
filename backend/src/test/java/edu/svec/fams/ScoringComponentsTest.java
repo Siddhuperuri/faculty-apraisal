@@ -36,7 +36,7 @@ class ScoringComponentsTest {
     /** The component rows of one policy version in the current form (V24): per cadre, four B1 parts, 4 for B2, 2 for B3 and 4 for B4. */
     static final int CURRENT_COMPONENT_ROWS = 70;
 
-    /** The component rows of one policy version of V33: per cadre, three B1 parts and the same 4 + 2 + 4 for B2 to B4. */
+    /** The component rows of one policy version of V33 (and of V35, which copies it): per cadre, three B1 parts and 4 + 2 + 4. */
     static final int V33_COMPONENT_ROWS = 65;
 
     /** B1 of the current policy (V33), by cadre: "student feedback" is gone and the parts are divided afresh. */
@@ -144,10 +144,10 @@ class ScoringComponentsTest {
         assertEquals(0, mismatches);
         // B1 to B4 of every cadre are broken down; the criteria marked per entry are not
         // (three versions of each cadre's policy: the document's, V24's and the current one of V33)
-        assertEquals(60, jdbc.sql("SELECT COUNT(DISTINCT policy_id, criterion) FROM scoring_policy_components").query(Integer.class).single());
+        assertEquals(80, jdbc.sql("SELECT COUNT(DISTINCT policy_id, criterion) FROM scoring_policy_components").query(Integer.class).single());
         assertEquals(0, jdbc.sql("SELECT COUNT(*) FROM scoring_policy_components WHERE criterion NOT IN "
                 + "('TEACHING_LEARNING','STUDENT_MENTORING','FDP_CERTIFICATIONS','ADMINISTRATIVE')").query(Integer.class).single());
-        assertEquals(COMPONENT_ROWS + CURRENT_COMPONENT_ROWS + V33_COMPONENT_ROWS,
+        assertEquals(COMPONENT_ROWS + CURRENT_COMPONENT_ROWS + 2 * V33_COMPONENT_ROWS,
                 jdbc.sql("SELECT COUNT(*) FROM scoring_policy_components").query(Integer.class).single());
     }
 
@@ -244,7 +244,7 @@ class ScoringComponentsTest {
                 components("ASST_PROF", "STUDENT_MENTORING"));
         assertEquals(List.of("Department responsibilities = 4", "institute roles = 3", "curriculum/BoS = 3", "quality/accreditation = 3",
                 "measurable institutional contribution = 2"), components("ASST_PROF", "ADMINISTRATIVE"));
-        assertEquals(3, jdbc.sql("SELECT COUNT(*) FROM scoring_policies WHERE cadre_id = (SELECT id FROM cadres WHERE code = 'PROFESSOR')")
+        assertEquals(4, jdbc.sql("SELECT COUNT(*) FROM scoring_policies WHERE cadre_id = (SELECT id FROM cadres WHERE code = 'PROFESSOR')")
                 .query(Integer.class).single());
     }
 
@@ -334,7 +334,7 @@ class ScoringComponentsTest {
 
         JsonNode v2 = http.read(http.post(http.login("admin@test.edu"), "/api/admin/policies",
                 Map.of("academicYearId", year, "cadreId", cadre, "marks", marks)).andExpect(status().isCreated()));
-        assertEquals(4, v2.get("version").asInt());          // after the document's version 1, V24's version 2 and the current version 3
+        assertEquals(5, v2.get("version").asInt());          // after the document's version 1 and versions 2, 3 and 4
         // unchanged maxima keep their components; a changed maximum is published without a breakdown that no longer adds up
         assertEquals(4, v2.get("components").get("STUDENT_MENTORING").size());
         assertEquals(4, v2.get("components").get("ADMINISTRATIVE").size());

@@ -1,5 +1,5 @@
 import { duration } from "./format";
-import { enumLabel } from "./labels";
+import { fieldLabel } from "./labels";
 import type { Rec } from "./types";
 
 /**
@@ -34,8 +34,10 @@ export interface SectionUi {
   /** Show the list as one table per value of this field (for example per semester), headed by `title`. */
   groupBy?: { field: string; title: (value: string, count: number) => string };
   summary?: { key: string; label: string; format: SummaryFormat }[];
-  /** Text-field suggestions (free text is still allowed). */
+  /** Text-field suggestions that are fixed in this file (free text is still allowed); the lists in the database are preferred. */
   suggestions?: Record<string, string[]>;
+  /** A code and a name that are chosen together from ECAP (a course picker); they cannot be typed. */
+  ecapCourse?: { code: string; name: string };
   /** Choice fields shown as radio buttons (one of a few options) instead of a drop-down. */
   radios?: string[];
   /** Helper text shown under a field in the form, by field name. */
@@ -78,15 +80,16 @@ export const PAGES: PageUi[] = [
     number: "02",
     title: "Teaching & Learning",
     formRef: "Part B · 1",
-    description: "Courses you handled during the academic year, with pass percentage and feedback percentages.",
+    description: "Courses you handled during the academic year (chosen from ECAP), with pass percentage and feedback percentages, and any institutional roles you held.",
     sections: [
       {
         key: "teaching-courses",
         title: "Courses handled during the Academic Year",
         addLabel: "Add course",
+        ecapCourse: { code: "courseCode", name: "courseName" },
         columns: [
-          { header: "Course Code & Name (Theory / Lab)", render: (r) => `${s(r.courseCode)} · ${s(r.courseName)} (${enumLabel(s(r.courseType))})` },
-          { header: "Program & Branch", render: (r) => `${enumLabel(s(r.program))} · ${enumLabel(s(r.branch))}` },
+          { header: "Course Code & Name (Theory / Lab)", render: (r) => `${s(r.courseCode)} · ${s(r.courseName)} (${fieldLabel("teaching-courses", "courseType", r.courseType)})` },
+          { header: "Program & Branch", render: (r) => `${fieldLabel("teaching-courses", "program", r.program)} · ${fieldLabel("teaching-courses", "branch", r.branch)}` },
           "courseRole",
           "semester",
           "section",
@@ -115,6 +118,15 @@ export const PAGES: PageUi[] = [
           { key: "averageFeedback", label: "Average Feedback % (Ph-1 & Ph-2)", format: "percent" },
         ],
         emptyText: "No courses added yet.",
+      },
+      {
+        key: "institutional-roles",
+        title: "Institutional roles held",
+        addLabel: "Add role",
+        columns: ["role", "remarks"],
+        headers: { role: "Role", remarks: "Remarks" },
+        hint: "Roles such as Head of the Department or Associate Dean earn the marks the college has set for them under the scoring policy; they count within the Teaching & Learning maximum.",
+        emptyText: "No institutional roles added.",
       },
     ],
   },
@@ -173,7 +185,7 @@ export const PAGES: PageUi[] = [
         title: "Certifications",
         addLabel: "Add certification",
         columns: [
-          { header: "Platform", render: (r) => (r.platform === "OTHER" && s(r.platformOther) ? s(r.platformOther) : enumLabel(s(r.platform))) },
+          { header: "Platform", render: (r) => (r.platform === "OTHER" && s(r.platformOther) ? s(r.platformOther) : fieldLabel("certifications", "platform", r.platform)) },
           "title",
           "durationWeeks",
           "gradeScore",
@@ -200,7 +212,6 @@ export const PAGES: PageUi[] = [
         columns: ["role", "description", { header: "Duration (From–To)", render: (r) => duration(r, "fromDate", "toDate") }],
         headers: { role: "Role", description: "Responsibility / Description" },
         hint: "For example: NAAC / NBA criterion coordinator, IQAC, Exam Cell, Training & Placement, NSS / NCC, Anti-Ragging.",
-        suggestions: { role: ["NAAC / NBA criterion coordinator", "IQAC", "Exam Cell", "Training & Placement", "NSS / NCC", "Anti-Ragging"] },
         fieldHints: { role: "Select or enter your role" },
         emptyText: "No institute-level roles added yet.",
       },
@@ -212,7 +223,6 @@ export const PAGES: PageUi[] = [
         columns: ["role", "description", { header: "Duration (From–To)", render: (r) => duration(r, "fromDate", "toDate") }],
         headers: { role: "Role", description: "Responsibility / Description" },
         hint: "For example: Class Coordinator, Module Coordinator, Lab In-charge, Time-table In-charge, NAAC / NBA criterion coordinator, IQAC, Exam Cell, Training & Placement, NSS / NCC, Anti-Ragging.",
-        suggestions: { role: ["Class Coordinator", "Module Coordinator", "Lab In-charge", "Time-table In-charge", "NAAC / NBA criterion coordinator", "IQAC", "Exam Cell", "Training & Placement", "NSS / NCC", "Anti-Ragging"] },
         fieldHints: { role: "Select or enter your role" },
         emptyText: "No department-level roles added yet.",
       },
@@ -239,7 +249,7 @@ export const PAGES: PageUi[] = [
         title: "Journal publications",
         addLabel: "Add publication",
         columns: [
-          { header: "Title of Paper (your position in author list)", render: (r) => `${s(r.title)} (${enumLabel(s(r.authorPosition))})` },
+          { header: "Title of Paper (your position in author list)", render: (r) => `${s(r.title)} (${fieldLabel("journal-publications", "authorPosition", r.authorPosition)})` },
           "journal",
           "volumeIssuePage",
           "monthYear",
@@ -298,7 +308,7 @@ export const PAGES: PageUi[] = [
         addLabel: "Add project",
         columns: [
           "title",
-          { header: "Role (PI / Co-PI) & Team", render: (r) => [enumLabel(s(r.role)), s(r.team)].filter(Boolean).join(" · ") },
+          { header: "Role (PI / Co-PI) & Team", render: (r) => [fieldLabel("funded-projects", "role", r.role), s(r.team)].filter(Boolean).join(" · ") },
           "type",
           "fundingAgencyClient",
           "amount",
@@ -308,13 +318,14 @@ export const PAGES: PageUi[] = [
         ],
         headers: { title: "Title", type: "Type", fundingAgencyClient: "Funding Agency / Client", amount: "Amount (Rs.)", status: "Status", year: "Year" },
         filters: ["status", "type", "role", "year"],
+        maxRecords: 2,
         summary: [
           { key: "sanctioned", label: "Sanctioned", format: "count" },
           { key: "applied", label: "Applied", format: "count" },
           { key: "totalAmountSanctioned", label: "Total Amount Sanctioned (Rs.)", format: "rupees" },
           { key: "consultancyRevenue", label: "Consultancy Revenue (Rs.)", format: "rupees" },
         ],
-        hint: "Only projects whose year falls in the academic year being appraised are accepted, and only those earn marks.",
+        hint: "At most 2 projects can be added for the academic year, and together they earn at most 10 marks. Only projects whose year falls in the academic year being appraised are accepted.",
         emptyText: "No projects added yet.",
       },
     ],
@@ -387,7 +398,6 @@ export const PAGES: PageUi[] = [
         columns: ["item", "awardingBody", "level", "year"],
         headers: { item: "Membership / Award / Recognition", awardingBody: "Professional / Awarding Body", level: "Level", year: "Year" },
         hint: "Awarding bodies such as IEEE, CSI, ISTE, IE(I).",
-        suggestions: { awardingBody: ["IEEE", "CSI", "ISTE", "IE(I)"] },
         emptyText: "No entries added yet.",
       },
     ],

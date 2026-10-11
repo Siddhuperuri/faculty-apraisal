@@ -135,7 +135,21 @@ columns stay, nullable, holding what was entered before); a certification has `d
 old free-text duration only where that was a plain number of weeks) and `platform_other` (required, and kept, only when the platform
 is OTHER). The old `duration_weeks_hours` column is kept for history and no longer written.
 
-Constraints you will meet: `end_date >= start_date`, counts and amounts `>= 0`, percentages 0 to 100, semester 1 to 12,
+**Dropdown and reference lists (V34).** The choices offered on the form are rows, not code: `reference_lists` names a list and
+`reference_values` holds its values (`code`, `label`, optional `report_label`, `sort_order`, `active`, `locked`, and a
+`parent_code` for a list whose values belong to a value of another, such as a branch to its program). A list's `kind` is CODE
+(letters and underscores), NUMBER (whole numbers: semester, hours a week, author position) or FREE (suggested words only, such as
+the usual administrative roles). Each form field names its list in `section/Sections.java` (`listed(...)`, `fromList(...)`);
+what is offered and accepted is whatever the list holds when the request arrives (`reference/ReferenceData`, read through the
+`ChoiceSource` interface), and `GET /api/sections/meta` serves each field's values with their labels. Values are never deleted:
+switching one off stops it being offered but records that hold it keep it and its label (and may be saved again unchanged). A
+`locked` value is one the scoring or screens depend on (SCI/SCIE and Scopus indexing, sanctioned and applied projects, granted
+and published patents, books and chapters, Ph.D./M.Tech/MBA scholars and their statuses, UG projects, "Pursuing", "Other"):
+its wording can change, it cannot be switched off. The CHECK constraints that used to fix the allowed values in the section
+tables were dropped; only the application checks them now. `scope` of an administrative role (Institute or Department) is the one
+choice still fixed in code, because the form has exactly those two views.
+
+Constraints you will meet: `end_date >= start_date`, counts and amounts `>= 0`, percentages 0 to 100,
 years 1950 to 2100, and each enumeration's allowed values. The field list, limits and labels of every table are defined
 once in `section/Sections.java` and published at `GET /api/sections/meta`.
 

@@ -383,7 +383,7 @@ class SectionIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.['teaching-courses']").value(2))
                 .andExpect(jsonPath("$.['fdps']").value(0))
-                .andExpect(jsonPath("$.length()").value(20));
+                .andExpect(jsonPath("$.length()").value(21));
     }
 
     @Test
@@ -454,15 +454,47 @@ class SectionIntegrationTest {
     void fundedProjectTotalsMatchTheFormsFourFigures() throws Exception {
         save(faculty, id, "funded-projects", List.of(
                 project("Edge AI", "RESEARCH", "SANCTIONED", 250000.50),
-                project("IoT grid", "RESEARCH", "SANCTIONED", 100000),
-                project("Smart farm", "RESEARCH", "APPLIED", 900000),       // applied: not in the sanctioned total
-                project("Audit tool", "CONSULTANCY", "SANCTIONED", 40000),
-                project("Cloud review", "CONSULTANCY", "APPLIED", 70000)))
+                project("Audit tool", "CONSULTANCY", "SANCTIONED", 40000)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.summary.sanctioned").value(3))
-                .andExpect(jsonPath("$.summary.applied").value(2))
-                .andExpect(jsonPath("$.summary.totalAmountSanctioned").value(350000.5))
+                .andExpect(jsonPath("$.summary.sanctioned").value(2))
+                .andExpect(jsonPath("$.summary.applied").value(0))
+                .andExpect(jsonPath("$.summary.totalAmountSanctioned").value(250000.5))
                 .andExpect(jsonPath("$.summary.consultancyRevenue").value(40000.0));
+    }
+
+    @Test
+    void atMostTwoFundedProjectsCanBeAddedForTheYear() throws Exception {
+        save(faculty, id, "funded-projects", List.of(project("A", "RESEARCH", "SANCTIONED", 1), project("B", "RESEARCH", "APPLIED", 2)))
+                .andExpect(status().isOk());
+        save(faculty, id, "funded-projects", List.of(project("A", "RESEARCH", "SANCTIONED", 1), project("B", "RESEARCH", "APPLIED", 2),
+                project("C", "CONSULTANCY", "APPLIED", 3)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.records").value("At most 2 funded projects are allowed here."));
+    }
+
+    @Test
+    void anIsbnIsRequiredForBooksAndChaptersAndMustBeValid() throws Exception {
+        Map<String, Object> book = rec("authors", "A", "title", "T", "publisher", "P", "monthYear", "2026-01", "type", "BOOK");
+        save(faculty, id, "books", List.of(book)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors['records[0].isbn']").value("ISBN is required."));
+        Map<String, Object> chapter = new java.util.LinkedHashMap<>(book);
+        chapter.put("type", "CHAPTER");
+        save(faculty, id, "books", List.of(chapter)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors['records[0].isbn']").value("ISBN is required."));
+
+        for (String bad : new String[] {"123", "9780000000000", "0-306-40615-3", "978-0-13-468599-2", "ABCDEFGHIJ", "97800000000021"}) {
+            Map<String, Object> b = new java.util.LinkedHashMap<>(book);
+            b.put("isbn", bad);
+            save(faculty, id, "books", List.of(b)).andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.fieldErrors['records[0].isbn']").exists());
+        }
+        // ISBN-13 and ISBN-10, with hyphens or spaces or none, are accepted and kept as digits
+        for (String[] good : new String[][] {{"978-0-13-468599-1", "9780134685991"}, {"9780134685991", "9780134685991"},
+                {"0-306-40615-2", "0306406152"}, {"0 306 40615 2", "0306406152"}, {"080442957X", "080442957X"}, {"0-8044-2957-x", "080442957X"}}) {
+            Map<String, Object> b = new java.util.LinkedHashMap<>(book);
+            b.put("isbn", good[0]);
+            save(faculty, id, "books", List.of(b)).andExpect(status().isOk()).andExpect(jsonPath("$.records[0].isbn").value(good[1]));
+        }
     }
 
     private static Map<String, Object> project(String title, String type, String status, double amount) {
@@ -483,9 +515,9 @@ class SectionIntegrationTest {
                 .andExpect(jsonPath("$.summary.granted").value(1));
 
         save(faculty, id, "books", List.of(
-                rec("authors", "A", "title", "B1", "publisher", "P", "monthYear", "2026-01", "type", "BOOK"),
-                rec("authors", "A", "title", "C1", "publisher", "P", "monthYear", "2026-02", "type", "CHAPTER"),
-                rec("authors", "A", "title", "C2", "publisher", "P", "monthYear", "2026-03", "type", "CHAPTER")))
+                rec("authors", "A", "title", "B1", "publisher", "P", "isbn", "9780000000002", "monthYear", "2026-01", "type", "BOOK"),
+                rec("authors", "A", "title", "C1", "publisher", "P", "isbn", "9780000000002", "monthYear", "2026-02", "type", "CHAPTER"),
+                rec("authors", "A", "title", "C2", "publisher", "P", "isbn", "9780000000002", "monthYear", "2026-03", "type", "CHAPTER")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.summary.books").value(1))
                 .andExpect(jsonPath("$.summary.chapters").value(2));
@@ -695,11 +727,12 @@ class SectionIntegrationTest {
 
         // months: June 2025 to May 2026
         String book = "authors";
-        save(faculty, id, "books", List.of(rec(book, "A", "title", "T", "publisher", "P", "monthYear", "2025-05", "type", "BOOK")))
+        save(faculty, id, "books", List.of(rec(book, "A", "title", "T", "publisher", "P", "isbn", "9780000000002", "monthYear", "2025-05", "type", "BOOK")))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors['records[0].monthYear']").value("Month and year" + within));
-        save(faculty, id, "books", List.of(rec(book, "A", "title", "T", "publisher", "P", "monthYear", "2026-06", "type", "BOOK"))).andExpect(status().isBadRequest());
-        save(faculty, id, "books", List.of(rec(book, "A", "title", "T", "publisher", "P", "monthYear", "2025-06", "type", "BOOK"),
-                rec(book, "A", "title", "U", "publisher", "P", "monthYear", "2026-05", "type", "BOOK"))).andExpect(status().isOk());
+        save(faculty, id, "books", List.of(rec(book, "A", "title", "T", "publisher", "P", "isbn", "9780000000002", "monthYear", "2026-06", "type", "BOOK")))
+                .andExpect(status().isBadRequest());
+        save(faculty, id, "books", List.of(rec(book, "A", "title", "T", "publisher", "P", "isbn", "9780000000002", "monthYear", "2025-06", "type", "BOOK"),
+                rec(book, "A", "title", "U", "publisher", "P", "isbn", "9780000000002", "monthYear", "2026-05", "type", "BOOK"))).andExpect(status().isOk());
 
         // a role's dates, a patent's date, a conference paper's month and a membership's year
         save(faculty, id, "administrative-roles", List.of(rec("scope", "INSTITUTE", "role", "R", "fromDate", "2024-07-01", "toDate", "2026-05-31")))

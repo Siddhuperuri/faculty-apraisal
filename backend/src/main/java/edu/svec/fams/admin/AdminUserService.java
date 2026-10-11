@@ -10,6 +10,7 @@ import edu.svec.fams.auth.Role;
 import edu.svec.fams.common.ApiException;
 import edu.svec.fams.common.GeneratedKeys;
 import edu.svec.fams.common.ValidationException;
+import edu.svec.fams.section.ChoiceSource;
 import edu.svec.fams.section.FieldSpec;
 import java.sql.Date;
 import java.sql.ResultSet;
@@ -60,7 +61,7 @@ public class AdminUserService {
             FieldSpec.text("contactNo", "contact_no", "Contact number", 20, false),
             FieldSpec.text("qualification", "qualification", "Qualification", 160, false),
             FieldSpec.text("specialization", "specialization", "Specialization", 160, false),
-            FieldSpec.choice("phdStatus", "phd_status", "Ph.D. status", false, "AWARDED", "PURSUING", "NOT_APPLICABLE"),
+            FieldSpec.listed("phdStatus", "phd_status", "Ph.D. status", false, "PHD_STATUS"),
             FieldSpec.date("joiningDateInstitution", "joining_date_institution", "Date of joining (institution)", false),
             FieldSpec.date("joiningDateDesignation", "joining_date_designation", "Date of promotion", false),
             FieldSpec.decimal("teachingExperienceYears", "teaching_experience_years", "Teaching experience (years)", 0, 80, 1, false),
@@ -81,8 +82,11 @@ public class AdminUserService {
     private final PasswordEncoder encoder;
     private final AuditService audit;
     private final DefaultPassword defaultPassword;
+    private final ChoiceSource choices;
 
-    public AdminUserService(JdbcClient jdbc, PasswordEncoder encoder, AuditService audit, DefaultPassword defaultPassword) {
+    public AdminUserService(JdbcClient jdbc, PasswordEncoder encoder, AuditService audit, DefaultPassword defaultPassword,
+                            ChoiceSource choices) {
+        this.choices = choices;
         this.jdbc = jdbc;
         this.encoder = encoder;
         this.audit = audit;
@@ -92,7 +96,14 @@ public class AdminUserService {
     // ---- reading ----
 
     @Transactional(readOnly = true)
-    public List<UserRow> list(String query, String role) {
+    public List<UserRow> list(String query, String role) { return list(query, role, null, null); }
+
+    /**
+     * Users matching a search of name, e-mail address or employee ID, and optionally a role, a status (ACTIVE or DISABLED) and
+     * a department (the faculty member's, or one a Head of the Department is assigned to).
+     */
+    @Transactional(readOnly = true)
+    public List<UserRow> list(String query, String role, String status, Long departmentId) {
         StringBuilder where = new StringBuilder(" WHERE 1 = 1");
         List<Object> params = new ArrayList<>();
         if (query != null && !query.isBlank()) {
@@ -109,6 +120,18 @@ public class AdminUserService {
             }
             where.append(" AND u.role = ?");
             params.add(role);
+        }
+        if (status != null && !status.isBlank()) {
+            if (Arrays.stream(AccountStatus.values()).noneMatch(v -> v.name().equals(status))) {
+                throw ApiException.badRequest("Status must be ACTIVE or DISABLED.");
+            }
+            where.append(" AND u.status = ?");
+            params.add(status);
+        }
+        if (departmentId != null) {
+            where.append(" AND (fp.department_id = ? OR EXISTS (SELECT 1 FROM hod_assignments hx WHERE hx.user_id = u.id AND hx.department_id = ?))");
+            params.add(departmentId);
+            params.add(departmentId);
         }
         return jdbc.sql(ROW_SQL + where + " ORDER BY u.id LIMIT 500").params(params)
                 .query((rs, n) -> row(rs)).list();
@@ -268,7 +291,7 @@ public class AdminUserService {
         Map<String, Object> person = new LinkedHashMap<>();
         if (role != Role.FACULTY) {
             for (FieldSpec f : PERSON) {
-                if (body.containsKey(f.name())) person.put(f.name(), f.normalize(body.get(f.name()), f.name(), errors));
+                if (body.containsKey(f.name())) person.put(f.name(), f.normalize(body.get(f.name()), f.name(), errors, choices));
             }
             if (person.get("contactNo") instanceof String c && !ContactNumber.isValid(c)) errors.putIfAbsent("contactNo", ContactNumber.MESSAGE);
         }
@@ -304,7 +327,62 @@ public class AdminUserService {
             audit.recordDetails(actor.id(), status == AccountStatus.DISABLED ? "USER_DISABLED" : "USER_ENABLED", "USER", id,
                     Map.of("email", current.email()));
         }
-        audit.recordDetails(actor.id(), "USER_UPDATED", "USER", id, Map.of("email", current.email(), "role", current.role()));
+        // who was assigned where is part of what the audit trail must show
+        Map<String, Object> changes = new LinkedHashMap<>();
+        changes.put("email", current.email());
+        changes.put("role", current.role());
+        if (role == Role.HOD && body.containsKey("hodDepartmentIds")) {
+            changes.put("hodDepartmentIdsBefore", existing.hodDepartmentIds());
+            changes.put("hodDepartmentIdsAfter", hodDepartments);
+        }
+        if (role == Role.FACULTY && body.containsKey("departmentId")) {
+            changes.put("departmentIdBefore", existing.departmentId());
+            changes.put("departmentIdAfter", profile.get("departmentId"));
+        }
+        audit.recordDetails(actor.id(), "USER_UPDATED", "USER", id, changes);
+        return get(id);
+    }
+
+    /**
+     * Gives an existing account a different role (for example the Administrator role). The account must be active and is not
+     * the administrator's own; a Head of the Department needs the departments they head (moving away from that role removes
+     * the assignments); a faculty member needs a faculty record. Their sessions end so the new role takes effect at the
+     * next sign-in, nothing they entered is touched, and the change is audited with the old and the new role.
+     */
+    @Transactional
+    public UserDetail changeRole(FamsUserPrincipal actor, long id, Map<String, Object> body) {
+        UserDetail existing = get(id);
+        UserRow current = existing.row();
+        Role from = currentRole(current);
+        Map<String, String> errors = new LinkedHashMap<>();
+        Role to = null;
+        Object given = body.get("role");
+        if (given instanceof String text && Arrays.stream(Role.values()).anyMatch(r -> r.name().equals(text))) {
+            to = Role.valueOf(text);
+        } else {
+            errors.put("role", "Choose a role.");
+        }
+        List<Long> departments = List.of();
+        if (to == Role.HOD) {
+            departments = validateDepartments(body, errors, List.of());
+            if (departments.isEmpty()) errors.putIfAbsent("hodDepartmentIds", "Choose the department or departments this Head of the Department heads.");
+        }
+        if (to == Role.FACULTY && jdbc.sql("SELECT COUNT(*) FROM faculty_profiles WHERE user_id = ?").param(id)
+                .query(Integer.class).single() == 0) {
+            errors.put("role", "This account has no faculty record, so it cannot become a faculty account. Create a new faculty account.");
+        }
+        if (!errors.isEmpty()) throw new ValidationException(errors);
+        if (id == actor.id()) throw ApiException.conflict("You cannot change your own role.");
+        if (!"ACTIVE".equals(current.status())) throw ApiException.conflict("Only an active account can be given a different role.");
+        if (to == from) throw ApiException.conflict("The account already has this role.");
+
+        jdbc.sql("UPDATE users SET role = ?, session_version = session_version + 1 WHERE id = ?").params(to.name(), id).update();
+        jdbc.sql("DELETE FROM hod_assignments WHERE user_id = ?").param(id).update();
+        for (long d : departments) {
+            jdbc.sql("INSERT INTO hod_assignments (user_id, department_id) VALUES (?,?)").params(id, d).update();
+        }
+        audit.recordDetails(actor.id(), "USER_ROLE_CHANGED", "USER", id,
+                Map.of("email", current.email(), "fromRole", from.name(), "toRole", to.name(), "departmentIds", departments));
         return get(id);
     }
 
@@ -364,7 +442,7 @@ public class AdminUserService {
     /** Each may be left out; a contact number given must look like one. */
     private Map<String, Object> validatePerson(Map<String, Object> body, Map<String, String> errors) {
         Map<String, Object> values = new LinkedHashMap<>();
-        for (FieldSpec f : PERSON) values.put(f.name(), f.normalize(body.get(f.name()), f.name(), errors));
+        for (FieldSpec f : PERSON) values.put(f.name(), f.normalize(body.get(f.name()), f.name(), errors, choices));
         if (values.get("contactNo") instanceof String c && !ContactNumber.isValid(c)) errors.putIfAbsent("contactNo", ContactNumber.MESSAGE);
         return values;
     }
@@ -392,7 +470,7 @@ public class AdminUserService {
     private Map<String, Object> validateFaculty(Map<String, Object> body, Map<String, String> errors, boolean requireCore,
                                                 Long keepDepartment, Long keepCadre) {
         Map<String, Object> values = new LinkedHashMap<>();
-        for (FieldSpec f : PROFILE) values.put(f.name(), f.normalize(body.get(f.name()), f.name(), errors));
+        for (FieldSpec f : PROFILE) values.put(f.name(), f.normalize(body.get(f.name()), f.name(), errors, choices));
         if (requireCore) {
             if (values.get("name") == null) errors.putIfAbsent("name", "Name is required.");
             if (values.get("employeeId") == null) errors.putIfAbsent("employeeId", "Employee ID is required.");

@@ -1,4 +1,5 @@
 import { get } from "./api";
+import { registerLabels } from "./labels";
 import type { SectionMeta } from "./types";
 
 let cached: Promise<Record<string, SectionMeta>> | null = null;
@@ -7,7 +8,10 @@ let cached: Promise<Record<string, SectionMeta>> | null = null;
 export function loadMetas(): Promise<Record<string, SectionMeta>> {
   if (!cached) {
     cached = get<SectionMeta[]>("/api/sections/meta")
-      .then((list) => Object.fromEntries(list.map((m) => [m.key, m])))
+      .then((list) => {
+        registerLabels(list);   // the wording of every dropdown value comes with the definitions
+        return Object.fromEntries(list.map((m) => [m.key, m]));
+      })
       .catch((e) => {
         cached = null; // allow a retry after a failure
         throw e;

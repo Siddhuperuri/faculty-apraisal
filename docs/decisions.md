@@ -239,3 +239,34 @@ earns the whole 10; "Other" platform asks for its name. (5) "Date of joining (pr
 and optional; "Conference papers presented" is "published". Assumption recorded: marks of every appraisal, including submitted
 ones, are recalculated from the current rate card on reading (as before), so only the B1 components, which are data, are held
 to the version an appraisal began with.
+
+**ADR-037: Dropdown and reference data live in the database (2026-10-11).** Decided by the user. Every choice list on the appraisal
+form (program, branch by program, section, semester, hours a week, course type and role, platforms, levels, statuses, outreach
+roles, ...) and the suggested words while typing a role or an awarding body are rows in `reference_lists` / `reference_values`
+(migration V34, which seeds exactly the lists that were in code and drops the CHECK constraints that duplicated them), read through
+`ReferenceData`, served with the form definitions, and managed by an administrator under Admin > Dropdown lists
+(`/api/admin/lists`): add a value (available at once), change its wording on the form and on the printed report, reorder, switch
+off. Values are never deleted, so a record that holds a switched-off value keeps it and its label. Values the application's rules
+depend on are locked: their wording is editable, they cannot be switched off, and a value added to such a list earns nothing until
+the scoring code is told about it (scoring rates and the branch-to-program rule of the chain are not data). The consequence worth
+knowing: the database no longer rejects a misspelt value by itself; the application is the only writer and checks every value.
+Not moved: workflow statuses, user roles, scoring criteria (all part of the application's behaviour), and departments, cadres and
+academic years (already database-managed under Admin).
+
+**ADR-038: Revoke, caps, roles, ECAP courses, password-reset links, session timeout, and the administrator's dashboard (2026-10-11).**
+Decided by the user in one pass; where the new rule conflicts with an old one the new one wins. (1) The HoD may revoke an
+appraisal at any stage before final approval, including one forwarded to the Principal, with no consent needed; submitted or
+in review goes back to the faculty member as a draft, forwarded comes back to the HoD; always with a reason and always audited;
+this replaces "there is no way back" for the HoD only (the Principal and the Director Technical still have none). (2) Funded
+projects: at most 2 entries and 10 marks a year; Outreach and Memberships have policy-driven limits; the limits and the
+institutional-role marks live in the scoring policy (V35). (3) Courses are chosen from ECAP and never typed: a new or changed
+course must exist in ECAP and takes its name from it; an unchanged course saves while ECAP is down (assumption: the real API's
+paths and fields are configuration, FAMS_ECAP_*). (4) ISBN is mandatory for books and chapters and must be a valid ISBN-10 or
+ISBN-13; older entries without one are asked for it the next time the list is saved. (5) There is no Score & Review page for
+faculty: the last page is "Submit"; reviewers keep the score sheet; scores and the report are unchanged. (6) Sessions end after 30
+minutes of inactivity with a two-minute warning; what was typed into an open form is kept in the tab and offered after signing in.
+(7) Forgot password: a one-time link, 30 minutes, token stored as SHA-256, rate limited, same answer for any address, sent by
+SMTP when configured (FAMS_MAIL_*); a password is never e-mailed. (8) Admin: "Accounts" is "Users" on screen (routes unchanged),
+users can be given another role (audited, sessions ended), each department is shown separately, and an Analytics page shows
+aggregated progress with charts (counts only). (9) The standard password flow and the administrator's reset stay as they were.
+

@@ -63,14 +63,10 @@ How the pages work:
 - **Two browser tabs:** do not edit the same appraisal in two tabs. A save replaces a section's whole list, so the later
   save wins and can remove a row the other tab added.
 
-### 3. Score sheet (self-scores)
-Enter **one self-score per criterion**, from 0 up to your cadre's maximum (at most two decimals). The sheet shows the
-maximum and the components it is made of, from the college's cadre-wise document (B1 to B5). Notes:
-- A criterion whose maximum is 0 for your cadre (a Lecturer's *Funded Projects* and *Patents*) shows **n/a**.
-- Leaving a score empty means "not entered". Scores are optional for now; the submit panel lists missing ones but does
-  not block you.
-- Nothing is calculated for you. The components explain what the maximum is made of; you decide the score.
-- The total shown adds what you have entered so far.
+### 3. Your marks
+Nobody types a mark. Each page of the form that earns marks shows them as you fill it in, worked out from your entries by the
+rates the college has set, and the same marks go on the printed form. There is **no separate score page** for faculty: after
+the last section you go straight to **Submit**.
 
 ### 4. Submit
 While anything is still missing, a box at the top of every page lists it by section, for example *Teaching & Learning: 2 more
@@ -87,7 +83,7 @@ The dashboard shows where the appraisal is and the history (the steps taken; the
 are not shown to you).
 
 **A message from your Head of the Department.** If your HoD has a query about your appraisal they can send you a message
-while they review it. It appears at the top of your dashboard and on the Score & Review page, marked *New* the first time
+while they review it. It appears at the top of your dashboard and on the Submit page, marked *New* the first time
 you see it, and asks you to arrange to meet them. If the HoD corrects the wording it appears again as *Updated*, with the
 time it was edited. Your appraisal stays with the HoD and stays locked; there is nothing to
 resubmit. After you have met, the HoD carries on with the review.
@@ -132,6 +128,12 @@ theirs: to meet you. It is still with you and still locked; after you have met, 
 or send it back, and it is separate from the comment you write with your approval (which they cannot see). Only you and
 the faculty member can read it.
 
+**Revoke** takes an appraisal back at any stage before the Principal's or Director Technical's final approval, even one you have
+already forwarded. Use the *Revoke this appraisal* button under the review box and give the reason. A submitted appraisal (or one
+you are reviewing) goes back to the faculty member as a draft to correct and send again; one you forwarded comes back to you
+for review, and the Principal does not need to agree. Every revocation is recorded with you, the time, the reason and the
+statuses. A finally approved appraisal cannot be revoked.
+
 If another HoD of the same department starts at the same moment, only one of you succeeds and the other sees a conflict
 message; refresh and carry on. If the console says *No department assigned*, ask an administrator.
 
@@ -152,6 +154,20 @@ sees the same appraisals. Whichever of the two begins the review of an appraisal
 records that the Director Technical acted. Every report carries a box for the Principal and one for the Director
 Technical; the one who did not act on that appraisal is left empty.
 
+## Things that changed on 2026-10-11
+
+- **Courses** are chosen from ECAP: search by code or name and pick the course; the code and name cannot be typed. If ECAP cannot
+  be reached you are told and can try again; nothing is lost.
+- **Institutional roles** (Head of the Department, Associate Dean ...) are listed on the Teaching & Learning page and earn the marks set
+  for them within the page's maximum.
+- **Funded projects**: at most 2 for the year, and together at most 10 marks. **Outreach** and **Memberships** also have limits.
+- **ISBN** is required for every book and book chapter (ISBN-10 or ISBN-13, with or without hyphens).
+- There is no separate score page for faculty any more: the last page is **Submit**. Your marks still go on the printed form.
+- **Signing out**: after 30 minutes without activity you are signed out; two minutes before, you are asked whether to stay signed
+  in. What you had typed into an open form is kept in the browser tab and offered again after you sign in.
+- **Forgot your password?** Use the link on the sign-in page; you are e-mailed a one-time link to choose your own password.
+- **HoDs can revoke** an appraisal before final approval, with a reason (see below).
+
 ## Administrator
 
 Administrators configure the system. They **cannot read appraisal content**; they see counts by stage, set-up checks and
@@ -162,7 +178,7 @@ Shows account counts, **set-up checks**, appraisals by stage and the latest audi
 reviewers are blocked until you do. The checks cover an open academic year, a scoring policy for every cadre, an HoD for
 every department that has faculty, a Principal or Director Technical and a second administrator.
 
-### Accounts (`/admin/users`)
+### Users (`/admin/users`)
 - **Create** a faculty, HoD, Principal, Director Technical or administrator account. It starts with the **standard password**
   (`Srivasavi@123`), which the person must replace when they first sign in; the dialog shows it so you can pass it on.
 - **Add accounts from a file** creates many at once. Choose *Add accounts from a file*, download the empty file, fill in
@@ -191,6 +207,37 @@ every department that has faculty, a Principal or Director Technical and a secon
 - **Scoring policy:** publish a new version for a cadre. The nine criteria are whole numbers that **add up to exactly
   100**. A new version affects only appraisals created afterwards. If you change a criterion's maximum its scoring
   components are not carried over (the editor warns you first), because they would no longer add up.
+
+### Analytics (`/admin/analytics`)
+Charts and figures for one academic year (choose it at the top): appraisals by status, how many have been submitted and approved,
+and each department **separately** (faculty, Heads of Department, started, submitted, approved, the rates). It shows counts only;
+no name or appraisal content appears. The Overview also shows a card for every department.
+
+### Institutional roles (`/admin/roles`)
+The marks each institutional role (Head of the Department, Associate Dean, ...) earns in Teaching & Learning for an academic year.
+Add or rename a role under Dropdown lists; a role you add earns 0 until you set its marks here.
+
+### Changing a user's role
+On the Users page choose **Change role** for an active user (not yourself), for example to make someone an administrator. A Head of
+the Department also needs the departments they head. Their sessions end so the new role applies at their next sign-in; the change
+is in the audit trail (`USER_ROLE_CHANGED`).
+
+### Forgotten passwords
+People can ask for a link themselves on the sign-in page ("Send me a reset link"): it is e-mailed, works once and expires in 30
+minutes, and they choose their own password with it. It needs the mail settings (`FAMS_MAIL_*`) and `FAMS_PUBLIC_URL`; without them
+nothing is sent and you can still reset a password on the Users page.
+
+### Dropdown lists (`/admin/lists`)
+The choices offered on the appraisal form (program, branch, section, semester, hours a week, course role, platforms, levels,
+statuses, outreach roles, and the suggested words for roles and awarding bodies) are kept here, not in the program.
+- Pick a list on the left. **Add a value** (a branch asks which program it belongs to); it is offered to everyone at once.
+- **Rename** a value (the wording on the form, and optionally different wording on the printed report), change its **order**, and
+  **switch it off** when it should no longer be offered. Nothing is ever deleted: appraisals that already hold a switched-off
+  value keep it and its wording, and can be saved again unchanged.
+- A value marked **used by rules** (for example SCI/SCIE and Scopus journals, sanctioned projects, granted patents) can be renamed
+  but not switched off, because marks are worked out from it. A value you add to such a list is recorded but earns no marks.
+- Lists of numbers (semester, hours a week, author position) take whole numbers only; the form's allowed range follows the list.
+- Every change is written to the audit trail (`REFERENCE_VALUE_ADDED`, `REFERENCE_VALUE_UPDATED`).
 
 ### Audit trail (`/admin/audit`)
 Every significant action, newest first, up to 100 per page. Filter by action, entity type and entity ID. It cannot be

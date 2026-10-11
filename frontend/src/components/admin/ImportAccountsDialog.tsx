@@ -11,7 +11,7 @@ import type { AdminReference, ImportResult, Role } from "@/lib/types";
 const COLUMNS = ["Name", "College e-mail address", "Role", "Employee ID", "Contact number", "Department", "Designation (cadre)"];
 const MAX_BYTES = 1024 * 1024;
 
-/** A header row alone: filling it in is the administrator's job, and a stray example row would become a real account. */
+/** A header row alone: filling it in is the administrator's job, and a stray example row would become a real user. */
 function downloadTemplate() {
   const blob = new Blob(["﻿" + COLUMNS.join(",") + "\r\n"], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -25,7 +25,7 @@ function downloadTemplate() {
 }
 
 /**
- * Create many accounts at once from a CSV file. The server checks every row and creates the accounts only if all of
+ * Create many users at once from a CSV file. The server checks every row and creates the users only if all of
  * them are right, so a file that is part right creates nothing and this dialog lists the rows to correct.
  */
 export function ImportAccountsDialog({
@@ -37,11 +37,11 @@ export function ImportAccountsDialog({
   open: boolean;
   reference: AdminReference;
   onClose: () => void;
-  /** Called once accounts have been created, so the list can be refreshed. */
+  /** Called once users have been created, so the list can be refreshed. */
   onImported: () => void;
 }) {
   return (
-    <Dialog open={open} onClose={onClose} title="Add accounts from a file" wide>
+    <Dialog open={open} onClose={onClose} title="Add users from a file" wide>
       <Body reference={reference} onClose={onClose} onImported={onImported} />
     </Dialog>
   );
@@ -91,7 +91,7 @@ function Body({ reference, onClose, onImported }: { reference: AdminReference; o
   return (
     <div className="space-y-5">
       <p className="text-sm">
-        Upload a CSV file (a spreadsheet saved as <span className="font-semibold">CSV</span>) with one row for each person. Every account starts with the
+        Upload a CSV file (a spreadsheet saved as <span className="font-semibold">CSV</span>) with one row for each person. Every user starts with the
         standard password, and each person must choose their own when they first sign in.
       </p>
 
@@ -142,7 +142,7 @@ function Body({ reference, onClose, onImported }: { reference: AdminReference; o
           Cancel
         </Button>
         <Button type="button" loading={busy} disabled={!file} onClick={() => void upload()}>
-          {result && result.errors.length > 0 ? "Check the corrected file" : "Create the accounts"}
+          {result && result.errors.length > 0 ? "Check the corrected file" : "Create the users"}
         </Button>
       </div>
     </div>

@@ -7,9 +7,12 @@ import { Alert } from "@/components/ui/primitives";
 
 const TABS = [
   { href: "/admin", label: "Overview" },
-  { href: "/admin/users", label: "Accounts" },
-  { href: "/admin/accounts-review", label: "Account review" },
+  { href: "/admin/users", label: "Users" },
+  { href: "/admin/analytics", label: "Analytics" },
+  { href: "/admin/accounts-review", label: "User review" },
   { href: "/admin/setup", label: "Departments, years & scoring" },
+  { href: "/admin/lists", label: "Dropdown lists" },
+  { href: "/admin/roles", label: "Institutional roles" },
   { href: "/admin/health", label: "System health" },
   { href: "/admin/handover", label: "Handover" },
   { href: "/admin/audit", label: "Audit trail" },

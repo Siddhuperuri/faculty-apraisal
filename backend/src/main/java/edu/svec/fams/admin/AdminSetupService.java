@@ -38,7 +38,8 @@ public class AdminSetupService {
     public record Department(long id, String code, String name, boolean active) {}
     public record Cadre(long id, String code, String name, boolean active) {}
     public record Year(long id, String name, LocalDate startDate, LocalDate endDate, boolean active) {}
-    public record CriterionInfo(String code, String label, boolean perEntry) {}
+    /** @param cappable marked per entry, but the policy may set a limit (Funded projects, Outreach, Memberships) */
+    public record CriterionInfo(String code, String label, boolean perEntry, boolean cappable) {}
     public record Reference(List<Department> departments, List<Cadre> cadres, List<Year> academicYears,
                             List<CriterionInfo> criteria) {}
     /** @param components by criterion code; a criterion without a breakdown is absent */
@@ -70,7 +71,7 @@ public class AdminSetupService {
                 jdbc.sql("SELECT id, name, start_date, end_date, active FROM academic_years ORDER BY start_date DESC")
                         .query((rs, n) -> new Year(rs.getLong(1), rs.getString(2), rs.getObject(3, LocalDate.class),
                                 rs.getObject(4, LocalDate.class), rs.getBoolean(5))).list(),
-                List.of(Criteria.values()).stream().map(c -> new CriterionInfo(c.name(), c.label(), c.perEntry())).toList());
+                List.of(Criteria.values()).stream().map(c -> new CriterionInfo(c.name(), c.label(), c.perEntry(), c.cappable())).toList());
     }
 
     // ---- departments ----
@@ -216,8 +217,12 @@ public class AdminSetupService {
             if (!errors.containsKey("marks")) {
                 FieldSpec spec = FieldSpec.integer("marks", "max_marks", "Marks", 0, MAX_CRITERION_MARKS, true);
                 for (Criteria c : Criteria.values()) {
-                    if (c.perEntry()) {
+                    if (c.perEntry() && !c.cappable()) {
                         marks.put(c.name(), 0); // marked per entry, no maximum
+                        continue;
+                    }
+                    if (c.cappable() && given.get(c.name()) == null) {
+                        marks.put(c.name(), 0); // no limit unless one is given
                         continue;
                     }
                     Object v = spec.normalize(given.get(c.name()), "marks." + c.name(), errors);
@@ -233,6 +238,7 @@ public class AdminSetupService {
                 errors.put("cadreId", "Choose a cadre.");
             }
         }
+        Map<String, List<Component>> parts = parseComponents(body.get("components"), marks, errors);
         if (!errors.isEmpty()) throw new ValidationException(errors);
 
         // Serialise concurrent publishes for the same year and cadre so versions are consecutive and unique.
@@ -241,7 +247,7 @@ public class AdminSetupService {
                 .params(yearId, cadreId).query(Integer.class).single();
         PolicyVersion previous = loadPolicies(yearId, false).stream().filter(p -> p.cadreId() == cadreId).findFirst().orElse(null);
         long policyId = insertPolicy(yearId, cadreId, version);
-        insertCriteria(policyId, marks, previous);
+        insertCriteria(policyId, marks, previous, parts);
         audit.recordDetails(actor.id(), "SCORING_POLICY_PUBLISHED", "SCORING_POLICY", policyId,
                 Map.of("academicYearId", yearId, "cadreId", cadreId, "version", version));
         return loadPolicies(yearId, false).stream().filter(p -> p.id() == policyId).findFirst().orElseThrow();
@@ -257,10 +263,25 @@ public class AdminSetupService {
      * from) as long as its maximum is still the one they add up to.
      */
     private void insertCriteria(long policyId, Map<String, Integer> marks, PolicyVersion source) {
+        insertCriteria(policyId, marks, source, Map.of());
+    }
+
+    /**
+     * As above; {@code given} are components the administrator wrote for a criterion, used instead of the source's (they
+     * were already checked to add up to the criterion's maximum). The marks each institutional role carries follow the
+     * source too, so a new version or year keeps them.
+     */
+    private void insertCriteria(long policyId, Map<String, Integer> marks, PolicyVersion source, Map<String, List<Component>> given) {
+        if (source != null) {
+            jdbc.sql("INSERT INTO scoring_policy_role_marks (policy_id, role_code, marks) "
+                    + "SELECT ?, role_code, marks FROM scoring_policy_role_marks WHERE policy_id = ?")
+                    .params(policyId, source.id()).update();
+        }
         for (var e : marks.entrySet()) {
             jdbc.sql("INSERT INTO scoring_policy_criteria (policy_id, criterion, max_marks) VALUES (?,?,?)")
                     .params(policyId, e.getKey(), e.getValue()).update();
-            List<Component> components = source == null ? List.of() : source.components().getOrDefault(e.getKey(), List.of());
+            List<Component> components = given.containsKey(e.getKey()) ? given.get(e.getKey())
+                    : source == null ? List.of() : source.components().getOrDefault(e.getKey(), List.of());
             if (components.stream().mapToInt(Component::maxMarks).sum() != e.getValue()) continue;
             int order = 1;
             for (Component c : components) {
@@ -268,6 +289,112 @@ public class AdminSetupService {
                         .params(policyId, e.getKey(), order++, c.description(), c.maxMarks()).update();
             }
         }
+    }
+
+    /**
+     * The optional {@code components} of a publish: for a criterion with a maximum, the parts it is made of (for example the
+     * Teaching & Learning weightage of a cadre). They must be whole numbers that add up to exactly the maximum.
+     */
+    private static Map<String, List<Component>> parseComponents(Object raw, Map<String, Integer> marks, Map<String, String> errors) {
+        Map<String, List<Component>> out = new LinkedHashMap<>();
+        if (raw == null) return out;
+        if (!(raw instanceof Map<?, ?> given)) {
+            errors.put("components", "Components must be given by criterion.");
+            return out;
+        }
+        for (Map.Entry<?, ?> e : given.entrySet()) {
+            String key = String.valueOf(e.getKey());
+            String path = "components." + key;
+            if (!marks.containsKey(key) || Criteria.isPerEntry(key)) {
+                errors.put(path, "This criterion has no breakdown.");
+                continue;
+            }
+            if (!(e.getValue() instanceof List<?> parts) || parts.isEmpty() || parts.size() > 8) {
+                errors.put(path, "Give between 1 and 8 parts.");
+                continue;
+            }
+            List<Component> list = new ArrayList<>();
+            int sum = 0;
+            boolean ok = true;
+            for (Object p : parts) {
+                if (!(p instanceof Map<?, ?> m) || !(m.get("description") instanceof String d) || d.isBlank() || d.strip().length() > 160
+                        || !(m.get("maxMarks") instanceof Number n) || n.doubleValue() != n.intValue() || n.intValue() < 0 || n.intValue() > 100) {
+                    ok = false;
+                    break;
+                }
+                list.add(new Component(d.strip(), n.intValue()));
+                sum += n.intValue();
+            }
+            if (!ok) {
+                errors.put(path, "Each part needs a description and whole marks from 0 to 100.");
+            } else if (sum != marks.get(key)) {
+                errors.put(path, "The parts add up to " + sum + " but the maximum is " + marks.get(key) + ".");
+            } else {
+                out.put(key, list);
+            }
+        }
+        return out;
+    }
+
+    // ---- marks of the institutional roles ----
+
+    public record RoleMarks(String code, String label, boolean active, int marks) {}
+
+    /**
+     * The marks each institutional role carries in the latest policy of the year (the same for every cadre: they are set
+     * together). A role that no policy has marks for carries 0.
+     */
+    @Transactional(readOnly = true)
+    public List<RoleMarks> roleMarks(long yearId) {
+        year(yearId);
+        List<Long> policies = latestPolicies(yearId).stream().map(PolicyVersion::id).toList();
+        Map<String, Integer> marks = new LinkedHashMap<>();
+        if (!policies.isEmpty()) {
+            jdbc.sql("SELECT role_code, MAX(marks) FROM scoring_policy_role_marks WHERE policy_id IN ("
+                    + policies.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(",")) + ") GROUP BY role_code")
+                    .query((rs, n) -> Map.entry(rs.getString(1), rs.getInt(2))).list().forEach(e -> marks.put(e.getKey(), e.getValue()));
+        }
+        return jdbc.sql("""
+                SELECT code, label, active FROM reference_values
+                WHERE list_code = 'INSTITUTIONAL_ROLE' ORDER BY sort_order, id""")
+                .query((rs, n) -> new RoleMarks(rs.getString(1), rs.getString(2), rs.getBoolean(3), marks.getOrDefault(rs.getString(1), 0)))
+                .list();
+    }
+
+    /** Body {@code {"academicYearId": n, "marks": {"HOD": 5, ...}}}: sets the marks in the latest policy of every cadre. */
+    @Transactional
+    public List<RoleMarks> setRoleMarks(FamsUserPrincipal actor, Map<String, Object> body) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        Long yearId = AdminInput.id(body.get("academicYearId"));
+        if (yearId == null) errors.put("academicYearId", "Choose an academic year.");
+        Map<String, Integer> given = new LinkedHashMap<>();
+        if (!(body.get("marks") instanceof Map<?, ?> raw) || raw.isEmpty()) {
+            errors.put("marks", "Give the marks for at least one role.");
+        } else {
+            List<String> known = jdbc.sql("SELECT code FROM reference_values WHERE list_code = 'INSTITUTIONAL_ROLE'")
+                    .query(String.class).list();
+            for (Map.Entry<?, ?> e : raw.entrySet()) {
+                String code = String.valueOf(e.getKey());
+                if (!known.contains(code)) {
+                    errors.put("marks." + code, "Unknown role.");
+                } else if (!(e.getValue() instanceof Number n) || n.doubleValue() != n.intValue() || n.intValue() < 0 || n.intValue() > 100) {
+                    errors.put("marks." + code, "Marks must be a whole number from 0 to 100.");
+                } else {
+                    given.put(code, n.intValue());
+                }
+            }
+        }
+        if (!errors.isEmpty()) throw new ValidationException(errors);
+        year(yearId);
+        for (PolicyVersion p : latestPolicies(yearId)) {
+            for (var e : given.entrySet()) {
+                jdbc.sql("""
+                        INSERT INTO scoring_policy_role_marks (policy_id, role_code, marks) VALUES (?,?,?)
+                        ON DUPLICATE KEY UPDATE marks = VALUES(marks)""").params(p.id(), e.getKey(), e.getValue()).update();
+            }
+        }
+        audit.recordDetails(actor.id(), "ROLE_MARKS_SET", "ACADEMIC_YEAR", yearId, Map.copyOf(given));
+        return roleMarks(yearId);
     }
 
     private List<PolicyVersion> latestPolicies(long yearId) {
@@ -301,7 +428,8 @@ public class AdminSetupService {
                         components.computeIfAbsent(rs.getString(1), k -> new ArrayList<>()).add(new Component(rs.getString(2), rs.getInt(3)));
                     });
             result.add(new PolicyVersion((Long) r[0], (Long) r[1], cadre, (String) r[3], (Integer) r[4], (Boolean) r[5],
-                    (OffsetDateTime) r[6], marks, marks.values().stream().mapToInt(Integer::intValue).sum(), components));
+                    (OffsetDateTime) r[6], marks, marks.entrySet().stream().filter(e -> !Criteria.isPerEntry(e.getKey()))
+                            .mapToInt(Map.Entry::getValue).sum(), components));
         }
         return result;
     }

@@ -13,8 +13,11 @@ public final class SectionSpec {
     /** {@code daysField} is never taken from the request: it is the number of days from start to end, both included. */
     public record DerivedDays(String startField, String endField, String daysField) {}
 
-    /** The value of {@code field} must be one of {@code allowedBy.get(value of onField)}. */
-    public record DependentChoice(String field, String onField, Map<String, List<String>> allowedBy) {}
+    /** The value of {@code field} must be one of the values of reference list {@code list} that belong to the value of {@code onField}. */
+    public record DependentChoice(String field, String onField, String list) {}
+
+    /** Words offered while typing {@code field}: the list for the value of {@code onField} ({@code ""} when there is no such field). */
+    public record Suggestions(String field, String onField, Map<String, String> listByValue) {}
 
     /** {@code field} is required (and kept) only when {@code onField} holds {@code equals}; otherwise it is cleared. */
     public record ConditionalField(String field, String onField, String equals) {}
@@ -29,6 +32,7 @@ public final class SectionSpec {
     private String recordsNoun = "records";
     private DerivedDays derivedDays;
     private DependentChoice dependentChoice;
+    private final List<Suggestions> suggestions = new ArrayList<>();
     private final List<ConditionalField> conditionalFields = new ArrayList<>();
     private List<String> inAcademicYear = List.of();
     private Function<List<Map<String, Object>>, Map<String, Object>> summary;
@@ -76,8 +80,14 @@ public final class SectionSpec {
     }
 
     /** A choice that is only valid together with the value chosen in another field (a branch of its program). */
-    public SectionSpec dependentChoice(String field, String onField, Map<String, List<String>> allowedBy) {
-        this.dependentChoice = new DependentChoice(field, onField, allowedBy);
+    public SectionSpec dependentChoice(String field, String onField, String list) {
+        this.dependentChoice = new DependentChoice(field, onField, list);
+        return this;
+    }
+
+    /** Suggest words for a text field from reference lists (free text is still allowed); keyed by the value of {@code onField}. */
+    public SectionSpec suggestions(String field, String onField, Map<String, String> listByValue) {
+        suggestions.add(new Suggestions(field, onField, listByValue));
         return this;
     }
 
@@ -114,6 +124,7 @@ public final class SectionSpec {
     public DerivedDays derivedDays() { return derivedDays; }
     public DependentChoice dependentChoice() { return dependentChoice; }
     public List<ConditionalField> conditionalFields() { return conditionalFields; }
+    public List<Suggestions> suggestions() { return suggestions; }
     public List<String> inAcademicYear() { return inAcademicYear; }
 
     public FieldSpec field(String name) {
