@@ -19,6 +19,7 @@ export function RecordFields({
   suggestions,
   radios = [],
   fieldHints,
+  scopeValue,
   autoFocusFirst = false,
 }: {
   meta: SectionMeta;
@@ -33,6 +34,8 @@ export function RecordFields({
   radios?: string[];
   /** Helper text shown under a field, by field name. */
   fieldHints?: Record<string, string>;
+  /** The value of the view's scope (institute or department level), which picks the suggestions offered for a field. */
+  scopeValue?: string;
   autoFocusFirst?: boolean;
 }) {
   const { appraisal } = useAppraisal();
@@ -65,7 +68,7 @@ export function RecordFields({
               onBlur={onBlur ? () => onBlur(f.name) : undefined}
               disabled={disabled || f.derived === true || waiting}
               hint={hint}
-              suggestions={suggestions?.[f.name]}
+              suggestions={suggestions?.[f.name] ?? f.suggestions?.[scopeValue ?? ""] ?? f.suggestions?.[""] ?? undefined}
               autoFocus={autoFocusFirst && i === 0}
               radio={radios.includes(f.name)}
               range={inYear ? year : undefined}

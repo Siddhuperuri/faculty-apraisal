@@ -192,6 +192,18 @@ every department that has faculty, a Principal or Director Technical and a secon
   100**. A new version affects only appraisals created afterwards. If you change a criterion's maximum its scoring
   components are not carried over (the editor warns you first), because they would no longer add up.
 
+### Dropdown lists (`/admin/lists`)
+The choices offered on the appraisal form (program, branch, section, semester, hours a week, course role, platforms, levels,
+statuses, outreach roles, and the suggested words for roles and awarding bodies) are kept here, not in the program.
+- Pick a list on the left. **Add a value** (a branch asks which program it belongs to); it is offered to everyone at once.
+- **Rename** a value (the wording on the form, and optionally different wording on the printed report), change its **order**, and
+  **switch it off** when it should no longer be offered. Nothing is ever deleted: appraisals that already hold a switched-off
+  value keep it and its wording, and can be saved again unchanged.
+- A value marked **used by rules** (for example SCI/SCIE and Scopus journals, sanctioned projects, granted patents) can be renamed
+  but not switched off, because marks are worked out from it. A value you add to such a list is recorded but earns no marks.
+- Lists of numbers (semester, hours a week, author position) take whole numbers only; the form's allowed range follows the list.
+- Every change is written to the audit trail (`REFERENCE_VALUE_ADDED`, `REFERENCE_VALUE_UPDATED`).
+
 ### Audit trail (`/admin/audit`)
 Every significant action, newest first, up to 100 per page. Filter by action, entity type and entity ID. It cannot be
 edited or deleted. Watch for `PASSWORD_RESET` entries: a reset lets you become that person, and it is recorded.

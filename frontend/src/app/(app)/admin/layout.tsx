@@ -10,6 +10,7 @@ const TABS = [
   { href: "/admin/users", label: "Accounts" },
   { href: "/admin/accounts-review", label: "Account review" },
   { href: "/admin/setup", label: "Departments, years & scoring" },
+  { href: "/admin/lists", label: "Dropdown lists" },
   { href: "/admin/health", label: "System health" },
   { href: "/admin/handover", label: "Handover" },
   { href: "/admin/audit", label: "Audit trail" },

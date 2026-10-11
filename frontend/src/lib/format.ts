@@ -46,7 +46,7 @@ export function formatCell(field: FieldMeta, value: unknown): string {
     case "MONTH_YEAR":
       return formatMonthYear(String(value));
     case "ENUM":
-      return enumLabel(String(value));
+      return field.labels?.[String(value)] ?? enumLabel(String(value));
     case "DECIMAL":
       return field.name === "amount" ? formatRupees(Number(value)) : formatNumber(Number(value));
     case "INT":

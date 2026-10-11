@@ -2,6 +2,7 @@ package edu.svec.fams;
 
 import edu.svec.fams.auth.FamsUserPrincipal;
 import edu.svec.fams.auth.Role;
+import edu.svec.fams.reference.ReferenceData;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -13,13 +14,20 @@ public class TestDb {
 
     private final JdbcClient jdbc;
     private final PasswordEncoder encoder;
+    private final ReferenceData reference;
 
-    public TestDb(JdbcClient jdbc, PasswordEncoder encoder) {
+    public TestDb(JdbcClient jdbc, PasswordEncoder encoder, ReferenceData reference) {
         this.jdbc = jdbc;
         this.encoder = encoder;
+        this.reference = reference;
     }
 
     public void reset() {
+        // Reference lists: values an administrator added during a test go; switched-off values come back on. (Tests that
+        // rename a value put its wording back themselves.)
+        jdbc.sql("DELETE FROM reference_values WHERE created_by IS NOT NULL").update();
+        jdbc.sql("UPDATE reference_values SET active = TRUE").update();
+        reference.refresh();
         // The history tables are append-only via triggers; TRUNCATE is the test-only way to clear them.
         jdbc.sql("TRUNCATE TABLE audit_logs").update();
         jdbc.sql("TRUNCATE TABLE review_actions").update();

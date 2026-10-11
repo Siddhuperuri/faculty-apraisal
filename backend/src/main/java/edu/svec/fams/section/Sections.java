@@ -4,12 +4,12 @@ import static edu.svec.fams.section.FieldSpec.choice;
 import static edu.svec.fams.section.FieldSpec.date;
 import static edu.svec.fams.section.FieldSpec.decimal;
 import static edu.svec.fams.section.FieldSpec.integer;
+import static edu.svec.fams.section.FieldSpec.listed;
 import static edu.svec.fams.section.FieldSpec.monthYear;
 import static edu.svec.fams.section.FieldSpec.text;
 import static edu.svec.fams.section.FieldSpec.year;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -26,19 +26,6 @@ public final class Sections {
     /** A faculty member teaches 4 courses in each of the year's 2 semesters; no more can be added. */
     public static final int MAX_COURSES = 8;
 
-    /** The branches the college offers under each program; the branch chosen must belong to the program chosen. */
-    private static final Map<String, List<String>> BRANCHES_BY_PROGRAM = branches();
-
-    private static Map<String, List<String>> branches() {
-        Map<String, List<String>> m = new LinkedHashMap<>();
-        m.put("B_TECH", List.of("CSE", "AIML", "CAI", "AIM", "CSDS", "ECE", "EEE", "ME", "CE", "BSH"));
-        m.put("M_TECH", List.of("CSE", "ECE", "EEE", "ME", "CE"));
-        m.put("DIPLOMA", List.of("CSE", "ECE", "EEE", "ME", "CE"));
-        m.put("MBA", List.of("MBA"));
-        m.put("PHARMACY", List.of("PHARMACEUTICS", "PHARMACEUTICAL_CHEMISTRY", "PHARMACOLOGY", "PHARMACOGNOSY", "PHARMACY_PRACTICE"));
-        return Collections.unmodifiableMap(m);
-    }
-
     private static void add(SectionSpec s) { ALL.put(s.key(), s); }
 
     static {
@@ -48,7 +35,7 @@ public final class Sections {
                 text("contactNo", "contact_no", "Contact number", 20, false).forSubmission(),
                 text("qualificationSpecialization", "qualification_specialization",
                         "Highest qualification and specialization", 300, false).forSubmission(),
-                choice("phdStatus", "phd_status", "Ph.D. status", true, "AWARDED", "PURSUING", "NOT_APPLICABLE"),
+                listed("phdStatus", "phd_status", "Ph.D. status", true, "PHD_STATUS"),
                 date("joiningDateInstitution", "joining_date_institution", "Date of joining (institution)", false).forSubmission(),
                 date("joiningDateDesignation", "joining_date_designation", "Date of promotion", false),
                 decimal("teachingExperienceYears", "teaching_experience_years", "Teaching experience (years)", 0, 80, 1, false),
@@ -59,18 +46,18 @@ public final class Sections {
         // Part B, 1. Teaching & Learning
         add(SectionSpec.list("teaching-courses", "teaching_courses",
                 text("courseCode", "course_code", "Course code", 32, true),
-                choice("courseRole", "course_role", "Role in the course", true, "COORDINATOR", "INSTRUCTOR"),
+                listed("courseRole", "course_role", "Role in the course", true, "COURSE_ROLE"),
                 text("courseName", "course_name", "Course name", 160, true),
-                choice("courseType", "course_type", "Course type", true, "THEORY", "LAB"),
-                choice("program", "program", "Program", true, "B_TECH", "M_TECH", "DIPLOMA", "MBA", "PHARMACY"),
-                choice("branch", "branch", "Branch", true, BRANCHES_BY_PROGRAM.values().stream().flatMap(List::stream).distinct().toArray(String[]::new)),
-                integer("semester", "semester", "Semester", 1, 12, true).oneOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
-                choice("section", "class_section", "Section", true, "A", "B", "C", "D", "E"),
-                decimal("hoursPerWeek", "hours_per_week", "Hours per week", 1, 6, 0, true).oneOf(1, 2, 3, 4, 5, 6),
+                listed("courseType", "course_type", "Course type", true, "COURSE_TYPE"),
+                listed("program", "program", "Program", true, "PROGRAM"),
+                listed("branch", "branch", "Branch", true, "BRANCH"),
+                integer("semester", "semester", "Semester", 1, 12, true).fromList("SEMESTER"),
+                listed("section", "class_section", "Section", true, "SECTION"),
+                decimal("hoursPerWeek", "hours_per_week", "Hours per week", 1, 6, 0, true).fromList("HOURS_PER_WEEK"),
                 decimal("passPercentage", "pass_percentage", "Pass percentage", 0, 100, 2, true),
                 decimal("phase1Feedback", "phase1_feedback", "Phase-1 feedback percentage", 0, 100, 2, false),
                 decimal("phase2Feedback", "phase2_feedback", "Phase-2 feedback percentage", 0, 100, 2, false))
-                .dependentChoice("branch", "program", BRANCHES_BY_PROGRAM)
+                .dependentChoice("branch", "program", "BRANCH")
                 .maxRecords(MAX_COURSES, "courses")
                 .summary(TeachingSummary::of));
 
@@ -81,22 +68,22 @@ public final class Sections {
                 text("studentName", "student_name", "Student name", 120, true),
                 text("rollNo", "roll_no", "Roll number", 32, true),
                 text("achievement", "achievement", "Achievement", 300, true),
-                choice("level", "level", "Level", true, "INST", "STATE", "NAT", "INTL"),
+                listed("level", "level", "Level", true, "ACHIEVEMENT_LEVEL"),
                 monthYear("monthYear", "month_year", "Month and year", true)));
         add(SectionSpec.list("student-projects", "student_projects",
-                choice("level", "level", "Level", true, "DIPLOMA", "UG", "PG"),
+                listed("level", "level", "Level", true, "PROJECT_LEVEL"),
                 text("title", "title", "Project title", 300, true),
                 integer("studentCount", "student_count", "Number of students", 0, 1000, true),
-                choice("outcome", "outcome", "Outcome", true, "PAPER", "PATENT", "PROTOTYPE", "COMPETITION", "NONE")));
+                listed("outcome", "outcome", "Outcome", true, "PROJECT_OUTCOME")));
 
         // 3. FDPs / Certifications
         add(SectionSpec.list("fdps", "fdps",
                 text("title", "title", "Title", 300, true),
-                choice("mode", "mode", "Mode", true, "OFFLINE", "ONLINE", "BLENDED"),
+                listed("mode", "mode", "Mode", true, "FDP_MODE"),
                 text("institutionVenue", "institution_venue", "Organizing institution or venue", 200, true),
                 integer("days", "days", "Duration (in days)", 1, 366, true)));
         add(SectionSpec.list("certifications", "certifications",
-                choice("platform", "platform", "Platform", true, "NPTEL", "SWAYAM", "COURSERA", "OTHER"),
+                listed("platform", "platform", "Platform", true, "CERT_PLATFORM"),
                 text("platformOther", "platform_other", "Name of the platform", 100, false),
                 text("title", "title", "Course title", 300, true),
                 integer("durationWeeks", "duration_weeks", "Duration (in weeks)", 1, 520, true),
@@ -110,7 +97,8 @@ public final class Sections {
                 text("description", "description", "Responsibility or description", 1000, false),
                 date("fromDate", "from_date", "From date", true),
                 date("toDate", "to_date", "To date", true))
-                .dateRange("fromDate", "toDate"));
+                .dateRange("fromDate", "toDate")
+                .suggestions("role", "scope", Map.of("INSTITUTE", "INSTITUTE_ROLE_SUGGESTION", "DEPARTMENT", "DEPARTMENT_ROLE_SUGGESTION")));
         add(SectionSpec.list("events", "events",
                 text("activityType", "activity_type", "Type of activity", 80, true),
                 text("role", "role", "Role", 80, true),
@@ -123,23 +111,23 @@ public final class Sections {
         // 5. Research & publications
         add(SectionSpec.list("journal-publications", "journal_publications",
                 text("title", "title", "Title of paper", 400, true),
-                choice("authorPosition", "author_position", "Author position", true, "1", "2", "3", "4", "5", "6", "7", "8"),
+                listed("authorPosition", "author_position", "Author position", true, "AUTHOR_POSITION"),
                 text("journal", "journal", "Journal", 200, true),
                 text("volumeIssuePage", "volume_issue_page", "Volume, issue and page numbers", 80, false),
                 monthYear("monthYear", "month_year", "Month and year", true),
-                choice("indexing", "indexing", "Indexing", true, "SCI_SCIE", "SCOPUS", "UGC_CARE_ABDC", "OTHERS"),
+                listed("indexing", "indexing", "Indexing", true, "JOURNAL_INDEXING"),
                 text("doiIssn", "doi_issn", "DOI or ISSN", 80, false))
                 .summary(Summaries::journals));
         add(SectionSpec.list("conference-papers", "conference_papers",
                 text("title", "title", "Title", 400, true),
                 text("conference", "conference", "Conference", 200, true),
-                choice("level", "level", "Level", true, "NAT", "INTL"),
+                listed("level", "level", "Level", true, "CONFERENCE_LEVEL"),
                 monthYear("monthYear", "month_year", "Month and year", true),
                 text("venue", "venue", "Venue", 200, false),
                 text("doiIndexedIn", "doi_indexed_in", "DOI or indexed in", 120, false),
                 integer("citations", "citations", "Number of citations", 0, 1000000, true)));
         add(SectionSpec.list("research-metrics", "research_metrics",
-                choice("platform", "platform", "Platform", true, "GOOGLE_SCHOLAR", "SCOPUS", "WEB_OF_SCIENCE"),
+                listed("platform", "platform", "Platform", true, "METRICS_PLATFORM"),
                 integer("totalPublications", "total_publications", "Total publications", 0, 1000000, true),
                 integer("totalCitations", "total_citations", "Total citations", 0, 10000000, true),
                 integer("hIndex", "h_index", "h-index", 0, 1000, true),
@@ -147,28 +135,27 @@ public final class Sections {
                 .uniqueBy("platform"));
         add(SectionSpec.list("research-scholars", "research_scholars",
                 text("name", "name", "Scholar name", 120, true),
-                choice("degree", "degree", "Degree", true, "PHD", "MTECH", "MBA"),
+                listed("degree", "degree", "Degree", true, "SCHOLAR_DEGREE"),
                 text("universityRegNo", "university_reg_no", "University and registration number", 120, false),
-                choice("status", "status", "Status", true, "REGISTERED", "SUBMITTED", "AWARDED"),
+                listed("status", "status", "Status", true, "SCHOLAR_STATUS"),
                 year("year", "year", "Year", true)));
         add(SectionSpec.single("phd-progress", "phd_progress",
                 text("universityCenter", "university_center", "University or centre", 200, false),
                 year("registrationYear", "registration_year", "Year of registration", false),
-                choice("stage", "stage", "Current stage", false, "COURSE_WORK", "COMPREHENSIVE_PROPOSAL",
-                        "SYNOPSIS", "THESIS_SUBMITTED", "VIVA_COMPLETED"),
+                listed("stage", "stage", "Current stage", false, "PHD_STAGE"),
                 text("progress", "progress", "Progress during the year", 1000, false)));
 
         // 6. Funded projects / consultancy
         add(SectionSpec.list("funded-projects", "funded_projects",
                 text("title", "title", "Title", 300, true),
-                choice("role", "role", "Role", true, "PI", "CO_PI"),
+                listed("role", "role", "Role", true, "FUNDED_ROLE"),
                 text("team", "team", "Team", 300, false),
-                choice("type", "type", "Type", true, "RESEARCH", "CONSULTANCY"),
+                listed("type", "type", "Type", true, "FUNDED_TYPE"),
                 text("fundingAgencyClient", "funding_agency_client", "Funding agency or client", 200, true),
                 decimal("amount", "amount", "Amount (Rs.)", 0, 1e11, 2, true),
                 date("startDate", "start_date", "Start date", true),
                 date("endDate", "end_date", "End date", true),
-                choice("status", "status", "Status", true, "SANCTIONED", "APPLIED"),
+                listed("status", "status", "Status", true, "FUNDED_STATUS"),
                 year("year", "year", "Year", true))
                 .dateRange("startDate", "endDate")
                 .summary(Summaries::fundedProjects));
@@ -178,8 +165,8 @@ public final class Sections {
                 text("applicantInventors", "applicant_inventors", "Applicant or inventors", 300, true),
                 text("title", "title", "Title", 300, true),
                 text("applicationPatentNo", "application_patent_no", "Application or patent number", 80, false),
-                choice("type", "type", "Type", true, "DESIGN", "UTILITY", "COPYRIGHT"),
-                choice("status", "status", "Status", true, "FILED", "PUBLISHED", "GRANTED"),
+                listed("type", "type", "Type", true, "PATENT_TYPE"),
+                listed("status", "status", "Status", true, "PATENT_STATUS"),
                 date("recordDate", "record_date", "Date", true))
                 .summary(Summaries::patents));
         add(SectionSpec.list("books", "books",
@@ -188,15 +175,12 @@ public final class Sections {
                 text("publisher", "publisher", "Publisher", 160, true),
                 text("isbn", "isbn", "ISBN", 24, false),
                 monthYear("monthYear", "month_year", "Month and year", true),
-                choice("type", "type", "Type", true, "BOOK", "CHAPTER"))
+                listed("type", "type", "Type", true, "BOOK_TYPE"))
                 .summary(Summaries::books));
 
         // 8. Outreach
         add(SectionSpec.list("outreach", "outreach",
-                choice("role", "role", "Role", true, "CONFERENCE_SESSION_CHAIR", "EXPERT_LECTURE_DELIVERED",
-                        "RESOURCE_PERSON", "EDITORIAL_BOARD_MEMBER", "JOURNAL_REVIEWER", "EXTERNAL_EXAMINER",
-                        "EXTERNAL_THESIS_EVALUATED", "VISITING_RESEARCHER", "INDUSTRY_INTERACTION_MOU",
-                        "INTERNATIONAL_CONFERENCE_ATTENDED", "OTHERS"),
+                listed("role", "role", "Role", true, "OUTREACH_ROLE"),
                 text("eventActivity", "event_activity", "Event or activity", 300, true),
                 text("organization", "organization", "Name of organization or institution", 200, true),
                 text("venue", "venue", "Venue", 200, false),
@@ -206,8 +190,9 @@ public final class Sections {
         add(SectionSpec.list("memberships-awards", "memberships_awards",
                 text("item", "item", "Membership, award or recognition", 300, true),
                 text("awardingBody", "awarding_body", "Professional or awarding body", 200, true),
-                choice("level", "level", "Level", true, "INST", "STATE", "NAT", "INTL"),
-                year("year", "year", "Year", true)));
+                listed("level", "level", "Level", true, "ACHIEVEMENT_LEVEL"),
+                year("year", "year", "Year", true))
+                .suggestions("awardingBody", "", Map.of("", "AWARDING_BODY_SUGGESTION")));
 
         // 10. Any other contributions
         add(SectionSpec.single("other-contributions", "other_contributions",

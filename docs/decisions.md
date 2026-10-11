@@ -239,3 +239,17 @@ earns the whole 10; "Other" platform asks for its name. (5) "Date of joining (pr
 and optional; "Conference papers presented" is "published". Assumption recorded: marks of every appraisal, including submitted
 ones, are recalculated from the current rate card on reading (as before), so only the B1 components, which are data, are held
 to the version an appraisal began with.
+
+**ADR-037: Dropdown and reference data live in the database (2026-10-11).** Decided by the user. Every choice list on the appraisal
+form (program, branch by program, section, semester, hours a week, course type and role, platforms, levels, statuses, outreach
+roles, ...) and the suggested words while typing a role or an awarding body are rows in `reference_lists` / `reference_values`
+(migration V34, which seeds exactly the lists that were in code and drops the CHECK constraints that duplicated them), read through
+`ReferenceData`, served with the form definitions, and managed by an administrator under Admin > Dropdown lists
+(`/api/admin/lists`): add a value (available at once), change its wording on the form and on the printed report, reorder, switch
+off. Values are never deleted, so a record that holds a switched-off value keeps it and its label. Values the application's rules
+depend on are locked: their wording is editable, they cannot be switched off, and a value added to such a list earns nothing until
+the scoring code is told about it (scoring rates and the branch-to-program rule of the chain are not data). The consequence worth
+knowing: the database no longer rejects a misspelt value by itself; the application is the only writer and checks every value.
+Not moved: workflow statuses, user roles, scoring criteria (all part of the application's behaviour), and departments, cadres and
+academic years (already database-managed under Admin).
+

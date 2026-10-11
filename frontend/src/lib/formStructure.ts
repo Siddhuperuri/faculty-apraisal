@@ -1,5 +1,5 @@
 import { duration } from "./format";
-import { enumLabel } from "./labels";
+import { fieldLabel } from "./labels";
 import type { Rec } from "./types";
 
 /**
@@ -34,7 +34,7 @@ export interface SectionUi {
   /** Show the list as one table per value of this field (for example per semester), headed by `title`. */
   groupBy?: { field: string; title: (value: string, count: number) => string };
   summary?: { key: string; label: string; format: SummaryFormat }[];
-  /** Text-field suggestions (free text is still allowed). */
+  /** Text-field suggestions that are fixed in this file (free text is still allowed); the lists in the database are preferred. */
   suggestions?: Record<string, string[]>;
   /** Choice fields shown as radio buttons (one of a few options) instead of a drop-down. */
   radios?: string[];
@@ -85,8 +85,8 @@ export const PAGES: PageUi[] = [
         title: "Courses handled during the Academic Year",
         addLabel: "Add course",
         columns: [
-          { header: "Course Code & Name (Theory / Lab)", render: (r) => `${s(r.courseCode)} · ${s(r.courseName)} (${enumLabel(s(r.courseType))})` },
-          { header: "Program & Branch", render: (r) => `${enumLabel(s(r.program))} · ${enumLabel(s(r.branch))}` },
+          { header: "Course Code & Name (Theory / Lab)", render: (r) => `${s(r.courseCode)} · ${s(r.courseName)} (${fieldLabel("teaching-courses", "courseType", r.courseType)})` },
+          { header: "Program & Branch", render: (r) => `${fieldLabel("teaching-courses", "program", r.program)} · ${fieldLabel("teaching-courses", "branch", r.branch)}` },
           "courseRole",
           "semester",
           "section",
@@ -173,7 +173,7 @@ export const PAGES: PageUi[] = [
         title: "Certifications",
         addLabel: "Add certification",
         columns: [
-          { header: "Platform", render: (r) => (r.platform === "OTHER" && s(r.platformOther) ? s(r.platformOther) : enumLabel(s(r.platform))) },
+          { header: "Platform", render: (r) => (r.platform === "OTHER" && s(r.platformOther) ? s(r.platformOther) : fieldLabel("certifications", "platform", r.platform)) },
           "title",
           "durationWeeks",
           "gradeScore",
@@ -200,7 +200,6 @@ export const PAGES: PageUi[] = [
         columns: ["role", "description", { header: "Duration (From–To)", render: (r) => duration(r, "fromDate", "toDate") }],
         headers: { role: "Role", description: "Responsibility / Description" },
         hint: "For example: NAAC / NBA criterion coordinator, IQAC, Exam Cell, Training & Placement, NSS / NCC, Anti-Ragging.",
-        suggestions: { role: ["NAAC / NBA criterion coordinator", "IQAC", "Exam Cell", "Training & Placement", "NSS / NCC", "Anti-Ragging"] },
         fieldHints: { role: "Select or enter your role" },
         emptyText: "No institute-level roles added yet.",
       },
@@ -212,7 +211,6 @@ export const PAGES: PageUi[] = [
         columns: ["role", "description", { header: "Duration (From–To)", render: (r) => duration(r, "fromDate", "toDate") }],
         headers: { role: "Role", description: "Responsibility / Description" },
         hint: "For example: Class Coordinator, Module Coordinator, Lab In-charge, Time-table In-charge, NAAC / NBA criterion coordinator, IQAC, Exam Cell, Training & Placement, NSS / NCC, Anti-Ragging.",
-        suggestions: { role: ["Class Coordinator", "Module Coordinator", "Lab In-charge", "Time-table In-charge", "NAAC / NBA criterion coordinator", "IQAC", "Exam Cell", "Training & Placement", "NSS / NCC", "Anti-Ragging"] },
         fieldHints: { role: "Select or enter your role" },
         emptyText: "No department-level roles added yet.",
       },
@@ -239,7 +237,7 @@ export const PAGES: PageUi[] = [
         title: "Journal publications",
         addLabel: "Add publication",
         columns: [
-          { header: "Title of Paper (your position in author list)", render: (r) => `${s(r.title)} (${enumLabel(s(r.authorPosition))})` },
+          { header: "Title of Paper (your position in author list)", render: (r) => `${s(r.title)} (${fieldLabel("journal-publications", "authorPosition", r.authorPosition)})` },
           "journal",
           "volumeIssuePage",
           "monthYear",
@@ -298,7 +296,7 @@ export const PAGES: PageUi[] = [
         addLabel: "Add project",
         columns: [
           "title",
-          { header: "Role (PI / Co-PI) & Team", render: (r) => [enumLabel(s(r.role)), s(r.team)].filter(Boolean).join(" · ") },
+          { header: "Role (PI / Co-PI) & Team", render: (r) => [fieldLabel("funded-projects", "role", r.role), s(r.team)].filter(Boolean).join(" · ") },
           "type",
           "fundingAgencyClient",
           "amount",
@@ -387,7 +385,6 @@ export const PAGES: PageUi[] = [
         columns: ["item", "awardingBody", "level", "year"],
         headers: { item: "Membership / Award / Recognition", awardingBody: "Professional / Awarding Body", level: "Level", year: "Year" },
         hint: "Awarding bodies such as IEEE, CSI, ISTE, IE(I).",
-        suggestions: { awardingBody: ["IEEE", "CSI", "ISTE", "IE(I)"] },
         emptyText: "No entries added yet.",
       },
     ],

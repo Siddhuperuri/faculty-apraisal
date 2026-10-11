@@ -6,9 +6,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Text for the printed form: the official wording for stored codes, DD-MM-YYYY dates, Indian digit grouping, and a
@@ -17,46 +16,13 @@ import java.util.Map;
 final class ReportLabels {
     private ReportLabels() {}
 
-    private static final Map<String, String> LABELS = new HashMap<>();
+    /**
+     * The wording of the dropdown values, read from the database-managed reference lists (see ReferenceData): the report
+     * label of a value when it has one, otherwise its screen label. Set once at start-up by {@link ReportLabelSource}.
+     */
+    private static volatile Function<String, String> lookup = code -> null;
 
-    static {
-        String[][] pairs = {
-                {"INST", "Inst"}, {"STATE", "State"}, {"NAT", "Nat"}, {"INTL", "Intl"},
-                {"THEORY", "Theory"}, {"LAB", "Lab"}, {"B_TECH", "B.Tech"}, {"M_TECH", "M.Tech"}, {"PHARMACY", "Pharmacy"}, {"DIPLOMA", "Diploma"},
-                {"A", "A"}, {"B", "B"}, {"C", "C"}, {"D", "D"}, {"E", "E"},
-                {"COORDINATOR", "Course Coordinator"}, {"INSTRUCTOR", "Course Instructor"},
-                {"CSE", "CSE"}, {"AIML", "AI & ML"}, {"CAI", "CAI"}, {"AIM", "AIM"}, {"CSDS", "CSDS"}, {"ECE", "ECE"}, {"EEE", "EEE"}, {"ME", "ME"}, {"CE", "CE"}, {"BSH", "BSH"},
-                {"PHARMACEUTICS", "Pharmaceutics"}, {"PHARMACEUTICAL_CHEMISTRY", "Pharmaceutical Chemistry"},
-                {"1", "1"}, {"2", "2"}, {"3", "3"}, {"4", "4"}, {"5", "5"}, {"6", "6"}, {"7", "7"}, {"8", "8"},
-                {"PHARMACOLOGY", "Pharmacology"}, {"PHARMACOGNOSY", "Pharmacognosy"}, {"PHARMACY_PRACTICE", "Pharmacy Practice"}, {"UG", "UG"}, {"PG", "PG"},
-                {"PAPER", "Paper"}, {"PATENT", "Patent"}, {"PROTOTYPE", "Prototype"}, {"COMPETITION", "Competition"}, {"NONE", "None"},
-                {"OFFLINE", "Offline"}, {"ONLINE", "Online"}, {"BLENDED", "Blended"},
-                {"NPTEL", "NPTEL"}, {"SWAYAM", "Swayam"}, {"COURSERA", "Coursera"}, {"OTHER", "Other"},
-                {"INSTITUTE", "Institute level"}, {"DEPARTMENT", "Department level"},
-                {"SCI_SCIE", "SCI / SCIE"}, {"SCOPUS", "Scopus"}, {"UGC_CARE_ABDC", "UGC-CARE / ABDC"}, {"OTHERS", "Others"},
-                {"GOOGLE_SCHOLAR", "Google Scholar"}, {"WEB_OF_SCIENCE", "Web of Science"},
-                {"PHD", "Ph.D."}, {"MTECH", "M.Tech"}, {"MBA", "MBA"},
-                {"REGISTERED", "Registered"}, {"SUBMITTED", "Submitted"}, {"AWARDED", "Awarded"},
-                {"PURSUING", "Pursuing"}, {"NOT_APPLICABLE", "Not applicable"},
-                {"COURSE_WORK", "Course work"}, {"COMPREHENSIVE_PROPOSAL", "Comprehensive / Proposal"},
-                {"SYNOPSIS", "Synopsis / Pre-Ph.D."}, {"THESIS_SUBMITTED", "Thesis submitted"},
-                {"VIVA_COMPLETED", "Viva-voce completed"},
-                {"PI", "PI"}, {"CO_PI", "Co-PI"}, {"RESEARCH", "Research"}, {"CONSULTANCY", "Consultancy"},
-                {"SANCTIONED", "Sanctioned"}, {"APPLIED", "Applied"},
-                {"DESIGN", "Design"}, {"UTILITY", "Utility"}, {"COPYRIGHT", "Copyright"},
-                {"FILED", "Filed"}, {"PUBLISHED", "Published"}, {"GRANTED", "Granted"},
-                {"BOOK", "Book"}, {"CHAPTER", "Chapter"},
-                {"CONFERENCE_SESSION_CHAIR", "Conference Session Chair"},
-                {"EXPERT_LECTURE_DELIVERED", "Expert Lectures Delivered"},
-                {"RESOURCE_PERSON", "Resource Person"}, {"EDITORIAL_BOARD_MEMBER", "Editorial Board Member"},
-                {"JOURNAL_REVIEWER", "Reviewer for Journals"}, {"EXTERNAL_EXAMINER", "External Examiner"},
-                {"EXTERNAL_THESIS_EVALUATED", "External Thesis Evaluated"},
-                {"VISITING_RESEARCHER", "Visiting Researcher"},
-                {"INDUSTRY_INTERACTION_MOU", "Industry Interaction or MoU"},
-                {"INTERNATIONAL_CONFERENCE_ATTENDED", "International Conferences Attended"},
-        };
-        for (String[] p : pairs) LABELS.put(p[0], p[1]);
-    }
+    static void useLookup(Function<String, String> source) { lookup = source; }
 
     private static final String[] MONTHS = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     private static final DateTimeFormatter DMY = DateTimeFormatter.ofPattern("dd-MM-yyyy");
@@ -65,13 +31,13 @@ final class ReportLabels {
     static String label(Object code) {
         if (code == null) return "";
         String c = code.toString();
-        String known = LABELS.get(c);
+        String known = lookup.apply(c);
         if (known != null) return known;
         String t = c.toLowerCase(Locale.ROOT).replace('_', ' ');
         return t.isEmpty() ? t : Character.toUpperCase(t.charAt(0)) + t.substring(1);
     }
 
-    static boolean hasLabel(String code) { return LABELS.containsKey(code); }
+    static boolean hasLabel(String code) { return lookup.apply(code) != null; }
 
     /** The status names used on screen, for the draft banner. */
     static String statusLabel(String status) {

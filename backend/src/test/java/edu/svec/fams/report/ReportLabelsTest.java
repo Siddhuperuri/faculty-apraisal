@@ -4,31 +4,46 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import edu.svec.fams.section.FieldSpec;
-import edu.svec.fams.section.SectionSpec;
-import edu.svec.fams.section.Sections;
+import edu.svec.fams.TestDb;
+import edu.svec.fams.reference.ReferenceData;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.ActiveProfiles;
 
+@SpringBootTest
+@ActiveProfiles("test")
 class ReportLabelsTest {
 
+    @Autowired JdbcClient jdbc;
+    @Autowired TestDb db;
+    @Autowired ReferenceData reference;
+
     @Test
-    void everyChoiceValueOfEverySectionHasAnOfficialLabel() {
+    void everyValueOfEveryListHasTheWordingOfTheForm() {
+        db.reset();
+        ReportLabels.useLookup(reference::reportLabel);
         // The printed form shows words ("Co-PI", "SCI / SCIE"), never codes.
-        for (SectionSpec s : Sections.all().values()) {
-            for (FieldSpec f : s.fields()) {
-                if (f.type() != FieldSpec.Type.ENUM) continue;
-                for (String v : f.allowed()) {
-                    assertTrue(ReportLabels.hasLabel(v), s.key() + "." + f.name() + " = " + v + " has no label");
-                    assertFalse(ReportLabels.label(v).contains("_"), v);
-                }
-            }
+        List<String> codes = jdbc.sql("""
+                SELECT v.code FROM reference_values v JOIN reference_lists l ON l.code = v.list_code
+                WHERE l.kind <> 'FREE' AND v.active""").query(String.class).list();
+        assertFalse(codes.isEmpty());
+        for (String v : codes) {
+            assertTrue(ReportLabels.hasLabel(v), v + " has no label");
+            assertFalse(ReportLabels.label(v).contains("_"), v);
         }
+        assertEquals("Reviewer for Journals", ReportLabels.label("JOURNAL_REVIEWER"));
+        assertEquals("Inst", ReportLabels.label("INST"));          // the report's own wording, not the screen's
+        assertEquals("Course Coordinator", ReportLabels.label("COORDINATOR"));
     }
 
     @Test
     void formatsMatchTheForm() {
+        ReportLabels.useLookup(reference::reportLabel);
         assertEquals("03-10-2026", ReportLabels.date(LocalDate.of(2026, 10, 3)));
         assertEquals("", ReportLabels.date(null));
         assertEquals("May 2026", ReportLabels.monthYear("2026-05"));

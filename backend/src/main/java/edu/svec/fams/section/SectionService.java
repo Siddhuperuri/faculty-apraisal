@@ -45,11 +45,13 @@ public class SectionService {
     private final JdbcClient jdbc;
     private final AppraisalAccess access;
     private final AuditService audit;
+    private final ChoiceSource choices;
 
-    public SectionService(JdbcClient jdbc, AppraisalAccess access, AuditService audit) {
+    public SectionService(JdbcClient jdbc, AppraisalAccess access, AuditService audit, ChoiceSource choices) {
         this.jdbc = jdbc;
         this.access = access;
         this.audit = audit;
+        this.choices = choices;
     }
 
     @Transactional(readOnly = true)
@@ -125,6 +127,8 @@ public class SectionService {
         AcademicYear year = spec.inAcademicYear().isEmpty() ? null : academicYear(appraisalId);
 
         Set<Long> existingIds = existing.stream().map(r -> (Long) r.get("id")).collect(Collectors.toSet());
+        Map<Long, Map<String, Object>> existingById = new HashMap<>();
+        for (Map<String, Object> r : existing) existingById.put((Long) r.get("id"), r);
         Set<Long> seenIds = new HashSet<>();
         Set<Object> seenUnique = new HashSet<>();
         Set<String> known = spec.fields().stream().map(FieldSpec::name).collect(Collectors.toSet());
@@ -144,16 +148,25 @@ public class SectionService {
             Map<String, Object> rec = new LinkedHashMap<>();
             rec.put("id", spec.singleton() ? null : validateId(raw.get("id"), prefix, existingIds, seenIds, errors));
             SectionSpec.DerivedDays derived = spec.derivedDays();
+            Map<String, Object> before = rec.get("id") == null ? null : existingById.get((Long) rec.get("id"));
             for (FieldSpec f : spec.fields()) {
                 if (derived != null && f.name().equals(derived.daysField())) continue;   // worked out below
-                rec.put(f.name(), f.normalize(raw.get(f.name()), prefix + "." + f.name(), errors));
+                Object raw1 = raw.get(f.name());
+                if (keepsSavedValue(f, raw1, before)) {
+                    rec.put(f.name(), before.get(f.name()));
+                } else {
+                    rec.put(f.name(), f.normalize(raw1, prefix + "." + f.name(), errors, choices));
+                }
             }
             if (derived != null) rec.put(derived.daysField(), derivedDays(spec, derived, rec, prefix, errors));
 
             SectionSpec.DependentChoice dependent = spec.dependentChoice();
-            if (dependent != null && rec.get(dependent.field()) instanceof String chosen
+            boolean pairUnchanged = before != null && dependent != null
+                    && Objects.equals(before.get(dependent.field()), rec.get(dependent.field()))
+                    && Objects.equals(before.get(dependent.onField()), rec.get(dependent.onField()));
+            if (dependent != null && !pairUnchanged && rec.get(dependent.field()) instanceof String chosen
                     && rec.get(dependent.onField()) instanceof String on
-                    && !dependent.allowedBy().getOrDefault(on, List.of()).contains(chosen)) {
+                    && !choices.activeUnder(dependent.list(), on).contains(chosen)) {
                 errors.putIfAbsent(prefix + "." + dependent.field(), spec.field(dependent.field()).label()
                         + " is not offered under the " + spec.field(dependent.onField()).label().toLowerCase(Locale.ROOT) + " you chose.");
             }
@@ -195,6 +208,25 @@ public class SectionService {
         }
         if (!errors.isEmpty()) throw new ValidationException(errors);
         return out;
+    }
+
+    /**
+     * A value a list no longer offers (it was switched off) may stay on a record that already holds it: only a new or
+     * changed choice has to be one of the values offered now.
+     */
+    private boolean keepsSavedValue(FieldSpec f, Object sent, Map<String, Object> before) {
+        if (before == null || f.listCode() == null || sent == null) return false;
+        Object saved = before.get(f.name());
+        if (saved == null) return false;
+        BigDecimal a = null;
+        BigDecimal b = null;
+        if (saved instanceof Number n1 && sent instanceof Number n2) {
+            a = new BigDecimal(n1.toString());
+            b = new BigDecimal(n2.toString());
+        }
+        boolean same = a != null ? a.compareTo(b) == 0 : saved.toString().equals(sent.toString());
+        String code = saved instanceof BigDecimal d ? d.stripTrailingZeros().toPlainString() : saved.toString();
+        return same && choices.known(f.listCode(), code);
     }
 
     /** From the start date to the end date, both days counted; null while either date is missing or the range is reversed. */

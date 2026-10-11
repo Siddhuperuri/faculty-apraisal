@@ -333,6 +333,7 @@ function RecordDialog({
           suggestions={ui.suggestions}
           radios={ui.radios}
           fieldHints={ui.fieldHints}
+          scopeValue={ui.scope?.value}
           onChange={(name, v) => setValues((cur) => applyDependencies(meta, { ...cur, [name]: v }, name))}
           autoFocusFirst
         />

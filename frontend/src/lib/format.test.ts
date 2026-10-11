@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ago, formatBytes, formatDate, formatMonthYear, formatNumber, formatRupees } from "./format";
-import { enumLabel } from "./labels";
+import meta from "./__fixtures__/meta.json";
+import { enumLabel, fieldLabel, registerLabels } from "./labels";
 
 describe("format", () => {
   it("shows dates as DD-MM-YYYY like the form", () => {
@@ -42,6 +43,16 @@ describe("format", () => {
 });
 
 describe("labels", () => {
+  // the wording comes from the database-managed lists, served with the section definitions
+  registerLabels(meta as unknown as Parameters<typeof registerLabels>[0]);
+
+  it("labels a number by the field it belongs to", () => {
+    expect(fieldLabel("journal-publications", "authorPosition", 2)).toBe("2nd author");
+    expect(fieldLabel("teaching-courses", "semester", 2)).toBe("2");
+    expect(fieldLabel("teaching-courses", "branch", "AIML")).toBe("AI & ML");
+    expect(fieldLabel("teaching-courses", "branch", null)).toBe("");
+  });
+
   it("uses the official wording for stored values", () => {
     expect(enumLabel("CO_PI")).toBe("Co-PI");
     expect(enumLabel("INTL")).toBe("International");

@@ -10,6 +10,7 @@ import edu.svec.fams.auth.Role;
 import edu.svec.fams.common.ApiException;
 import edu.svec.fams.common.GeneratedKeys;
 import edu.svec.fams.common.ValidationException;
+import edu.svec.fams.section.ChoiceSource;
 import edu.svec.fams.section.FieldSpec;
 import java.sql.Date;
 import java.sql.ResultSet;
@@ -60,7 +61,7 @@ public class AdminUserService {
             FieldSpec.text("contactNo", "contact_no", "Contact number", 20, false),
             FieldSpec.text("qualification", "qualification", "Qualification", 160, false),
             FieldSpec.text("specialization", "specialization", "Specialization", 160, false),
-            FieldSpec.choice("phdStatus", "phd_status", "Ph.D. status", false, "AWARDED", "PURSUING", "NOT_APPLICABLE"),
+            FieldSpec.listed("phdStatus", "phd_status", "Ph.D. status", false, "PHD_STATUS"),
             FieldSpec.date("joiningDateInstitution", "joining_date_institution", "Date of joining (institution)", false),
             FieldSpec.date("joiningDateDesignation", "joining_date_designation", "Date of promotion", false),
             FieldSpec.decimal("teachingExperienceYears", "teaching_experience_years", "Teaching experience (years)", 0, 80, 1, false),
@@ -81,8 +82,11 @@ public class AdminUserService {
     private final PasswordEncoder encoder;
     private final AuditService audit;
     private final DefaultPassword defaultPassword;
+    private final ChoiceSource choices;
 
-    public AdminUserService(JdbcClient jdbc, PasswordEncoder encoder, AuditService audit, DefaultPassword defaultPassword) {
+    public AdminUserService(JdbcClient jdbc, PasswordEncoder encoder, AuditService audit, DefaultPassword defaultPassword,
+                            ChoiceSource choices) {
+        this.choices = choices;
         this.jdbc = jdbc;
         this.encoder = encoder;
         this.audit = audit;
@@ -268,7 +272,7 @@ public class AdminUserService {
         Map<String, Object> person = new LinkedHashMap<>();
         if (role != Role.FACULTY) {
             for (FieldSpec f : PERSON) {
-                if (body.containsKey(f.name())) person.put(f.name(), f.normalize(body.get(f.name()), f.name(), errors));
+                if (body.containsKey(f.name())) person.put(f.name(), f.normalize(body.get(f.name()), f.name(), errors, choices));
             }
             if (person.get("contactNo") instanceof String c && !ContactNumber.isValid(c)) errors.putIfAbsent("contactNo", ContactNumber.MESSAGE);
         }
@@ -364,7 +368,7 @@ public class AdminUserService {
     /** Each may be left out; a contact number given must look like one. */
     private Map<String, Object> validatePerson(Map<String, Object> body, Map<String, String> errors) {
         Map<String, Object> values = new LinkedHashMap<>();
-        for (FieldSpec f : PERSON) values.put(f.name(), f.normalize(body.get(f.name()), f.name(), errors));
+        for (FieldSpec f : PERSON) values.put(f.name(), f.normalize(body.get(f.name()), f.name(), errors, choices));
         if (values.get("contactNo") instanceof String c && !ContactNumber.isValid(c)) errors.putIfAbsent("contactNo", ContactNumber.MESSAGE);
         return values;
     }
@@ -392,7 +396,7 @@ public class AdminUserService {
     private Map<String, Object> validateFaculty(Map<String, Object> body, Map<String, String> errors, boolean requireCore,
                                                 Long keepDepartment, Long keepCadre) {
         Map<String, Object> values = new LinkedHashMap<>();
-        for (FieldSpec f : PROFILE) values.put(f.name(), f.normalize(body.get(f.name()), f.name(), errors));
+        for (FieldSpec f : PROFILE) values.put(f.name(), f.normalize(body.get(f.name()), f.name(), errors, choices));
         if (requireCore) {
             if (values.get("name") == null) errors.putIfAbsent("name", "Name is required.");
             if (values.get("employeeId") == null) errors.putIfAbsent("employeeId", "Employee ID is required.");

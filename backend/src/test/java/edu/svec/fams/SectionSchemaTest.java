@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.svec.fams.appraisal.AppraisalService;
 import edu.svec.fams.auth.FamsUserPrincipal;
+import edu.svec.fams.section.ChoiceSource;
 import edu.svec.fams.section.FieldSpec;
 import edu.svec.fams.section.SectionService;
 import edu.svec.fams.section.SectionSpec;
@@ -15,8 +16,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +36,7 @@ class SectionSchemaTest {
     @Autowired JdbcClient jdbc;
     @Autowired AppraisalService appraisals;
     @Autowired SectionService sections;
+    @Autowired ChoiceSource choices;
 
     FamsUserPrincipal faculty;
     long appraisalId;
@@ -129,24 +129,18 @@ class SectionSchemaTest {
     }
 
     @Test
-    void allowedValuesMatchTheDatabaseCheckConstraints() {
-        // MySQL stores the clause as: in (_utf8mb4\'THEORY\',_utf8mb4\'LAB\') (backslash before each quote)
-        Pattern literal = Pattern.compile("\\\\?'([A-Za-z0-9_]+)\\\\?'");
+    void everyListBackedFieldNamesAListThatTheDatabaseHolds() {
+        // The allowed values are no longer in code or in CHECK constraints: each field names a reference list.
+        Set<String> lists = new HashSet<>(jdbc.sql("SELECT code FROM reference_lists").query(String.class).list());
         for (SectionSpec s : Sections.all().values()) {
-            List<String> clauses = jdbc.sql("""
-                    SELECT cc.check_clause FROM information_schema.check_constraints cc
-                    JOIN information_schema.table_constraints tc
-                      ON tc.constraint_schema = cc.constraint_schema AND tc.constraint_name = cc.constraint_name
-                    WHERE tc.table_schema = DATABASE() AND tc.table_name = ?""")
-                    .param(s.table()).query(String.class).list();
             for (FieldSpec f : s.fields()) {
-                if (f.type() != FieldSpec.Type.ENUM) continue;
-                String clause = clauses.stream().filter(c -> c.contains("`" + f.column() + "` in (")).findFirst()
-                        .orElseThrow(() -> new AssertionError("no CHECK for " + s.table() + "." + f.column()));
-                Set<String> dbValues = new HashSet<>();
-                Matcher m = literal.matcher(clause);
-                while (m.find()) dbValues.add(m.group(1));
-                assertEquals(dbValues, new HashSet<>(f.allowed()), s.table() + "." + f.column());
+                if (f.listCode() != null) {
+                    assertTrue(lists.contains(f.listCode()), s.key() + "." + f.name() + " names the list " + f.listCode());
+                    assertTrue(!choices.active(f.listCode()).isEmpty(), f.listCode() + " offers nothing");
+                } else if (f.type() == FieldSpec.Type.ENUM) {
+                    // only a structural choice that is not a dropdown of the form stays in code
+                    assertEquals("scope", f.name(), s.key() + "." + f.name() + " is a fixed list in code");
+                }
             }
         }
     }
@@ -176,14 +170,15 @@ class SectionSchemaTest {
             SectionSpec spec = Sections.get(key);
             for (FieldSpec f : spec.fields()) {
                 if (f.type() != FieldSpec.Type.ENUM) continue;
-                for (String value : f.allowed()) {
+                for (String value : f.listCode() != null ? choices.active(f.listCode()) : f.allowed()) {
                     Map<String, Object> variant = new LinkedHashMap<>(sample);
                     variant.put(f.name(), value);
                     SectionSpec.DependentChoice dep = spec.dependentChoice();   // a branch only goes with its program
                     if (dep != null && f.name().equals(dep.field())) {
-                        variant.put(dep.onField(), dep.allowedBy().entrySet().stream().filter(e -> e.getValue().contains(value)).findFirst().orElseThrow().getKey());
+                        variant.put(dep.onField(), choices.activeByParent(dep.list()).entrySet().stream()
+                                .filter(e -> e.getValue().contains(value)).findFirst().orElseThrow().getKey());
                     } else if (dep != null && f.name().equals(dep.onField())) {
-                        variant.put(dep.field(), dep.allowedBy().get(value).get(0));
+                        variant.put(dep.field(), choices.activeUnder(dep.list(), value).get(0));
                     }
                     for (SectionSpec.ConditionalField c : spec.conditionalFields()) {   // a platform named Other needs its name
                         if (f.name().equals(c.onField()) && value.equals(c.equals())) variant.put(c.field(), "Some other platform");

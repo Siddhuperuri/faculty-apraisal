@@ -121,11 +121,21 @@ describe("form structure vs server definitions", () => {
     expect(titles).not.toContain("Conference papers presented");
   });
 
+  it("every value of a list-backed field comes with its label from the server", () => {
+    for (const s of sections)
+      for (const f of s.fields) {
+        if (f.type === "ENUM" && f.name !== "scope") {
+          expect(f.labels, `${s.key}.${f.name} has labels`).toBeTruthy();
+          for (const v of f.allowed ?? []) expect(f.labels![v], `${s.key}.${f.name}=${v}`).toBeTruthy();
+        }
+      }
+  });
+
   it("every allowed value has a readable label (no raw codes on screen)", () => {
     for (const s of sections)
       for (const f of s.fields)
         for (const v of f.allowed ?? []) {
-          const label = enumLabel(v);
+          const label = f.labels?.[v] ?? enumLabel(v);
           expect(label, `${s.key}.${f.name}=${v}`).not.toBe("");
           // Codes with underscores (CO_PI, SCI_SCIE...) must never reach the screen as-is.
           if (v.includes("_")) expect(label, `${s.key}.${f.name}=${v}`).not.toContain("_");

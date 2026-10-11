@@ -121,6 +121,34 @@ export interface FieldMeta {
   /** Asked for (and required) only while the field named here holds `onlyWhenEquals`; otherwise hidden and not kept. */
   onlyWhenField?: string | null;
   onlyWhenEquals?: string | null;
+  /** For a field chosen from a list: the label of every value, including values switched off (old records keep them). */
+  labels?: Record<string, string> | null;
+  /** Words offered while typing, by the value of the section's scope ("" when there is none). Free text is still allowed. */
+  suggestions?: Record<string, string[]> | null;
+}
+
+/** One value of a database-managed dropdown list (Admin > Lists). */
+export interface ReferenceValue {
+  id: number;
+  list: string;
+  code: string;
+  parent: string;
+  label: string;
+  reportLabel: string | null;
+  sortOrder: number;
+  active: boolean;
+  /** The application's own rules depend on it: its wording can change but it cannot be switched off. */
+  locked: boolean;
+}
+
+export interface ReferenceList {
+  code: string;
+  name: string;
+  description: string | null;
+  parentList: string | null;
+  /** CODE (letters and underscores), NUMBER (whole numbers) or FREE (suggested words). */
+  kind: "CODE" | "NUMBER" | "FREE";
+  values: ReferenceValue[];
 }
 
 export interface SectionMeta {
