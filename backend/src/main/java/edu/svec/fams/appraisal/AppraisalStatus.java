@@ -31,6 +31,21 @@ public enum AppraisalStatus {
         };
     }
 
+    /**
+     * Where an appraisal goes when the Head of the Department revokes it, which needs no one's consent and is possible at
+     * any stage before the Principal's final approval: one that is with the HoD (submitted or in review) goes back to the
+     * faculty member as a draft to correct and send again; one the HoD has forwarded (to the Principal or Director
+     * Technical, not yet approved) comes back to the HoD, who is then reviewing it again. Null when it cannot be revoked
+     * (a draft was never sent; an approved one is final).
+     */
+    public AppraisalStatus revokeTarget() {
+        return switch (this) {
+            case SUBMITTED, HOD_REVIEW -> DRAFT;
+            case HOD_APPROVED, PRINCIPAL_REVIEW -> HOD_REVIEW;
+            case DRAFT, APPROVED -> null;
+        };
+    }
+
     public boolean canTransitionTo(AppraisalStatus next) {
         return allowedNext().contains(next);
     }

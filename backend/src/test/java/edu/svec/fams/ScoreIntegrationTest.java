@@ -270,7 +270,7 @@ class ScoreIntegrationTest {
         }
         sheet(faculty, id)
                 .andExpect(jsonPath("$.scores[4].score").value(15.0))     // one SCI/SCIE paper; the "others" paper earns nothing
-                .andExpect(jsonPath("$.scores[5].score").value(60.0))     // one sanctioned (50) and two applied (5 each)
+                .andExpect(jsonPath("$.scores[5].score").value(10.0))     // one sanctioned (50) and two applied (5 each) = 60, limited to 10 a year
                 .andExpect(jsonPath("$.scores[6].score").value(25.0))     // a book (20) and a chapter (5)
                 .andExpect(jsonPath("$.scores[7].score").value(10.0))     // two outreach entries
                 .andExpect(jsonPath("$.scores[8].score").value(5.0))
@@ -285,7 +285,7 @@ class ScoreIntegrationTest {
         jdbc.sql(project).params(id, 2024).update();
         sheet(faculty, id).andExpect(jsonPath("$.scores[5].score").value(0));
         jdbc.sql(project).params(id, 2026).update();   // the appraised year is 2025-26: 2025 and 2026 count
-        sheet(faculty, id).andExpect(jsonPath("$.scores[5].score").value(50));
+        sheet(faculty, id).andExpect(jsonPath("$.scores[5].score").value(10));   // 50 for a sanctioned project, limited to 10
     }
 
     // ---- who sees it ----

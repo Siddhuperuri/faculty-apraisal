@@ -35,4 +35,15 @@
     <Bug pattern="HRS_REQUEST_PARAMETER_TO_HTTP_HEADER"/>
   </Match>
 
+  <!--
+    The mail server connection starts in the clear on purpose in two cases, both chosen by the operator in the settings:
+    STARTTLS (the usual port 587), which upgrades the connection to TLS before the password is sent, and NONE, for a mail
+    relay inside the college network. SSL (port 465) uses an SSL socket from the start. Nothing is authenticated or sent
+    before the upgrade.
+  -->
+  <Match>
+    <Class name="edu.svec.fams.auth.SmtpMailer"/>
+    <Bug pattern="UNENCRYPTED_SOCKET"/>
+  </Match>
+
 </FindBugsFilter>

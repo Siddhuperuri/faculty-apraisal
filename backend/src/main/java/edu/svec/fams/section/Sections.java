@@ -26,6 +26,9 @@ public final class Sections {
     /** A faculty member teaches 4 courses in each of the year's 2 semesters; no more can be added. */
     public static final int MAX_COURSES = 8;
 
+    /** A faculty member can record at most 2 funded projects or consultancies in an academic year (and they earn at most 10 marks). */
+    public static final int MAX_FUNDED_PROJECTS = 2;
+
     private static void add(SectionSpec s) { ALL.put(s.key(), s); }
 
     static {
@@ -60,6 +63,13 @@ public final class Sections {
                 .dependentChoice("branch", "program", "BRANCH")
                 .maxRecords(MAX_COURSES, "courses")
                 .summary(TeachingSummary::of));
+
+        // Teaching & Learning: institutional roles held, each earning the marks the scoring policy sets for it
+        add(SectionSpec.list("institutional-roles", "institutional_roles_held",
+                listed("role", "role_code", "Institutional role", true, "INSTITUTIONAL_ROLE"),
+                text("remarks", "remarks", "Remarks", 300, false))
+                .uniqueBy("role")
+                .maxRecords(10, "institutional roles"));
 
         // 2. Student mentoring, project guidance & achievements
         add(SectionSpec.single("mentoring-summary", "student_mentoring",
@@ -158,6 +168,7 @@ public final class Sections {
                 listed("status", "status", "Status", true, "FUNDED_STATUS"),
                 year("year", "year", "Year", true))
                 .dateRange("startDate", "endDate")
+                .maxRecords(MAX_FUNDED_PROJECTS, "funded projects")
                 .summary(Summaries::fundedProjects));
 
         // 7. Patents, books & IPR
@@ -173,7 +184,7 @@ public final class Sections {
                 text("authors", "authors", "Authors", 300, true),
                 text("title", "title", "Title of book or chapter", 300, true),
                 text("publisher", "publisher", "Publisher", 160, true),
-                text("isbn", "isbn", "ISBN", 24, false),
+                FieldSpec.isbn("isbn", "isbn", "ISBN", true),
                 monthYear("monthYear", "month_year", "Month and year", true),
                 listed("type", "type", "Type", true, "BOOK_TYPE"))
                 .summary(Summaries::books));

@@ -138,7 +138,7 @@ final class FormPdfBuilder {
 
         PdfPCell logo = new PdfPCell();
         logo.setBorder(Rectangle.NO_BORDER);
-        try (InputStream in = FormPdfBuilder.class.getResourceAsStream("/report/svec-logo.png")) {
+        try (InputStream in = FormPdfBuilder.class.getResourceAsStream("/report/vasavi-logo.png")) {
             if (in != null) {
                 Image img = Image.getInstance(in.readAllBytes());
                 img.scaleToFit(62, 62);

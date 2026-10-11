@@ -35,7 +35,7 @@ const DETAILS: FieldMeta[] = [
   meta("vidwanId", "Vidwan ID", "TEXT", false, { maxLength: 40 }),
 ];
 const PROFILE_FIELDS = [...IDENTITY, ...DETAILS];
-/** What an account without a faculty record keeps about the person; the same three fields, none of them required. */
+/** What a user without a faculty record keeps about the person; the same three fields, none of them required. */
 const OTHER_IDENTITY: FieldMeta[] = IDENTITY.map((f) => ({ ...f, required: false }));
 
 const EMAIL = meta("email", "College e-mail address", "TEXT", true, { maxLength: 190 });
@@ -54,8 +54,8 @@ function toValues(d: AdminUserDetail): Values {
 }
 
 /**
- * Create an account, or edit a person's details. A role never changes after creation (make a new account instead), and
- * neither does the e-mail address, which is the sign-in name. A new account starts with the standard password.
+ * Create a user, or edit a person's details. A role never changes after creation (make a new user instead), and
+ * neither does the e-mail address, which is the sign-in name. A new user starts with the standard password.
  */
 export function UserFormDialog({
   open,
@@ -66,7 +66,7 @@ export function UserFormDialog({
   onSaved,
 }: {
   open: boolean;
-  /** Present to edit that account; absent to create one. */
+  /** Present to edit that user; absent to create one. */
   userId?: number;
   reference: AdminReference;
   onClose: () => void;
@@ -74,7 +74,7 @@ export function UserFormDialog({
   onSaved: () => void;
 }) {
   return (
-    <Dialog open={open} onClose={onClose} title={userId ? "Edit account" : "Add an account"} wide>
+    <Dialog open={open} onClose={onClose} title={userId ? "Edit user" : "Add a user"} wide>
       <Form userId={userId} reference={reference} onClose={onClose} onCreated={onCreated} onSaved={onSaved} />
     </Dialog>
   );
@@ -109,7 +109,7 @@ function Form({
     get<AdminUserDetail>(`/api/admin/users/${userId}`)
       .then((d) => {
         if (!alive) return;
-        // Accounts of a withdrawn role have no Edit button; the server refuses to change them in any case.
+        // Users of a withdrawn role have no Edit button; the server refuses to change them in any case.
         if (!isWithdrawnRole(d.row.role)) setRole(d.row.role);
         setEmail(d.row.email);
         setValues(toValues(d));
@@ -208,7 +208,7 @@ function Form({
           <div>
             <p className="mb-1 text-[13px] font-semibold tracking-wide">Role</p>
             <p className="rounded-sm border border-line bg-canvas px-3 py-2 text-[15px]">{ROLE_LABEL[role]}</p>
-            <p className="mt-1 text-xs text-muted">A role cannot be changed. Add a new account if someone takes on another role.</p>
+            <p className="mt-1 text-xs text-muted">A role cannot be changed. Add a new user if someone takes on another role.</p>
           </div>
         ) : (
           <ChoiceInput
@@ -259,7 +259,7 @@ function Form({
             ? "The Principal gives the final decision on appraisals the Heads of Department have approved and forwarded. The Director Technical can decide the same appraisals."
             : role === "DIRECTOR"
               ? "The Director Technical gives the final decision on appraisals the Heads of Department have approved and forwarded, for the whole college, in the same way as the Principal."
-              : "Administrators manage accounts, departments, academic years and the scoring policy. They cannot read or change appraisal content."}
+              : "Administrators manage users, departments, academic years and the scoring policy. They cannot read or change appraisal content."}
         </p>
       )}
 
@@ -278,7 +278,7 @@ function Form({
 
       {!editing && (
         <p className="text-sm text-muted">
-          The account starts with the standard password, and the person must replace it when they first sign in.
+          The user starts with the standard password, and the person must replace it when they first sign in.
         </p>
       )}
 
@@ -287,7 +287,7 @@ function Form({
           Cancel
         </Button>
         <Button type="submit" loading={busy}>
-          {editing ? "Save changes" : "Create account"}
+          {editing ? "Save changes" : "Create user"}
         </Button>
       </div>
     </form>

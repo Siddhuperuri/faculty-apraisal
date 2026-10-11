@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChangeRoleDialog } from "@/components/admin/ChangeRoleDialog";
 import { ImportAccountsDialog } from "@/components/admin/ImportAccountsDialog";
 import { OneTimePasswordDialog } from "@/components/admin/OneTimePassword";
 import { UserFormDialog } from "@/components/admin/UserFormDialog";
@@ -15,8 +16,8 @@ import type { AdminReference, AdminUserRow, BulkReset, IssuedPassword, Role } fr
 
 type Pending = { kind: "disable" | "reset"; user: AdminUserRow } | null;
 
-/** Dean and Vice Principal accounts were closed when those levels were withdrawn. They stay listed for the record. */
-const WITHDRAWN_NOTE = "This role has been withdrawn. The account is closed and kept for the record.";
+/** Dean and Vice Principal users were closed when those levels were withdrawn. They stay listed for the record. */
+const WITHDRAWN_NOTE = "This role has been withdrawn. The user is closed and kept for the record.";
 
 type Sort = "" | "name" | "recent" | "oldest" | "role";
 const SORTS: { value: Sort; label: string }[] = [
@@ -47,6 +48,7 @@ export default function UsersPage() {
   const [importing, setImporting] = useState(false);
   const [issued, setIssued] = useState<{ value: IssuedPassword; reason: "created" | "reset" } | null>(null);
   const [pending, setPending] = useState<Pending>(null);
+  const [roleFor, setRoleFor] = useState<AdminUserRow | null>(null);
   const [working, setWorking] = useState(false);
   const [bulkAsked, setBulkAsked] = useState(false);
 
@@ -102,7 +104,7 @@ export default function UsersPage() {
       }
     });
 
-  /** The accounts in the list as filtered, less your own (you would be signed out) and the closed ones of withdrawn roles. */
+  /** The users in the list as filtered, less your own (you would be signed out) and the closed ones of withdrawn roles. */
   const resettable = useMemo(
     () => (rows && reference ? shownRows(rows, reference, { status, department, cadre, signIn }) : []).filter((u) => u.id !== me?.id && !isWithdrawnRole(u.role)),
     [rows, reference, status, department, cadre, signIn, me?.id],
@@ -114,7 +116,7 @@ export default function UsersPage() {
       setBulkAsked(false);
       setNotice(
         `${done.reset} password${done.reset === 1 ? " was" : "s were"} set back to the standard one. ` +
-          `Each person must choose a new password at their next sign-in${done.skipped > 0 ? `; ${done.skipped} account${done.skipped === 1 ? " was" : "s were"} left as ${done.skipped === 1 ? "it was" : "they were"}` : ""}.`,
+          `Each person must choose a new password at their next sign-in${done.skipped > 0 ? `; ${done.skipped} user${done.skipped === 1 ? " was" : "s were"} left as ${done.skipped === 1 ? "it was" : "they were"}` : ""}.`,
       );
       await load();
     });
@@ -143,7 +145,7 @@ export default function UsersPage() {
 
   if (!reference || !rows) {
     return error ? (
-      <Alert tone="error" title="Could not load accounts" action={<Button variant="secondary" size="sm" onClick={() => window.location.reload()}>Reload</Button>}>{error}</Alert>
+      <Alert tone="error" title="Could not load users" action={<Button variant="secondary" size="sm" onClick={() => window.location.reload()}>Reload</Button>}>{error}</Alert>
     ) : (
       <div className="space-y-3" aria-busy="true" aria-label="Loading">
         <Skeleton className="h-10 w-1/3" />
@@ -157,20 +159,20 @@ export default function UsersPage() {
       <div className="rise flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand">Administration</p>
-          <h1 className="mt-1 font-display text-4xl font-medium tracking-tight text-navy">Accounts</h1>
+          <h1 className="mt-1 font-display text-4xl font-medium tracking-tight text-navy">Users</h1>
           <p className="text-sm text-muted">Create sign-ins for faculty, Heads of Department, the Principal, the Director Technical and administrators, one at a time or from a CSV file.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <RefreshButton onRefresh={load} loadedAt={loadedAt} />
-          <Button variant="secondary" onClick={() => setImporting(true)}>Add accounts from a file</Button>
-          <Button onClick={() => setForm({})}>Add an account</Button>
+          <Button variant="secondary" onClick={() => setImporting(true)}>Add users from a file</Button>
+          <Button onClick={() => setForm({})}>Add a user</Button>
         </div>
       </div>
 
       {error && <Alert tone="error" title="Problem">{error}</Alert>}
       {notice && <Alert tone="ok" title="Done">{notice}</Alert>}
 
-      <div role="search" aria-label="Filter accounts" className="space-y-3 rounded-xl border border-line bg-surface/70 p-3 sm:p-4">
+      <div role="search" aria-label="Filter users" className="space-y-3 rounded-xl border border-line bg-surface/70 p-3 sm:p-4">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[14rem] flex-1">
             <label htmlFor="user-search" className="mb-1 block text-sm font-medium">Search</label>
@@ -196,21 +198,21 @@ export default function UsersPage() {
         </div>
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted" role="status">
           <span>
-            {narrowed ? `Showing ${shown.length} of ${rows.length}` : `${rows.length}`} account{(narrowed ? shown.length : rows.length) === 1 ? "" : "s"}
+            {narrowed ? `Showing ${shown.length} of ${rows.length}` : `${rows.length}`} user{(narrowed ? shown.length : rows.length) === 1 ? "" : "s"}
             {rows.length >= 500 ? " (the first 500; narrow the search)" : ""}
           </span>
           {(narrowed || query || role || sort) && <Button variant="ghost" size="sm" onClick={clearAll}>Clear all filters</Button>}
           <Button variant="secondary" size="sm" className="ml-auto" disabled={resettable.length === 0 || working} onClick={() => setBulkAsked(true)}>
-            Reset the passwords of these {resettable.length} account{resettable.length === 1 ? "" : "s"}…
+            Reset the passwords of these {resettable.length} user{resettable.length === 1 ? "" : "s"}…
           </Button>
         </div>
       </div>
 
       {shown.length === 0 ? (
-        <EmptyState>{query || role || narrowed ? "No accounts match your search." : "There are no accounts yet."}</EmptyState>
+        <EmptyState>{query || role || narrowed ? "No users match your search." : "There are no users yet."}</EmptyState>
       ) : (
         <>
-        <ul className="rise grid gap-3 sm:hidden" style={{ "--i": 2 } as React.CSSProperties} aria-label="Accounts">
+        <ul className="rise grid gap-3 sm:hidden" style={{ "--i": 2 } as React.CSSProperties} aria-label="Users">
           {shown.map((u) => {
             const self = u.id === me?.id;
             const closed = isWithdrawnRole(u.role);
@@ -237,11 +239,12 @@ export default function UsersPage() {
                 {closed ? <p className="mt-4 border-t border-line pt-3 text-xs text-muted">{WITHDRAWN_NOTE}</p> : (
                 <div className="mt-4 grid grid-cols-2 gap-2 border-t border-line pt-3">
                   <Button variant="secondary" size="sm" className="w-full" onClick={() => setForm({ userId: u.id })}>Edit<span className="sr-only"> {u.email}</span></Button>
-                  <Button variant="secondary" size="sm" className="w-full" disabled={self || working} title={self ? "Use Account > Change password for your own account" : undefined} onClick={() => setPending({ kind: "reset", user: u })}>Reset password<span className="sr-only"> for {u.email}</span></Button>
+                  <Button variant="secondary" size="sm" className="w-full" disabled={self || working || u.status !== "ACTIVE"} title={self ? "You cannot change your own role" : u.status !== "ACTIVE" ? "Enable the user first" : undefined} onClick={() => setRoleFor(u)}>Change role<span className="sr-only"> {u.email}</span></Button>
+                  <Button variant="secondary" size="sm" className="w-full" disabled={self || working} title={self ? "Use Account > Change password for your own sign-in" : undefined} onClick={() => setPending({ kind: "reset", user: u })}>Reset password<span className="sr-only"> for {u.email}</span></Button>
                   {u.status === "ACTIVE" ? (
-                    <Button variant="secondary" size="sm" className="col-span-2 w-full" disabled={self || working} title={self ? "You cannot disable your own account" : undefined} onClick={() => setPending({ kind: "disable", user: u })}>Disable account<span className="sr-only"> {u.email}</span></Button>
+                    <Button variant="secondary" size="sm" className="col-span-2 w-full" disabled={self || working} title={self ? "You cannot disable your own sign-in" : undefined} onClick={() => setPending({ kind: "disable", user: u })}>Disable user<span className="sr-only"> {u.email}</span></Button>
                   ) : (
-                    <Button variant="secondary" size="sm" className="col-span-2 w-full" disabled={working} onClick={() => void enable(u)}>Enable account<span className="sr-only"> {u.email}</span></Button>
+                    <Button variant="secondary" size="sm" className="col-span-2 w-full" disabled={working} onClick={() => void enable(u)}>Enable user<span className="sr-only"> {u.email}</span></Button>
                   )}
                 </div>
                 )}
@@ -251,7 +254,7 @@ export default function UsersPage() {
         </ul>
         <div className="rise hidden overflow-x-auto rounded-xl border border-line bg-surface shadow-[var(--shadow-paper)] sm:block" style={{ "--i": 2 } as React.CSSProperties}>
           <table className="w-full min-w-[56rem] border-collapse text-left text-sm">
-            <caption className="sr-only">Accounts</caption>
+            <caption className="sr-only">Users</caption>
             <thead>
               <tr className="bg-brand-soft text-navy">
                 {["Person", "Role", "Department", "Status", "Last sign-in", ""].map((h, i) => (
@@ -297,11 +300,14 @@ export default function UsersPage() {
                         <Button variant="secondary" size="sm" onClick={() => setForm({ userId: u.id })}>
                           Edit<span className="sr-only"> {u.email}</span>
                         </Button>
-                        <Button variant="secondary" size="sm" disabled={self || working} title={self ? "Use Account > Change password for your own account" : undefined} onClick={() => setPending({ kind: "reset", user: u })}>
+                        <Button variant="secondary" size="sm" disabled={self || working || u.status !== "ACTIVE"} title={self ? "You cannot change your own role" : u.status !== "ACTIVE" ? "Enable the user first" : undefined} onClick={() => setRoleFor(u)}>
+                          Change role<span className="sr-only"> {u.email}</span>
+                        </Button>
+                        <Button variant="secondary" size="sm" disabled={self || working} title={self ? "Use Account > Change password for your own sign-in" : undefined} onClick={() => setPending({ kind: "reset", user: u })}>
                           Reset password<span className="sr-only"> for {u.email}</span>
                         </Button>
                         {u.status === "ACTIVE" ? (
-                          <Button variant="secondary" size="sm" disabled={self || working} title={self ? "You cannot disable your own account" : undefined} onClick={() => setPending({ kind: "disable", user: u })}>
+                          <Button variant="secondary" size="sm" disabled={self || working} title={self ? "You cannot disable your own sign-in" : undefined} onClick={() => setPending({ kind: "disable", user: u })}>
                             Disable<span className="sr-only"> {u.email}</span>
                           </Button>
                         ) : (
@@ -335,6 +341,15 @@ export default function UsersPage() {
           void load();
         }}
       />
+      <ChangeRoleDialog
+        user={roleFor}
+        reference={reference}
+        onClose={() => setRoleFor(null)}
+        onChanged={(message) => {
+          setNotice(message);
+          void load();
+        }}
+      />
       <ImportAccountsDialog open={importing} reference={reference} onClose={() => setImporting(false)} onImported={() => void load()} />
       <OneTimePasswordDialog issued={issued?.value ?? null} reason={issued?.reason ?? "created"} onClose={() => setIssued(null)} />
       <ConfirmDialog
@@ -345,11 +360,11 @@ export default function UsersPage() {
         message={
           <div className="space-y-2">
             <p>
-              Every account in the list as you have filtered it ({resettable.length}; not your own, and not closed accounts) will be signed out everywhere, and its current
+              Every user in the list as you have filtered it ({resettable.length}; not your own, and not closed users) will be signed out everywhere, and its current
               password stops working. Each password becomes the standard one, which its owner must replace at their next sign-in.
             </p>
             <p>
-              Anyone who knows the standard password and an e-mail address can sign in to an account until its owner has done so, so reset only the accounts
+              Anyone who knows the standard password and an e-mail address can sign in to a user until its owner has done so, so reset only the users
               whose owners are about to sign in.
             </p>
           </div>
@@ -360,12 +375,12 @@ export default function UsersPage() {
       <ConfirmDialog
         open={pending !== null}
         destructive={pending?.kind === "disable"}
-        title={pending?.kind === "disable" ? "Disable this account?" : "Reset this password?"}
-        confirmLabel={pending?.kind === "disable" ? "Disable account" : "Reset password"}
+        title={pending?.kind === "disable" ? "Disable this user?" : "Reset this password?"}
+        confirmLabel={pending?.kind === "disable" ? "Disable user" : "Reset password"}
         message={
           pending?.kind === "disable" ? (
             <p>
-              <span className="font-semibold">{pending.user.email}</span> will be signed out at once and cannot sign in until you enable the account again. Their appraisals and
+              <span className="font-semibold">{pending.user.email}</span> will be signed out at once and cannot sign in until you enable the user again. Their appraisals and
               history are kept.
             </p>
           ) : (
@@ -403,7 +418,7 @@ function Filter({ id, label, value, onChange, all, options }: {
 }
 
 /**
- * The loaded accounts as narrowed by the filters that work in the browser (the search and the role were asked of the
+ * The loaded users as narrowed by the filters that work in the browser (the search and the role were asked of the
  * server), in the chosen order.
  */
 function shownRows(
@@ -427,7 +442,7 @@ function shownRows(
   if (sort === "name") out.sort((a, b) => label(a).localeCompare(label(b)));
   if (sort === "role") out.sort((a, b) => (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9) || label(a).localeCompare(label(b)));
   if (sort === "recent" || sort === "oldest") {
-    // An account that has never signed in counts as the longest ago: first when sorting oldest first, last otherwise.
+    // A user that has never signed in counts as the longest ago: first when sorting oldest first, last otherwise.
     out.sort((x, y) => (sort === "recent" ? (time(y) ?? 0) - (time(x) ?? 0) : (time(x) ?? 0) - (time(y) ?? 0)));
   }
   return out;

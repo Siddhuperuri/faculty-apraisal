@@ -94,6 +94,7 @@ export const ACTION_LABEL: Record<string, string> = {
   RESUBMIT: "Corrected and sent again by faculty",
   START_HOD_REVIEW: "HoD began the review",
   HOD_APPROVE: "HoD approved it and forwarded it to the Principal or Director Technical",
+  HOD_REVOKE: "HoD revoked it",
   START_PRINCIPAL_REVIEW: "Principal began the review",
   PRINCIPAL_APPROVE: "Principal approved it",
   START_DIRECTOR_REVIEW: "Director Technical began the review",

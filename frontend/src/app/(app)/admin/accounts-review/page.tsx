@@ -54,7 +54,7 @@ export default function AccountReviewPage() {
   }, [load]);
 
   if (error) {
-    return <Alert tone="error" title="Could not load the account review" action={<Button variant="secondary" size="sm" onClick={() => void load()}>Try again</Button>}>{error}</Alert>;
+    return <Alert tone="error" title="Could not load the user review" action={<Button variant="secondary" size="sm" onClick={() => void load()}>Try again</Button>}>{error}</Alert>;
   }
   if (!hygiene || !imports) {
     return (
@@ -71,12 +71,12 @@ export default function AccountReviewPage() {
 
   return (
     <div className="space-y-8">
-      <ConsoleHeader eyebrow="Administration" title="Account review" aside={<RefreshButton onRefresh={load} loadedAt={loadedAt} />}>
-        Accounts to tidy: unused, duplicated, incomplete or left behind. Nothing here changes by itself.
+      <ConsoleHeader eyebrow="Administration" title="User review" aside={<RefreshButton onRefresh={load} loadedAt={loadedAt} />}>
+        Users to tidy: unused, duplicated, incomplete or left behind. Nothing here changes by itself.
       </ConsoleHeader>
 
       <div className="rise grid gap-3 sm:grid-cols-2 lg:grid-cols-5" style={{ "--i": 1 } as React.CSSProperties}>
-        <StatTile label="Never signed in" value={hygiene.neverSignedIn} tone={hygiene.neverSignedIn > 0 ? "warn" : "plain"} hint="Active accounts never used" />
+        <StatTile label="Never signed in" value={hygiene.neverSignedIn} tone={hygiene.neverSignedIn > 0 ? "warn" : "plain"} hint="Active users never used" />
         <StatTile label="Still on the old password" value={hygiene.temporaryPassword} tone={hygiene.temporaryPassword > 0 ? "warn" : "plain"} hint="Must choose their own at sign-in" />
         <StatTile label="Disabled" value={hygiene.disabled} hint="Cannot sign in" />
         <StatTile label="Possible duplicates" value={duplicates} tone={duplicates > 0 ? "warn" : "ok"} hint="Employee IDs or contact numbers shared" />
@@ -86,7 +86,7 @@ export default function AccountReviewPage() {
       <section aria-labelledby="dup-h" className="space-y-3">
         <RuledHeading id="dup-h">Possible duplicates and gaps</RuledHeading>
         {duplicates === 0 && gaps === 0 ? (
-          <Alert tone="ok" title="Nothing to tidy">No two active accounts share an employee ID or contact number, and every faculty member and Head of the Department has a department.</Alert>
+          <Alert tone="ok" title="Nothing to tidy">No two active users share an employee ID or contact number, and every faculty member and Head of the Department has a department.</Alert>
         ) : (
           <Card className="divide-y divide-line">
             {hygiene.duplicateEmployeeIds.map((d) => (
@@ -109,7 +109,7 @@ export default function AccountReviewPage() {
             ))}
           </Card>
         )}
-        <p className="text-xs text-muted">Employee IDs are compared ignoring capitals, spaces and punctuation, and contact numbers by their last ten digits. Fix a record from the Accounts page; disable a duplicate below or there.</p>
+        <p className="text-xs text-muted">Employee IDs are compared ignoring capitals, spaces and punctuation, and contact numbers by their last ten digits. Fix a record from the Users page; disable a duplicate below or there.</p>
       </section>
 
       <InactiveReview onChanged={load} />
@@ -117,11 +117,11 @@ export default function AccountReviewPage() {
       <section aria-labelledby="imp-h" className="space-y-3">
         <RuledHeading id="imp-h">Import history</RuledHeading>
         {imports.length === 0 ? (
-          <EmptyState>No file has been imported yet. Use &ldquo;Add accounts from a file&rdquo; on the Accounts page.</EmptyState>
+          <EmptyState>No file has been imported yet. Use &ldquo;Add users from a file&rdquo; on the Users page.</EmptyState>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-line bg-surface shadow-[var(--shadow-paper)]">
             <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
-              <caption className="sr-only">Account imports, newest first</caption>
+              <caption className="sr-only">User imports, newest first</caption>
               <thead>
                 <tr className="bg-brand-soft text-navy">
                   {["When", "By", "Rows in file", "Accounts created", "Rows refused", "Result", ""].map((h, i) => (
@@ -151,13 +151,13 @@ export default function AccountReviewPage() {
             </table>
           </div>
         )}
-        <p className="text-xs text-muted">An import is all or nothing: a refused file creates no accounts. The most recent 50 imports are kept.</p>
+        <p className="text-xs text-muted">An import is all or nothing: a refused file creates no users. The most recent 50 imports are kept.</p>
       </section>
     </div>
   );
 }
 
-/** Accounts nobody has signed in to for a chosen period, each with a way to disable it. */
+/** Users nobody has signed in to for a chosen period, each with a way to disable it. */
 function InactiveReview({ onChanged }: { onChanged: () => Promise<void> }) {
   const [days, setDays] = useState(90);
   const [rows, setRows] = useState<InactiveAccount[] | null>(null);
@@ -187,7 +187,7 @@ function InactiveReview({ onChanged }: { onChanged: () => Promise<void> }) {
       setError(null);
       await Promise.all([load(), onChanged()]);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not disable the account.");
+      setError(e instanceof ApiError ? e.message : "Could not disable the user.");
     } finally {
       setTarget(null);
     }
@@ -196,7 +196,7 @@ function InactiveReview({ onChanged }: { onChanged: () => Promise<void> }) {
   return (
     <section aria-labelledby="inactive-h" className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <RuledHeading id="inactive-h">Inactive accounts</RuledHeading>
+        <RuledHeading id="inactive-h">Inactive users</RuledHeading>
         <div>
           <label htmlFor="inactive-days" className="mb-1 block text-sm font-medium">Not signed in for</label>
           <select id="inactive-days" value={days} onChange={(e) => { setDays(Number(e.target.value)); setNotice(null); }} className="rounded-sm border border-line-strong bg-surface px-3 py-2 text-sm">
@@ -209,14 +209,14 @@ function InactiveReview({ onChanged }: { onChanged: () => Promise<void> }) {
       {!rows ? (
         <Skeleton className="h-24 w-full" />
       ) : rows.length === 0 ? (
-        <Alert tone="ok" title="No inactive accounts">Every active account has been used within the last {days} days.</Alert>
+        <Alert tone="ok" title="No inactive users">Every active user has been used within the last {days} days.</Alert>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line bg-surface shadow-[var(--shadow-paper)]">
           <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
-            <caption className="sr-only">Active accounts not used for {days} days</caption>
+            <caption className="sr-only">Active users not used for {days} days</caption>
             <thead>
               <tr className="bg-brand-soft text-navy">
-                {["Account", "Role", "Department", "Last signed in", ""].map((h, i) => (
+                {["User", "Role", "Department", "Last signed in", ""].map((h, i) => (
                   <th key={i} scope="col" className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em]">{h || <span className="sr-only">Action</span>}</th>
                 ))}
               </tr>
@@ -237,10 +237,10 @@ function InactiveReview({ onChanged }: { onChanged: () => Promise<void> }) {
           </table>
         </div>
       )}
-      <p className="text-xs text-muted">An account never used is counted from the day it was created. Disabling ends the person&apos;s sessions at once; an administrator can enable the account again.</p>
+      <p className="text-xs text-muted">A user never used is counted from the day it was created. Disabling ends the person&apos;s sessions at once; an administrator can enable the user again.</p>
       <ConfirmDialog
         open={target !== null}
-        title="Disable this account?"
+        title="Disable this user?"
         destructive
         confirmLabel="Disable"
         onCancel={() => setTarget(null)}

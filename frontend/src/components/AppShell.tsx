@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { SessionTimeout } from "@/components/auth/SessionTimeout";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/primitives";
 import { ROLE_LABEL } from "@/lib/labels";
@@ -62,6 +63,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
       <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
         {children}
+        <SessionTimeout />
       </main>
       <footer className="px-4 pb-7 pt-3 text-center text-xs text-muted">
         <div className="mx-auto mb-4 h-px max-w-sm bg-gradient-to-r from-transparent via-line-strong to-transparent" aria-hidden />

@@ -36,6 +36,8 @@ export interface SectionUi {
   summary?: { key: string; label: string; format: SummaryFormat }[];
   /** Text-field suggestions that are fixed in this file (free text is still allowed); the lists in the database are preferred. */
   suggestions?: Record<string, string[]>;
+  /** A code and a name that are chosen together from ECAP (a course picker); they cannot be typed. */
+  ecapCourse?: { code: string; name: string };
   /** Choice fields shown as radio buttons (one of a few options) instead of a drop-down. */
   radios?: string[];
   /** Helper text shown under a field in the form, by field name. */
@@ -78,12 +80,13 @@ export const PAGES: PageUi[] = [
     number: "02",
     title: "Teaching & Learning",
     formRef: "Part B · 1",
-    description: "Courses you handled during the academic year, with pass percentage and feedback percentages.",
+    description: "Courses you handled during the academic year (chosen from ECAP), with pass percentage and feedback percentages, and any institutional roles you held.",
     sections: [
       {
         key: "teaching-courses",
         title: "Courses handled during the Academic Year",
         addLabel: "Add course",
+        ecapCourse: { code: "courseCode", name: "courseName" },
         columns: [
           { header: "Course Code & Name (Theory / Lab)", render: (r) => `${s(r.courseCode)} · ${s(r.courseName)} (${fieldLabel("teaching-courses", "courseType", r.courseType)})` },
           { header: "Program & Branch", render: (r) => `${fieldLabel("teaching-courses", "program", r.program)} · ${fieldLabel("teaching-courses", "branch", r.branch)}` },
@@ -115,6 +118,15 @@ export const PAGES: PageUi[] = [
           { key: "averageFeedback", label: "Average Feedback % (Ph-1 & Ph-2)", format: "percent" },
         ],
         emptyText: "No courses added yet.",
+      },
+      {
+        key: "institutional-roles",
+        title: "Institutional roles held",
+        addLabel: "Add role",
+        columns: ["role", "remarks"],
+        headers: { role: "Role", remarks: "Remarks" },
+        hint: "Roles such as Head of the Department or Associate Dean earn the marks the college has set for them under the scoring policy; they count within the Teaching & Learning maximum.",
+        emptyText: "No institutional roles added.",
       },
     ],
   },
@@ -306,13 +318,14 @@ export const PAGES: PageUi[] = [
         ],
         headers: { title: "Title", type: "Type", fundingAgencyClient: "Funding Agency / Client", amount: "Amount (Rs.)", status: "Status", year: "Year" },
         filters: ["status", "type", "role", "year"],
+        maxRecords: 2,
         summary: [
           { key: "sanctioned", label: "Sanctioned", format: "count" },
           { key: "applied", label: "Applied", format: "count" },
           { key: "totalAmountSanctioned", label: "Total Amount Sanctioned (Rs.)", format: "rupees" },
           { key: "consultancyRevenue", label: "Consultancy Revenue (Rs.)", format: "rupees" },
         ],
-        hint: "Only projects whose year falls in the academic year being appraised are accepted, and only those earn marks.",
+        hint: "At most 2 projects can be added for the academic year, and together they earn at most 10 marks. Only projects whose year falls in the academic year being appraised are accepted.",
         emptyText: "No projects added yet.",
       },
     ],

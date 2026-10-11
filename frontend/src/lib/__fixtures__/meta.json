@@ -475,6 +475,54 @@
   "dateRanges" : [ ],
   "uniqueField" : null
 }, {
+  "key" : "institutional-roles",
+  "singleton" : false,
+  "fields" : [ {
+    "name" : "role",
+    "label" : "Institutional role",
+    "type" : "ENUM",
+    "required" : true,
+    "submitRequired" : false,
+    "maxLength" : null,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : [ "HOD", "ASSOCIATE_DEAN", "DEAN" ],
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null,
+    "labels" : {
+      "HOD" : "Head of the Department (HoD)",
+      "ASSOCIATE_DEAN" : "Associate Dean",
+      "DEAN" : "Dean"
+    },
+    "suggestions" : null
+  }, {
+    "name" : "remarks",
+    "label" : "Remarks",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 300,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null,
+    "labels" : null,
+    "suggestions" : null
+  } ],
+  "dateRanges" : [ ],
+  "uniqueField" : "role"
+}, {
   "key" : "mentoring-summary",
   "singleton" : true,
   "fields" : [ {
@@ -930,8 +978,8 @@
     "onlyWhenEquals" : null,
     "labels" : null,
     "suggestions" : {
-      "INSTITUTE" : [ "NAAC / NBA criterion coordinator", "IQAC", "Exam Cell", "Training & Placement", "NSS / NCC", "Anti-Ragging" ],
-      "DEPARTMENT" : [ "Class Coordinator", "Module Coordinator", "Lab In-charge", "Time-table In-charge", "NAAC / NBA criterion coordinator", "IQAC", "Exam Cell", "Training & Placement", "NSS / NCC", "Anti-Ragging" ]
+      "DEPARTMENT" : [ "Class Coordinator", "Module Coordinator", "Lab In-charge", "Time-table In-charge", "NAAC / NBA criterion coordinator", "IQAC", "Exam Cell", "Training & Placement", "NSS / NCC", "Anti-Ragging" ],
+      "INSTITUTE" : [ "NAAC / NBA criterion coordinator", "IQAC", "Exam Cell", "Training & Placement", "NSS / NCC", "Anti-Ragging" ]
     }
   }, {
     "name" : "description",
@@ -2116,7 +2164,7 @@
     "name" : "isbn",
     "label" : "ISBN",
     "type" : "TEXT",
-    "required" : false,
+    "required" : true,
     "submitRequired" : false,
     "maxLength" : 24,
     "min" : null,

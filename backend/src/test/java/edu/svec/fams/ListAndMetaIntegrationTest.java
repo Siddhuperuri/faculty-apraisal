@@ -89,7 +89,7 @@ class ListAndMetaIntegrationTest {
     void metaDescribesEverySectionForTheForms() throws Exception {
         mvc.perform(get("/api/sections/meta").with(user(f1)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(20))
+                .andExpect(jsonPath("$.length()").value(21))
                 .andExpect(jsonPath("$[0].key").value("general-information"))
                 .andExpect(jsonPath("$[1].key").value("teaching-courses"))
                 .andExpect(jsonPath("$[1].singleton").value(false))

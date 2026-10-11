@@ -10,7 +10,9 @@ import { get } from "@/lib/api";
 import { auditActionLabel, describeDetails } from "@/lib/adminLabels";
 import { formatDateTime } from "@/lib/format";
 import { roleLabel } from "@/lib/labels";
-import type { AdminOverview, BackupHealth, SetupCheck, StorageHealth } from "@/lib/types";
+import { STATUS_COLOUR } from "@/components/admin/Charts";
+import { STATUS_INFO } from "@/lib/labels";
+import type { AdminOverview, Analytics, BackupHealth, SetupCheck, StorageHealth } from "@/lib/types";
 
 const LEVEL: Record<SetupCheck["level"], { mark: string; word: string; cls: string }> = {
   ok: { mark: "✓", word: "In order", cls: "text-ok" },
@@ -23,6 +25,7 @@ export default function AdminOverviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [backup, setBackup] = useState<BackupHealth | null>(null);
   const [storage, setStorage] = useState<StorageHealth | null>(null);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loadedAt, stamp] = useLoadedAt();
 
   const load = useCallback(async () => {
@@ -31,9 +34,14 @@ export default function AdminOverviewPage() {
       setError(null);
       stamp();
       // The health checks are an addition to the overview: if one cannot be read the overview still shows.
-      const [b, s] = await Promise.allSettled([get<BackupHealth>("/api/admin/backup-health"), get<StorageHealth>("/api/admin/storage-health")]);
+      const [b, s, a] = await Promise.allSettled([
+        get<BackupHealth>("/api/admin/backup-health"),
+        get<StorageHealth>("/api/admin/storage-health"),
+        get<Analytics>("/api/admin/analytics"),
+      ]);
       setBackup(b.status === "fulfilled" ? b.value : null);
       setStorage(s.status === "fulfilled" ? s.value : null);
+      setAnalytics(a.status === "fulfilled" ? a.value : null);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -68,7 +76,7 @@ export default function AdminOverviewPage() {
   return (
     <div className="space-y-8">
       <ConsoleHeader eyebrow="Administration" title="Administrator console" aside={<RefreshButton onRefresh={load} loadedAt={loadedAt} />}>
-        Accounts, set-up and activity. Administrators manage the system; they cannot read or change anyone&apos;s appraisal.
+        Users, set-up and activity. Administrators manage the system; they cannot read or change anyone&apos;s appraisal.
       </ConsoleHeader>
 
       <HealthBanners backup={backup} storage={storage} />
@@ -82,11 +90,44 @@ export default function AdminOverviewPage() {
       )}
 
       <div className="rise grid gap-3 sm:grid-cols-2 lg:grid-cols-4" style={{ "--i": 1 } as React.CSSProperties}>
-        <StatTile label="Active accounts" value={active} href="/admin/users" hint={`${disabled} disabled`} />
-        <StatTile label="Not yet signed in" value={data.neverSignedIn} tone={data.neverSignedIn > 0 ? "warn" : "plain"} href="/admin/users" hint="Active accounts that have never been used" />
+        <StatTile label="Active users" value={active} href="/admin/users" hint={`${disabled} disabled`} />
+        <StatTile label="Not yet signed in" value={data.neverSignedIn} tone={data.neverSignedIn > 0 ? "warn" : "plain"} href="/admin/users" hint="Active users that have never been used" />
         <StatTile label="Academic year" value={data.year?.name ?? "None"} href="/admin/setup" hint="Where new appraisals start" />
         <StatTile label="Appraisals started" value={started} hint={`${p.NOT_STARTED ?? 0} faculty have not started`} />
       </div>
+
+      {analytics && (
+        <section aria-labelledby="depts-h" className="space-y-3">
+          <RuledHeading id="depts-h">Departments, {analytics.year.name}</RuledHeading>
+          <p className="text-sm text-muted">
+            Each department separately: its faculty and how far their appraisals have got. Counts only.{" "}
+            <Link href="/admin/analytics" className="font-medium text-brand hover:underline">Charts and rates</Link>
+          </p>
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {analytics.departments.map((d) => (
+              <li key={d.id} className="rounded-lg border border-line bg-surface p-4 shadow-[var(--shadow-paper)]">
+                <div className="flex items-baseline justify-between gap-2">
+                  <h3 className="font-display text-lg font-medium text-navy">{d.code}</h3>
+                  <span className="text-xs text-muted">{d.faculty} faculty · {d.headsOfDepartment} HoD{d.headsOfDepartment === 1 ? "" : "s"}</span>
+                </div>
+                <p className="truncate text-xs text-muted" title={d.name}>{d.name}{d.active ? "" : " (closed)"}</p>
+                <div className="mt-3 flex h-3 overflow-hidden rounded-sm bg-canvas" role="img"
+                  aria-label={`${d.started} appraisals started: ${Object.entries(d.byStatus).filter(([, v]) => v > 0).map(([k, v]) => `${v} ${STATUS_INFO[k as keyof typeof STATUS_INFO].label}`).join(", ") || "none"}`}>
+                  {Object.entries(d.byStatus).filter(([, v]) => v > 0).map(([k, v]) => (
+                    <span key={k} style={{ width: `${(v / Math.max(1, d.faculty, d.started)) * 100}%`, background: STATUS_COLOUR[k] }} />
+                  ))}
+                </div>
+                <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-sm">
+                  <div><dt className="text-[10px] uppercase tracking-wide text-muted">Started</dt><dd className="font-semibold tabular-nums">{d.started}</dd></div>
+                  <div><dt className="text-[10px] uppercase tracking-wide text-muted">Submitted</dt><dd className="font-semibold tabular-nums">{d.submitted}</dd></div>
+                  <div><dt className="text-[10px] uppercase tracking-wide text-muted">Approved</dt><dd className="font-semibold tabular-nums">{d.approved}</dd></div>
+                </dl>
+                {d.headsOfDepartment === 0 && d.faculty > 0 && <p className="mt-2 text-xs font-medium text-bad">No Head of the Department is assigned.</p>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section aria-labelledby="checks-h" className="space-y-3">
         <RuledHeading id="checks-h">Set-up checks</RuledHeading>
@@ -111,10 +152,10 @@ export default function AdminOverviewPage() {
 
       <div className="grid gap-8 lg:grid-cols-2">
         <section aria-labelledby="accts-h" className="space-y-3">
-          <RuledHeading id="accts-h">Accounts by role</RuledHeading>
+          <RuledHeading id="accts-h">Users by role</RuledHeading>
           <div className="overflow-x-auto rounded-lg border border-line bg-surface shadow-[var(--shadow-paper)]">
             <table className="w-full border-collapse text-left text-sm">
-              <caption className="sr-only">Accounts by role</caption>
+              <caption className="sr-only">Users by role</caption>
               <thead>
                 <tr className="bg-brand-soft text-navy">
                   <th scope="col" className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em]">Role</th>
@@ -133,7 +174,7 @@ export default function AdminOverviewPage() {
               </tbody>
             </table>
           </div>
-          <Link href="/admin/users" className={linkButton("secondary")}>Manage accounts</Link>
+          <Link href="/admin/users" className={linkButton("secondary")}>Manage users</Link>
         </section>
 
         <section aria-labelledby="pipe-h" className="space-y-3">

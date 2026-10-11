@@ -81,7 +81,9 @@ class WorkflowIntegrationTest {
         long id = createAppraisal(faculty);
         Integer total = jdbc.sql("SELECT SUM(max_marks) FROM appraisal_scores WHERE appraisal_id = ?")
                 .param(id).query(Integer.class).single();
-        assertEquals(85, total); // Assistant Professor: B1 40, B2 15, B3 15, B4 15; B5 to B9 are marked per entry
+        // Assistant Professor: B1 40, B2 15, B3 15, B4 15, and the limits of the per-entry criteria (V35): funded projects 10,
+        // outreach 10, memberships 5; B5 and B7 have no limit
+        assertEquals(110, total);
         call(faculty, "GET", "/api/appraisals/" + id, null)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DRAFT"))
@@ -113,9 +115,9 @@ class WorkflowIntegrationTest {
         // Institution publishes a further policy version (4, after the document's 1, V24's 2 and the current policy's 3) for the Professor cadre with different marks.
         long yearId = jdbc.sql("SELECT id FROM academic_years WHERE name = '2025-26'").query(Long.class).single();
         long cadreId = jdbc.sql("SELECT id FROM cadres WHERE code = 'PROFESSOR'").query(Long.class).single();
-        jdbc.sql("INSERT INTO scoring_policies (academic_year_id, cadre_id, version) VALUES (?,?,4)")
+        jdbc.sql("INSERT INTO scoring_policies (academic_year_id, cadre_id, version) VALUES (?,?,5)")
                 .params(yearId, cadreId).update();
-        long v2 = jdbc.sql("SELECT id FROM scoring_policies WHERE cadre_id = ? AND version = 4")
+        long v2 = jdbc.sql("SELECT id FROM scoring_policies WHERE cadre_id = ? AND version = 5")
                 .param(cadreId).query(Long.class).single();
         jdbc.sql("INSERT INTO scoring_policy_criteria (policy_id, criterion, max_marks) VALUES (?, 'TEACHING_LEARNING', 100)")
                 .param(v2).update();

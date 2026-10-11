@@ -7,6 +7,8 @@ import { formatCell } from "@/lib/format";
 import type { Column, SectionUi } from "@/lib/formStructure";
 import type { FieldMeta, Rec, SectionMeta } from "@/lib/types";
 import { applyDependencies, toApiRecord, toFormValues, validate, serverErrorsFor, type FieldErrors, type FormValues } from "@/lib/validate";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { clearDraft, draftKey, loadDraft, saveDraft } from "@/lib/draftStore";
 import { useAppraisal } from "./AppraisalProvider";
 import { RecordFields } from "./RecordFields";
 import { SummaryStrip } from "./SummaryStrip";
@@ -274,8 +276,27 @@ function RecordDialog({
   onClose: () => void;
 }) {
   const { saveSection, appraisal } = useAppraisal();
+  const { user } = useAuth();
   const preset = ui.scope ? { [ui.scope.field]: ui.scope.value } : undefined;
-  const [values, setValues] = useState<FormValues>(() => toFormValues(meta, state.record, preset));
+  // What was typed but not saved is kept in this tab (see lib/draftStore) and offered again if the session ended meanwhile.
+  const storeKey = user && appraisal ? draftKey(user.id, appraisal.id, `${ui.key}${ui.scope ? `-${ui.scope.value}` : ""}`, state.mode, state.record?.id) : null;
+  const [restored, setRestored] = useState(false);
+  const [values, setValues] = useState<FormValues>(() => {
+    const saved = storeKey ? loadDraft(storeKey) : null;
+    const base = toFormValues(meta, state.record, preset);
+    if (saved) return { ...base, ...Object.fromEntries(Object.entries(saved).filter(([k]) => k in base)) };
+    return base;
+  });
+  const initial = useRef(values);
+  useEffect(() => {
+    if (!storeKey) return;
+    if (values === initial.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- notes that the form was refilled from a kept draft
+      if (loadDraft(storeKey)) setRestored(true);
+      return;
+    }
+    saveDraft(storeKey, values);
+  }, [values, storeKey]);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -303,6 +324,7 @@ function RecordDialog({
     const result = await saveSection(ui.key, (cur) => (editing ? cur.map((r) => (r.id === editing.id ? record : r)) : [...cur, record]));
     setSaving(false);
     if (result.ok) {
+      if (storeKey) clearDraft(storeKey);
       onClose();
       return;
     }
@@ -325,6 +347,7 @@ function RecordDialog({
     <Dialog open onClose={onClose} title={title} wide>
       <form ref={formRef} onSubmit={submit} noValidate className="space-y-5">
         {state.mode === "duplicate" && <Alert tone="info" title="Duplicating">Change whatever differs, then save as a new record.</Alert>}
+        {restored && <Alert tone="info" title="Your earlier entries were restored">What you had typed before you were signed out is back here. Check it, then save.</Alert>}
         <RecordFields
           meta={meta}
           values={values}
@@ -334,12 +357,13 @@ function RecordDialog({
           radios={ui.radios}
           fieldHints={ui.fieldHints}
           scopeValue={ui.scope?.value}
+          courseFields={ui.ecapCourse}
           onChange={(name, v) => setValues((cur) => applyDependencies(meta, { ...cur, [name]: v }, name))}
           autoFocusFirst
         />
         {formError && <p role="alert" className="text-sm font-medium text-bad">{formError}</p>}
         <div className="flex justify-end gap-2 border-t border-line pt-4">
-          <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" onClick={() => { if (storeKey) clearDraft(storeKey); onClose(); }}>Cancel</Button>
           <Button type="submit" loading={saving}>{state.mode === "edit" ? "Save changes" : "Save record"}</Button>
         </div>
       </form>

@@ -272,6 +272,48 @@ public class AppraisalService {
         return move(id, user, action, core, comment);
     }
 
+    /**
+     * The Head of the Department recalls an appraisal at any stage before the Principal's (or Director Technical's) final
+     * approval, including one already forwarded. No one else's consent is needed. The reason is required and, with the
+     * HoD, the time and both statuses, is written to the audit trail and to the review history. An approved appraisal can
+     * never be revoked.
+     */
+    @Transactional
+    public AppraisalStatus revoke(long id, FamsUserPrincipal user, String reason) {
+        if (user.role() != Role.HOD) throw ApiException.forbidden("Only the Head of the Department can revoke an appraisal.");
+        AppraisalAccess.Core core = access.loadVisible(id, user);   // refuses a department the HoD is not assigned to
+        String why = reason == null ? "" : reason.strip();
+        if (why.isEmpty()) {
+            throw new edu.svec.fams.common.ValidationException(java.util.Map.of("reason", "Please give the reason for revoking."));
+        }
+        if (why.length() > MAX_COMMENT_LENGTH) {
+            throw new edu.svec.fams.common.ValidationException(java.util.Map.of("reason",
+                    "The reason must be at most " + MAX_COMMENT_LENGTH + " characters."));
+        }
+        AppraisalStatus from = core.status();
+        if (from == AppraisalStatus.APPROVED) {
+            throw ApiException.conflict("This appraisal has received its final approval and can no longer be revoked.");
+        }
+        AppraisalStatus to = from.revokeTarget();
+        if (to == null) throw ApiException.conflict("This action is not available while the appraisal is " + from.name() + ".");
+
+        int changed = jdbc.sql("UPDATE appraisals SET status = ? WHERE id = ? AND status = ?")
+                .params(to.name(), id, from.name()).update();
+        if (changed == 0) throw ApiException.conflict("The appraisal was changed by someone else. Please reload.");
+
+        jdbc.sql("""
+                INSERT INTO review_actions (appraisal_id, actor_id, actor_role, action, from_status, to_status, comment)
+                VALUES (?,?,?,?,?,?,?)""")
+                .params(id, user.id(), user.role().name(), "HOD_REVOKE", from.name(), to.name(), why).update();
+        // an open question to the faculty member is closed with the review it belonged to
+        jdbc.sql("UPDATE appraisal_messages SET answered_at = CURRENT_TIMESTAMP WHERE appraisal_id = ? AND answered_at IS NULL")
+                .param(id).update();
+        audit.recordDetails(user.id(), "APPRAISAL_REVOKED", "APPRAISAL", id, java.util.Map.of(
+                "hodId", user.id(), "at", java.time.OffsetDateTime.now().toString(),
+                "reason", why, "fromStatus", from.name(), "toStatus", to.name()));
+        return to;
+    }
+
     private AppraisalStatus move(long id, FamsUserPrincipal user, WorkflowAction action,
                                  AppraisalAccess.Core core, String comment) {
         if (comment != null && comment.length() > MAX_COMMENT_LENGTH) {

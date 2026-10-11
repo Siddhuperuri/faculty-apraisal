@@ -71,6 +71,14 @@ public class AppraisalController {
         return act(id, user, WorkflowAction.Verb.APPROVE, body == null ? null : body.comment());
     }
 
+    /** Body {@code {"reason": "..."}}. The Head of the Department recalls the appraisal before final approval. */
+    @PostMapping("/{id}/review/revoke")
+    public Map<String, String> revoke(@PathVariable long id, @AuthenticationPrincipal FamsUserPrincipal user,
+                                      @RequestBody(required = false) Map<String, Object> body) {
+        Object reason = body == null ? null : body.get("reason");
+        return Map.of("status", service.revoke(id, user, reason instanceof String s ? s : null).name());
+    }
+
     // ---- messages from the Head of the Department to the faculty member ----
 
     @GetMapping("/{id}/messages")
