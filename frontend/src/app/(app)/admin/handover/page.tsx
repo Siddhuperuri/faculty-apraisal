@@ -14,7 +14,7 @@ const RESTORE_STEPS = [
   "On that machine run  scripts\\restore.ps1 -From <backup folder>  without -Overwrite. It checks the backup and says what it would do; nothing is changed.",
   "Stop the backend service.",
   "Run  scripts\\restore.ps1 -From <backup folder> -Overwrite . It replaces the database, puts the stored files back into FAMS_STORAGE_DIR and checks them again.",
-  "Start the backend, sign in as an administrator and check the Overview: accounts, appraisals and the audit trail should be as they were at the time of the backup.",
+  "Start the backend, sign in as an administrator and check the Overview: users, appraisals and the audit trail should be as they were at the time of the backup.",
   "Record what you did under System health, as a restore test.",
 ];
 
@@ -162,10 +162,10 @@ export default function HandoverPage() {
         <Card className="p-4 sm:p-5">
           <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed">
             <li><strong>Every day:</strong> the nightly backup runs. If System health turns red, run <span className="font-mono">scripts\backup.ps1</span> by hand and find out why.</li>
-            <li><strong>Every month:</strong> look at System health (disk space) and Account review (inactive and duplicate accounts).</li>
+            <li><strong>Every month:</strong> look at System health (disk space) and User review (inactive and duplicate users).</li>
             <li><strong>Every year:</strong> follow the end-of-year checklist, and test a restore.</li>
-            <li><strong>When someone forgets their password:</strong> reset it on the Accounts page; they choose a new one at sign-in. Each reset is recorded in the audit trail.</li>
-            <li><strong>When someone leaves:</strong> disable the account (never delete it: their appraisals stay on record).</li>
+            <li><strong>When someone forgets their password:</strong> reset it on the Users page; they choose a new one at sign-in. Each reset is recorded in the audit trail.</li>
+            <li><strong>When someone leaves:</strong> disable the user (never delete it: their appraisals stay on record).</li>
           </ul>
         </Card>
       </section>

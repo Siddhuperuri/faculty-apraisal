@@ -69,6 +69,22 @@ and ignored. The per-entry marks are in code (`ScoringRules`), because they are 
 | | institute-level role | 1.5 | 3 |
 | | event organised or coordinated | 1 | 8 |
 
+## Limits on per-entry criteria, and institutional roles (2026-10-11)
+
+- **Funded projects (B6): at most 2 entries a year and at most 10 marks.** The form, the server (`maxRecords`) and the marks all
+  say the same: a third entry is refused, and whatever the entries are worth, the criterion earns 10 at most.
+- **Outreach (B8) and Memberships, awards & recognitions (B9) are limited too** (10 and 5 in policy version 4). The limits are
+  **policy data**, not code: the criterion's "maximum" in the scoring policy (0 means no limit), changed by publishing a new
+  version under Departments, years & scoring ("Limits for criteria marked per entry"). Appraisals already started keep the limit
+  they began with; drafts moved to version 4 with migration `V35`.
+- **Institutional roles** (Head of the Department, Associate Dean, Dean ...) are held in Teaching & Learning
+  (`institutional-roles`, one entry per role). Each earns the marks set for it in the appraisal's scoring policy
+  (`scoring_policy_role_marks`; version 4: HoD 5, Associate Dean 3, Dean 0) and they are added to the B1 marks inside B1's maximum.
+  The roles are a dropdown list (Admin > Dropdown lists); their marks are set under Admin > Institutional roles. A role added by an
+  administrator earns **0 until its marks are set**.
+- **The parts of B1 are editable policy data** (Departments, years & scoring > Change marks > "Made of"): they must add up to the
+  maximum. The score sheet and the report show the calculation of the workload part ("3 courses x 15 / 8 = 5.625, to a whole mark").
+
 ## Scoring components (criteria B1 to B4)
 
 The college's "Cadre_wise" document, *Scoring criteria B1 to B5 (Annexure A & B)*, gave for each cadre the components

@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { PasswordInput } from "@/components/ui/PasswordInput";
@@ -131,7 +132,7 @@ function LoginForm() {
               </Button>
             </form>
             <p className="mt-8 border-t border-white/15 pt-5 text-xs leading-relaxed text-white/80 [text-shadow:0_1px_6px_rgb(0_0_0/0.55)]">
-              Forgot your password? Ask an administrator to reset it for you.
+              Forgot your password? <Link href="/forgot-password" className="font-semibold text-white underline">Send me a reset link</Link>, or ask an administrator to reset it for you.
             </p>
           </div>
         </main>

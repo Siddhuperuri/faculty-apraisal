@@ -198,6 +198,8 @@ export interface CriterionInfo {
   label: string;
   /** Marked per entry with no maximum (B5 to B9). */
   perEntry: boolean;
+  /** Marked per entry, but the policy may set a limit (Funded projects, Outreach, Memberships): 0 means no limit. */
+  cappable?: boolean;
 }
 
 export interface AdminReference {
@@ -521,4 +523,44 @@ export interface HandoverNote {
   value: string;
   updatedBy: string | null;
   updatedAt: string | null;
+}
+
+// ---- analytics and institutional roles (administration) ----
+
+export interface AnalyticsYear {
+  id: number;
+  name: string;
+  active: boolean;
+}
+
+export interface DepartmentFigures {
+  id: number;
+  code: string;
+  name: string;
+  active: boolean;
+  faculty: number;
+  headsOfDepartment: number;
+  started: number;
+  submitted: number;
+  approved: number;
+  byStatus: Record<string, number>;
+  submissionRate: number;
+  approvalRate: number;
+}
+
+export interface Analytics {
+  year: AnalyticsYear;
+  years: AnalyticsYear[];
+  totals: { faculty: number; started: number; notStarted: number; submitted: number; approved: number; submissionRate: number; approvalRate: number };
+  byStatus: Record<string, number>;
+  departments: DepartmentFigures[];
+  users: { role: string; active: number; disabled: number }[];
+  neverSignedIn: number;
+}
+
+export interface RoleMarks {
+  code: string;
+  label: string;
+  active: boolean;
+  marks: number;
 }

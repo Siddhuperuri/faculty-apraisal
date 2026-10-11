@@ -41,14 +41,22 @@ public class TestDb {
             jdbc.sql("DELETE FROM " + t).update();
         }
         // Remove policy versions, academic years and departments created by tests; keep the seeded reference data.
-        // Versions 1, 2 and 3 are seeded (V2/V9, V24 and V33); only the ones tests publish after them are removed.
-        String extraPolicies = "SELECT id FROM scoring_policies WHERE version > 3"
+        // Versions 1 to 4 are seeded (V2/V9, V24, V33 and V35); only the ones tests publish after them are removed.
+        String extraPolicies = "SELECT id FROM scoring_policies WHERE version > 4"
                 + " OR academic_year_id IN (SELECT id FROM academic_years WHERE name <> '2025-26')";
+        jdbc.sql("DELETE FROM scoring_policy_role_marks WHERE policy_id IN (" + extraPolicies + ")").update();
         jdbc.sql("DELETE FROM scoring_policy_components WHERE policy_id IN (" + extraPolicies + ")").update();
         jdbc.sql("DELETE FROM scoring_policy_criteria WHERE policy_id IN (" + extraPolicies + ")").update();
-        jdbc.sql("DELETE FROM scoring_policies WHERE version > 3"
+        jdbc.sql("DELETE FROM scoring_policies WHERE version > 4"
                 + " OR academic_year_id IN (SELECT id FROM academic_years WHERE name <> '2025-26')").update();
         jdbc.sql("DELETE FROM academic_years WHERE name <> '2025-26'").update();
+        // the marks of the institutional roles go back to what the migration set (HoD 5, Associate Dean 3)
+        jdbc.sql("DELETE FROM scoring_policy_role_marks").update();
+        jdbc.sql("""
+                INSERT INTO scoring_policy_role_marks (policy_id, role_code, marks)
+                SELECT p.id, r.c, r.m FROM scoring_policies p
+                CROSS JOIN (SELECT 'HOD' AS c, 5 AS m UNION ALL SELECT 'ASSOCIATE_DEAN', 3) r
+                WHERE p.version = 4""").update();
         jdbc.sql("UPDATE academic_years SET active = TRUE").update();
         for (String t : new String[] {"hod_assignments", "dean_assignments", "faculty_profiles", "users"}) {
             jdbc.sql("DELETE FROM " + t).update();

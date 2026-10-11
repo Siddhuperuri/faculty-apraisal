@@ -77,7 +77,7 @@ function Departments({ departments, onChanged, onError }: { departments: Departm
     onError(null);
     try {
       await put(`/api/admin/departments/${d.id}`, { name: d.name, active: !d.active });
-      await onChanged(d.active ? `${d.code} was closed to new accounts.` : `${d.code} was reopened.`);
+      await onChanged(d.active ? `${d.code} was closed to new users.` : `${d.code} was reopened.`);
     } catch (e) {
       onError(errorText(e));
     } finally {
@@ -121,7 +121,7 @@ function Departments({ departments, onChanged, onError }: { departments: Departm
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-muted">A closed department cannot be chosen for new accounts. People already in it, and their appraisals, are unaffected. A department&apos;s code never changes.</p>
+      <p className="text-xs text-muted">A closed department cannot be chosen for new users. People already in it, and their appraisals, are unaffected. A department&apos;s code never changes.</p>
       <DepartmentDialog
         open={dialog !== null}
         department={dialog?.department}
@@ -476,16 +476,35 @@ function PolicyDialog({ policy, reference, onClose, onPublished }: { policy: Pol
 
 function PolicyForm({ policy, reference, onClose, onPublished }: { policy: PolicyVersion; reference: AdminReference; onClose: () => void; onPublished: (v: PolicyVersion) => Promise<void> }) {
   const fixed = reference.criteria.filter((c) => !c.perEntry);
-  const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(fixed.map((c) => [c.code, String(policy.marks[c.code] ?? 0)])));
+  // B6, B8 and B9 are marked per entry, and the policy can limit what each may earn (0: no limit).
+  const limited = reference.criteria.filter((c) => c.perEntry && c.cappable);
+  const [values, setValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries([...fixed, ...limited].map((c) => [c.code, String(policy.marks[c.code] ?? 0)])));
+  // The parts a maximum is made of (for Teaching & Learning, the weightage of a cadre): editable, and they must add up.
+  const [parts, setParts] = useState<Record<string, { description: string; marks: string }[]>>(() =>
+    Object.fromEntries(fixed.map((c) => [c.code, (policy.components[c.code] ?? []).map((p) => ({ description: p.description, marks: String(p.maxMarks) }))])));
+  const partsChanged = (code: string) => {
+    const was = policy.components[code] ?? [];
+    const now = parts[code] ?? [];
+    return was.length !== now.length || was.some((p, i) => p.description !== now[i].description || String(p.maxMarks) !== now[i].marks.trim());
+  };
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const numbers = fixed.map((c) => (/^\d{1,3}$/.test(values[c.code].trim()) ? Number(values[c.code].trim()) : NaN));
-  const valid = numbers.every((n) => Number.isInteger(n));
+  const limitNumbers = limited.map((c) => (/^\d{1,3}$/.test(values[c.code].trim()) ? Number(values[c.code].trim()) : NaN));
+  const partsProblem = fixed.reduce<string | null>((found, c, i) => {
+    if (found || !partsChanged(c.code)) return found;
+    const list = parts[c.code] ?? [];
+    const sum = list.reduce((a, p) => a + (/^\d{1,3}$/.test(p.marks.trim()) ? Number(p.marks.trim()) : NaN), 0);
+    if (list.some((p) => p.description.trim() === "" || !/^\d{1,3}$/.test(p.marks.trim()))) return `${c.label}: every part needs a description and whole marks.`;
+    return Number.isInteger(numbers[i]) && sum !== numbers[i] ? `${c.label}: the parts add up to ${sum} but the maximum is ${numbers[i]}.` : null;
+  }, null);
+  const valid = numbers.every((n) => Number.isInteger(n)) && limitNumbers.every((n) => Number.isInteger(n)) && partsProblem === null;
   const total = numbers.reduce((a, n) => a + (Number.isInteger(n) ? n : 0), 0);
   // A criterion's scoring components add up to its maximum, so a changed maximum is published without them.
-  const losingBreakdown = fixed.filter((c, i) => (policy.components[c.code]?.length ?? 0) > 0 && Number.isInteger(numbers[i]) && numbers[i] !== policy.marks[c.code]);
+  const losingBreakdown = fixed.filter((c, i) => (policy.components[c.code]?.length ?? 0) > 0 && !partsChanged(c.code) && Number.isInteger(numbers[i]) && numbers[i] !== policy.marks[c.code]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -494,8 +513,16 @@ function PolicyForm({ policy, reference, onClose, onPublished }: { policy: Polic
     setMessage(null);
     setErrors({});
     try {
-      const marks = Object.fromEntries(fixed.map((c, i) => [c.code, numbers[i]]));
-      const v = await post<PolicyVersion>("/api/admin/policies", { academicYearId: policy.academicYearId, cadreId: policy.cadreId, marks });
+      const marks = Object.fromEntries([...fixed.map((c, i) => [c.code, numbers[i]]), ...limited.map((c, i) => [c.code, limitNumbers[i]])]);
+      const components = Object.fromEntries(
+        fixed.filter((c) => partsChanged(c.code)).map((c) => [c.code, (parts[c.code] ?? []).map((p) => ({ description: p.description.trim(), maxMarks: Number(p.marks.trim()) }))]),
+      );
+      const v = await post<PolicyVersion>("/api/admin/policies", {
+        academicYearId: policy.academicYearId,
+        cadreId: policy.cadreId,
+        marks,
+        ...(Object.keys(components).length > 0 ? { components } : {}),
+      });
       await onPublished(v);
     } catch (err) {
       if (err instanceof ApiError && err.fieldErrors) {
@@ -510,14 +537,13 @@ function PolicyForm({ policy, reference, onClose, onPublished }: { policy: Polic
     <form onSubmit={submit} noValidate className="space-y-4">
       {message && <Alert tone="error" title="Not published">{message}</Alert>}
       <p className="text-sm text-muted">
-        Whole numbers. A criterion that does not apply to this cadre is 0. B5 to B9 are marked per entry and have no maximum, so they are not listed.
+        Whole numbers. A criterion that does not apply to this cadre is 0. B5 to B9 are marked per entry; only Funded projects, Outreach and Memberships can be given a limit.
         {policy.version > 0 ? ` This publishes version ${policy.version + 1}.` : " This publishes version 1."}
       </p>
       <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
         {fixed.map((c) => {
           const raw = values[c.code];
           const bad = !/^\d{1,3}$/.test(raw.trim());
-          const parts = policy.components[c.code] ?? [];
           return (
             <div key={c.code}>
               <FieldInput
@@ -526,13 +552,49 @@ function PolicyForm({ policy, reference, onClose, onPublished }: { policy: Polic
                 onChange={(v) => setValues((s) => ({ ...s, [c.code]: v }))}
                 error={errors[`marks.${c.code}`] ?? (bad ? "Enter a whole number." : undefined)}
               />
-              {parts.length > 0 && (
-                <p className="mt-1 text-xs text-muted">Made of: {parts.map((p) => `${p.description} – ${p.maxMarks}`).join("; ")}.</p>
+              {(parts[c.code] ?? []).length > 0 && (
+                <fieldset className="mt-2 space-y-1 rounded-sm border border-line p-2">
+                  <legend className="px-1 text-xs font-semibold text-muted">Made of (the parts must add up to the maximum)</legend>
+                  {(parts[c.code] ?? []).map((p, pi) => (
+                    <div key={pi} className="flex gap-2">
+                      <input
+                        aria-label={`${c.label}: part ${pi + 1} description`}
+                        className="min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-2 py-1 text-sm"
+                        value={p.description}
+                        onChange={(e) => setParts((s) => ({ ...s, [c.code]: s[c.code].map((x, xi) => (xi === pi ? { ...x, description: e.target.value } : x)) }))}
+                      />
+                      <input
+                        aria-label={`${c.label}: part ${pi + 1} marks`}
+                        inputMode="numeric"
+                        className="w-16 rounded-sm border border-line-strong bg-surface px-2 py-1 text-right text-sm tabular-nums"
+                        value={p.marks}
+                        onChange={(e) => setParts((s) => ({ ...s, [c.code]: s[c.code].map((x, xi) => (xi === pi ? { ...x, marks: e.target.value } : x)) }))}
+                      />
+                    </div>
+                  ))}
+                </fieldset>
               )}
             </div>
           );
         })}
       </div>
+      {limited.length > 0 && (
+        <div>
+          <h4 className="mb-2 text-sm font-semibold">Limits for criteria marked per entry <span className="font-normal text-muted">(0 means no limit)</span></h4>
+          <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+            {limited.map((c) => (
+              <FieldInput
+                key={c.code}
+                meta={{ name: c.code, label: `${c.label}: most it can earn`, type: "INT", required: true, maxLength: null, min: 0, max: MAX_CRITERION, scale: null, allowed: null }}
+                value={values[c.code]}
+                onChange={(v) => setValues((s) => ({ ...s, [c.code]: v }))}
+                error={errors[`marks.${c.code}`] ?? (!/^\d{1,3}$/.test(values[c.code].trim()) ? "Enter a whole number." : undefined)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      {partsProblem && <Alert tone="error" title="The parts do not add up">{partsProblem}</Alert>}
       <div className="flex items-center justify-between rounded-md border border-line bg-canvas px-4 py-2 text-sm font-semibold" role="status">
         <span>Total of B1 to B4</span>
         <span className="font-display text-xl tabular-nums">{valid ? total : "—"}</span>

@@ -14,6 +14,11 @@ import { LEVELS, isReviewer } from "@/lib/hierarchy";
 import { formatDateTime } from "@/lib/format";
 import { statusLine } from "@/lib/labels";
 
+/**
+ * The last page of the form. For the faculty member it is "Submit": where the appraisal stands, the printed form, and the
+ * declaration and submit button; there is no score page for them. The reviewers (HoD, Principal, Director Technical) keep
+ * the score sheet, which they need to review marks.
+ */
 export default function ScoreAndReview() {
   const { appraisal } = useAppraisal();
   const { user } = useAuth();
@@ -26,8 +31,8 @@ export default function ScoreAndReview() {
       <header className="flex items-end gap-5">
         <span aria-hidden className="numeral-outline select-none text-7xl sm:text-8xl">12</span>
         <div className="pb-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-brand">Part B · 11</p>
-          <h2 className="font-display text-3xl font-medium tracking-tight text-navy"><span className="sr-only">12. </span>Score &amp; Review</h2>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-brand">{isFaculty ? "Declaration" : "Part B · 11"}</p>
+          <h2 className="font-display text-3xl font-medium tracking-tight text-navy"><span className="sr-only">12. </span>{isFaculty ? "Submit" : "Score & Review"}</h2>
         </div>
       </header>
 
@@ -58,10 +63,12 @@ export default function ScoreAndReview() {
         <ReportDownload appraisalId={appraisal.id} status={appraisal.status} />
       </Card>
 
-      <Card className="space-y-3 p-4 sm:p-5">
-        <SectionBar>11. Self Appraisal Score Sheet</SectionBar>
-        <ScoreSheet scores={appraisal.scores} cadre={appraisal.cadre} editable={isFaculty && appraisal.editable} />
-      </Card>
+      {!isFaculty && (
+        <Card className="space-y-3 p-4 sm:p-5">
+          <SectionBar>11. Self Appraisal Score Sheet</SectionBar>
+          <ScoreSheet scores={appraisal.scores} cadre={appraisal.cadre} editable={false} />
+        </Card>
+      )}
 
       {isFaculty && appraisal.editable && (
         <Card className="space-y-3 p-4 sm:p-5">

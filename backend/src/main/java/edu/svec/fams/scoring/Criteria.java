@@ -32,6 +32,23 @@ public enum Criteria {
      */
     public boolean perEntry() { return perEntry; }
 
+    /**
+     * B6, B8 and B9 are marked per entry but may be limited by the scoring policy: a maximum above 0 in the policy is the
+     * most the criterion can earn (Funded projects 10 a year, Outreach, Memberships); 0 means no limit. The figures are
+     * policy data, not code.
+     */
+    public boolean cappable() {
+        return this == FUNDED_PROJECTS || this == OUTREACH || this == MEMBERSHIPS_AWARDS;
+    }
+
+    public static boolean isCappable(String code) {
+        try {
+            return valueOf(code).cappable();
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
     public static boolean isPerEntry(String code) {
         try {
             return valueOf(code).perEntry;

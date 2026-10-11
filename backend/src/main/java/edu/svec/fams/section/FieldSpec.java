@@ -32,6 +32,7 @@ public final class FieldSpec {
     private int scale;
     private List<String> allowed = List.of();
     private String listCode;
+    private boolean isbn;
 
     private FieldSpec(String name, String column, String label, Type type, boolean required) {
         this.name = name;
@@ -44,6 +45,17 @@ public final class FieldSpec {
     public static FieldSpec text(String name, String column, String label, int maxLength, boolean required) {
         FieldSpec f = new FieldSpec(name, column, label, Type.TEXT, required);
         f.maxLength = maxLength;
+        return f;
+    }
+
+    /**
+     * An ISBN-10 or ISBN-13, typed with or without hyphens and spaces. It is kept as digits only (a trailing X of an ISBN-10
+     * in capitals) and refused unless its length, characters and check digit are right.
+     */
+    public static FieldSpec isbn(String name, String column, String label, boolean required) {
+        FieldSpec f = new FieldSpec(name, column, label, Type.TEXT, required);
+        f.maxLength = 24;
+        f.isbn = true;
         return f;
     }
 
@@ -119,6 +131,9 @@ public final class FieldSpec {
     /** The reference list this field's values come from, or null when it is not backed by one. */
     public String listCode() { return listCode; }
 
+    /** True for an ISBN field: kept as digits and refused unless its check digit is right. */
+    public boolean isbn() { return isbn; }
+
     /**
      * @return the normalised value (String, Integer, BigDecimal, LocalDate) or null when empty/invalid.
      *         Problems are added to {@code errors} under {@code path}.
@@ -160,7 +175,29 @@ public final class FieldSpec {
                 return fail(path, errors, label + " contains characters that are not allowed.");
             }
         }
+        if (isbn) {
+            String digits = v.replace("-", "").replace(" ", "").toUpperCase(java.util.Locale.ROOT);
+            if (!validIsbn(digits)) {
+                return fail(path, errors, label + " must be a valid ISBN-10 or ISBN-13 (for example 978-0-13-468599-1).");
+            }
+            return digits;
+        }
         return v;
+    }
+
+    /** ISBN-10: nine digits and a check digit (0 to 9 or X); ISBN-13: 978 or 979 and ten more digits; check digits verified. */
+    static boolean validIsbn(String d) {
+        if (d.length() == 10 && d.matches("[0-9]{9}[0-9X]")) {
+            int sum = 0;
+            for (int i = 0; i < 10; i++) sum += (10 - i) * (d.charAt(i) == 'X' ? 10 : d.charAt(i) - '0');
+            return sum % 11 == 0;
+        }
+        if (d.length() == 13 && d.matches("97[89][0-9]{10}")) {
+            int sum = 0;
+            for (int i = 0; i < 13; i++) sum += (d.charAt(i) - '0') * (i % 2 == 0 ? 1 : 3);
+            return sum % 10 == 0;
+        }
+        return false;
     }
 
     private Object integerValue(Object raw, String path, Map<String, String> errors, ChoiceSource choices) {

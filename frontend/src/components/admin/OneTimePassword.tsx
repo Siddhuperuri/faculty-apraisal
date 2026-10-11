@@ -7,7 +7,7 @@ import { ROLE_LABEL } from "@/lib/labels";
 import type { IssuedPassword } from "@/lib/types";
 
 /**
- * Shows the old password after an account is created or its password reset. The server keeps only a hash of
+ * Shows the old password after a user is created or its password reset. The server keeps only a hash of
  * what a person later chooses; the standard one is the same for everyone and is sent back in this response.
  */
 export function OneTimePasswordDialog({
@@ -20,7 +20,7 @@ export function OneTimePasswordDialog({
   onClose: () => void;
 }) {
   return (
-    <Dialog open={issued !== null} onClose={onClose} title={reason === "created" ? "Account created" : "Password reset"}>
+    <Dialog open={issued !== null} onClose={onClose} title={reason === "created" ? "User created" : "Password reset"}>
       {issued && <Body issued={issued} reason={reason} />}
     </Dialog>
   );
@@ -41,7 +41,7 @@ function Body({ issued, reason }: { issued: IssuedPassword; reason: "created" | 
   return (
     <div className="space-y-4">
       <p className="text-sm">
-        {reason === "created" ? "An account was created for" : "The password was set back to the standard one for"}{" "}
+        {reason === "created" ? "A user was created for" : "The password was set back to the standard one for"}{" "}
         <span className="font-semibold">{issued.email}</span> ({ROLE_LABEL[issued.role]}).
       </p>
       <div>

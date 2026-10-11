@@ -7,7 +7,7 @@ import { ScoreLines } from "./ScoreLines";
 
 /**
  * The marks this page's entries earn, worked out by the server and refreshed after every save, so the faculty member
- * sees them grow while they fill the page in. They are the same marks the Score & Review page shows.
+ * sees them grow while they fill the page in. They are the marks that go on the printed form.
  */
 export function CriterionMarks({ criterion }: { criterion: string }) {
   const { appraisal } = useAppraisal();

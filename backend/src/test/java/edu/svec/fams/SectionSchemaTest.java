@@ -55,9 +55,10 @@ class SectionSchemaTest {
                 "phdStatus", "PURSUING", "joiningDateInstitution", "2018-06-15", "joiningDateDesignation", "2022-07-01",
                 "teachingExperienceYears", 8.5, "industryExperienceYears", 1, "researchExperienceYears", 3.5,
                 "researchIds", "ORCID 0000-0001-2345-6789"));
-        m.put("teaching-courses", rec("courseCode", "CS101", "courseName", "Intro to Programming",
+        m.put("teaching-courses", rec("courseCode", "CS101", "courseName", "Course CS101",
                 "courseRole", "INSTRUCTOR", "courseType", "THEORY", "program", "B_TECH", "branch", "CSE", "semester", 3,
                 "section", "B", "hoursPerWeek", 4, "passPercentage", 92.5, "phase1Feedback", 80, "phase2Feedback", 85));
+        m.put("institutional-roles", rec("role", "HOD", "remarks", "Head of the CSE department"));
         m.put("mentoring-summary", rec("totalStudentsMentored", 25));
         m.put("student-achievements", rec("studentName", "A. Student", "rollNo", "21A91A0501",
                 "achievement", "Won hackathon", "level", "STATE", "monthYear", "2026-03"));
@@ -86,7 +87,7 @@ class SectionSchemaTest {
                 "endDate", "2027-12-31", "status", "SANCTIONED", "year", 2026));
         m.put("patents-ipr", rec("applicantInventors", "A, B", "title", "Device for Q", "applicationPatentNo", "202641001234",
                 "type", "UTILITY", "status", "FILED", "recordDate", "2026-02-15"));
-        m.put("books", rec("authors", "A, B", "title", "Algorithms", "publisher", "Pearson", "isbn", "9780000000000",
+        m.put("books", rec("authors", "A, B", "title", "Algorithms", "publisher", "Pearson", "isbn", "9780000000002",
                 "monthYear", "2026-04", "type", "BOOK"));
         m.put("outreach", rec("role", "RESOURCE_PERSON", "eventActivity", "FDP on ML", "organization", "ABC College",
                 "venue", "Hyderabad", "eventDate", "2026-03-09"));
@@ -104,7 +105,7 @@ class SectionSchemaTest {
     @Test
     void everyTablePartOfPartBHasADefinition() {
         // The 20 Part A/B tables created in V3 (general_information and 19 Part B).
-        assertEquals(20, Sections.all().size());
+        assertEquals(21, Sections.all().size());
         assertEquals(Sections.all().keySet(), samples().keySet(), "every section needs a sample in this test");
     }
 
@@ -195,7 +196,7 @@ class SectionSchemaTest {
         // A spec limit larger than the real column would turn a valid-looking request into a 500.
         for (SectionSpec spec : Sections.all().values()) {
             for (FieldSpec f : spec.fields()) {
-                if (f.type() != FieldSpec.Type.TEXT) continue;
+                if (f.type() != FieldSpec.Type.TEXT || f.isbn()) continue;   // an ISBN has a form of its own
                 int declared = jdbc.sql("""
                         SELECT character_maximum_length FROM information_schema.columns
                         WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?""")

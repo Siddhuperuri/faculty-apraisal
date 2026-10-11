@@ -7,7 +7,8 @@ the HoD of their department. The HoD begins the review, may write a comment, and
 the Principal and the Director Technical. They stand at the same level (see below): either one's approval is final.
 **Nothing moves backwards, with one exception.** There is no return or revert step by a reviewer, and a submitted appraisal is locked. The exception is
 the faculty member's own: while the HoD is reviewing and has sent them a message (a query), they may correct the appraisal and send it again
-(`RESUBMIT`), which puts it back at SUBMITTED for the HoD to begin the review afresh. Once the HoD approves, it is locked for good.
+(`RESUBMIT`), which puts it back at SUBMITTED for the HoD to begin the review afresh. The HoD can also **revoke** an appraisal at
+any stage before the Principal's or Director Technical's final approval (see "Revoke" below). Once it is finally approved, it is locked for good.
 
 ```mermaid
 stateDiagram-v2
@@ -32,7 +33,7 @@ stateDiagram-v2
 | Start / Approve | Principal | HOD_APPROVED / PRINCIPAL_REVIEW | Whole college; comment optional ("Remarks of the Principal"); approve is final |
 | Start / Approve | Director Technical | HOD_APPROVED / PRINCIPAL_REVIEW | The same as the Principal: whole college; comment optional ("Remarks of the Director Technical"); approve is final |
 
-| Message | Assigned HoD | HOD_REVIEW | A note to the faculty member (max 2000 chars), for example to ask them to come and discuss a query before it can be approved. It does not change the workflow status: it stays `HOD_REVIEW` and the appraisal stays locked. What changes is how it is shown: from the first message until the HoD approves, the appraisal is shown as **Query raised** (`queryRaised` on the appraisal, its list entries and the HoD console's roster) instead of "With HoD", the HoD's lists move it from "Needs your action" to "Awaiting the faculty member", and the faculty member is told to arrange a meeting. The message also counts as activity on the appraisal (its "last updated" time moves). The HoD who wrote it may edit it (`PUT .../messages/{messageId}`) while the status is `HOD_REVIEW`; the faculty member then sees it marked edited and unread again. Each replaced wording is kept (append-only) and is shown to the department's HoDs, not to the faculty member. It cannot be deleted. The faculty member sees it on their dashboard and on the Score & Review page; it is marked seen when they open it, and the HoD sees that. Only the owner and the assigned HoD can read it |
+| Message | Assigned HoD | HOD_REVIEW | A note to the faculty member (max 2000 chars), for example to ask them to come and discuss a query before it can be approved. It does not change the workflow status: it stays `HOD_REVIEW` and the appraisal stays locked. What changes is how it is shown: from the first message until the HoD approves, the appraisal is shown as **Query raised** (`queryRaised` on the appraisal, its list entries and the HoD console's roster) instead of "With HoD", the HoD's lists move it from "Needs your action" to "Awaiting the faculty member", and the faculty member is told to arrange a meeting. The message also counts as activity on the appraisal (its "last updated" time moves). The HoD who wrote it may edit it (`PUT .../messages/{messageId}`) while the status is `HOD_REVIEW`; the faculty member then sees it marked edited and unread again. Each replaced wording is kept (append-only) and is shown to the department's HoDs, not to the faculty member. It cannot be deleted. The faculty member sees it on their dashboard and on the Submit page; it is marked seen when they open it, and the HoD sees that. Only the owner and the assigned HoD can read it |
 
 There is no other step that moves an appraisal. `POST /api/appraisals/{id}/review/return` does not exist (404), and neither
 do the Dean and Vice Principal areas. A message is not a return. Any of several HoDs assigned to a department may act; if two start at once exactly one wins and the
@@ -41,6 +42,21 @@ other gets 409.
 The comments reviewers write with an approval are **not shown to the faculty member**: the API removes them from the review
 history the faculty member receives, and the PDF the faculty member downloads leaves them out (the official copy stored at
 approval has them). A message from the HoD is the one thing in words the faculty member is shown during the review.
+
+## Revoke (HoD)
+
+The assigned Head of the Department can take an appraisal back at any stage **before the final approval**, including one already
+forwarded to the Principal or Director Technical, **without anyone's consent** (`POST /api/appraisals/{id}/review/revoke`, body
+`{"reason": "..."}`; a reason is required):
+
+| From | To | Why there |
+|---|---|---|
+| SUBMITTED, HOD_REVIEW | DRAFT | it is with the HoD: it goes back to the faculty member to correct and send again |
+| HOD_APPROVED, PRINCIPAL_REVIEW | HOD_REVIEW | it was forwarded: it leaves the Principal's queue and the HoD reviews it again |
+| APPROVED | not possible | final approval is final (409) |
+
+Every revoke is a review-history row (`HOD_REVOKE`, with the reason as its comment) and an audit entry `APPRAISAL_REVOKED` carrying
+the HoD, the time, the reason and the previous and new statuses. Open questions to the faculty member are closed with it.
 
 ## Visibility
 
