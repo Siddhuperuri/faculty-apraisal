@@ -18,7 +18,7 @@ export function ScoreLines({ lines, label, quiet = false }: { lines: ScoreLine[]
             </span>
             <span className="shrink-0 tabular-nums">
               {l.count} × {formatNumber(l.perEntry)}
-              {capped ? `, stops at ${l.cap}` : ""} = <span className="font-semibold text-ink">{formatNumber(l.marks)}</span>
+              {capped ? `, Max marks: ${l.cap}` : ""} = <span className="font-semibold text-ink">{formatNumber(l.marks)}</span>
             </span>
           </li>
         );

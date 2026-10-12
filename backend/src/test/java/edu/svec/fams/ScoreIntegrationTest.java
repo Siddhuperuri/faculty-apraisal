@@ -173,6 +173,20 @@ class ScoreIntegrationTest {
     }
 
     @Test
+    void everyScoreLimitIsWordedAsMaxMarksWithTheConfiguredLimit() throws Exception {
+        org.hamcrest.Matcher<String> maxMarks = org.hamcrest.Matchers.matchesPattern(".*\\(.*Max marks: \\d+\\)$");
+        sheet(faculty, id)
+                .andExpect(jsonPath("$.scores[0].breakdown[0].description").value(maxMarks))                       // B1, from the policy
+                .andExpect(jsonPath("$.scores[1].breakdown[1].description").value("Student project guided (Max marks: 4)"))
+                .andExpect(jsonPath("$.scores[1].breakdown[2].description").value("Student achievement (Max marks: 5)"))
+                .andExpect(jsonPath("$.scores[3].breakdown[0].description").value("Department-level role (Max marks: 4)"))
+                .andExpect(jsonPath("$.scores[3].breakdown[1].description").value("Institute-level role (Max marks: 3)"))
+                .andExpect(jsonPath("$.scores[3].breakdown[2].description").value("Event organised or coordinated (Max marks: 8)"));
+        String all = sheet(faculty, id).andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertFalse(all.contains("up to"), "no limit is worded as \"up to N\"");
+    }
+
+    @Test
     void anyMenteesEarnSixAndNoneEarnNothingWhateverTheNumber() throws Exception {
         sheet(faculty, id).andExpect(jsonPath("$.scores[1].breakdown[0].marks").value(0));
         for (int mentored : new int[] {1, 2, 25, 50}) {
