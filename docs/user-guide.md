@@ -64,6 +64,7 @@ How the pages work:
   save wins and can remove a row the other tab added.
 
 ### 3. Your marks
+A limit on a part is written **(Max marks: N)**: that part can never earn more than N, however many entries you add.
 Nobody types a mark. Each page of the form that earns marks shows them as you fill it in, worked out from your entries by the
 rates the college has set, and the same marks go on the printed form. There is **no separate score page** for faculty: after
 the last section you go straight to **Submit**.

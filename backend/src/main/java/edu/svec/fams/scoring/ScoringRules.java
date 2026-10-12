@@ -62,8 +62,8 @@ public class ScoringRules {
         out.put("STUDENT_MENTORING", List.of(
                 // 6 marks when any student is mentored, 0 when none: the number of students does not matter
                 capped("Students mentored (6 marks if you mentored any students)", BigDecimal.valueOf(6), mentees > 0 ? 1 : 0, 6),
-                capped("Student project guided (up to 4)", BigDecimal.valueOf(2), count("student_projects", null, id), 4),
-                capped("Student achievement (up to 5)", BigDecimal.ONE, count("student_achievements", null, id, "month:month_year"), 5)));
+                cappedMax("Student project guided", BigDecimal.valueOf(2), count("student_projects", null, id), 4),
+                cappedMax("Student achievement", BigDecimal.ONE, count("student_achievements", null, id, "month:month_year"), 5)));
 
         // One qualifying program earns all 5 marks and one certification all 10; further ones add nothing (the cap).
         out.put("FDP_CERTIFICATIONS", List.of(
@@ -72,9 +72,9 @@ public class ScoringRules {
                 capped("Certification (10 marks)", BigDecimal.TEN, count("certifications", "duration_weeks >= 1", id), 10)));
 
         out.put("ADMINISTRATIVE", List.of(
-                capped("Department-level role (up to 4)", BigDecimal.valueOf(2), count("administrative_roles", "scope = 'DEPARTMENT'", id, "date:from_date", "date:to_date"), 4),
-                capped("Institute-level role (up to 3)", new BigDecimal("1.5"), count("administrative_roles", "scope = 'INSTITUTE'", id, "date:from_date", "date:to_date"), 3),
-                capped("Event organised or coordinated (up to 8)", BigDecimal.ONE, count("events", null, id, "date:start_date", "date:end_date"), 8)));
+                cappedMax("Department-level role", BigDecimal.valueOf(2), count("administrative_roles", "scope = 'DEPARTMENT'", id, "date:from_date", "date:to_date"), 4),
+                cappedMax("Institute-level role", new BigDecimal("1.5"), count("administrative_roles", "scope = 'INSTITUTE'", id, "date:from_date", "date:to_date"), 3),
+                cappedMax("Event organised or coordinated", BigDecimal.ONE, count("events", null, id, "date:start_date", "date:end_date"), 8)));
 
         List<Line> research = new ArrayList<>();
         research.add(line("SCI/SCIE journal paper", 15, count("journal_publications", "indexing = 'SCI_SCIE'", id, "month:month_year")));
@@ -120,6 +120,16 @@ public class ScoringRules {
     static Line capped(String description, BigDecimal perEntry, int count, int cap) {
         BigDecimal marks = perEntry.multiply(BigDecimal.valueOf(count)).min(BigDecimal.valueOf(cap));
         return new Line(description, perEntry, count, marks, cap);
+    }
+
+    /** {@link #capped} for a line whose label states its limit: {@code "Student project guided (Max marks: 4)"}. */
+    static Line cappedMax(String description, BigDecimal perEntry, int count, int cap) {
+        return capped(description + " (" + maxMarks(cap) + ")", perEntry, count, cap);
+    }
+
+    /** How a score limit is worded wherever marks are shown: {@code "Max marks: 10"}, with the limit that is configured. */
+    public static String maxMarks(int cap) {
+        return "Max marks: " + cap;
     }
 
     /** Marks as people write them: "5", "2.5", "20", never "20.0" or "2E+1". */

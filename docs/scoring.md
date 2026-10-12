@@ -58,7 +58,7 @@ and ignored. The per-entry marks are in code (`ScoringRules`), because they are 
 - **B2 to B4: a working rate card** (the college has not published one; change it in `ScoringRules`). Each kind of entry has a rate
   and a cap, and the caps add up to the criterion's 15:
 
-| Criterion | Entry | Marks each | Stops at |
+| Criterion | Entry | Marks each | Max marks |
 |---|---|---|---|
 | B2 | students mentored: 6 marks if the total is more than 0, otherwise 0 | 6 once | 6 |
 | | student project guided | 2 | 4 |
@@ -70,6 +70,11 @@ and ignored. The per-entry marks are in code (`ScoringRules`), because they are 
 | | event organised or coordinated | 1 | 8 |
 
 ## Limits on per-entry criteria, and institutional roles (2026-10-11)
+
+- **How a limit is worded.** Wherever marks are shown (the score sheet, the section score panels, Score & Review, the dashboards,
+  the PDF report) a limit reads **`(Max marks: N)`**, with `N` the limit that is configured for that part in the appraisal's
+  scoring policy, never a fixed number (the old "(up to N)" is gone). A line that has reached its limit says `Max marks: N`
+  after its sum. Ordinary uses of "up to" (a record limit, a date, a file size) are not score limits and are unchanged.
 
 - **Funded projects (B6): at most 2 entries a year and at most 10 marks.** The form, the server (`maxRecords`) and the marks all
   say the same: a third entry is refused, and whatever the entries are worth, the criterion earns 10 at most.

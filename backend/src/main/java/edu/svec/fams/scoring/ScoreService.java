@@ -130,7 +130,7 @@ public class ScoreService {
         List<Component> parts = components.get("TEACHING_LEARNING");
         List<Line> lines = new ArrayList<>();
         if (parts == null || parts.isEmpty()) {
-            lines.add(ScoringRules.capped("Course handled (up to " + maxMarks + ")", BigDecimal.valueOf(maxMarks).divide(eighth, 4, RoundingMode.HALF_UP), courses, maxMarks));
+            lines.add(ScoringRules.cappedMax("Course handled", BigDecimal.valueOf(maxMarks).divide(eighth, 4, RoundingMode.HALF_UP), courses, maxMarks));
         } else {
             for (int i = 0; i < parts.size(); i++) {
                 Component c = parts.get(i);
@@ -145,10 +145,10 @@ public class ScoreService {
                             .divide(eighth, 4, RoundingMode.HALF_UP).stripTrailingZeros();
                     String working = courses + " course" + (courses == 1 ? "" : "s") + " x " + c.maxMarks() + " / " + Sections.MAX_COURSES
                             + " = " + exact.toPlainString() + ", to a whole mark";
-                    line = new Line(c.description() + " (" + working + "; up to " + c.maxMarks() + ")", perCourse, courses,
+                    line = new Line(c.description() + " (" + working + "; " + ScoringRules.maxMarks(c.maxMarks()) + ")", perCourse, courses,
                             marks.min(BigDecimal.valueOf(c.maxMarks())), c.maxMarks());
                 } else {
-                    line = ScoringRules.capped(c.description() + " (up to " + c.maxMarks() + ")", perCourse, courses, c.maxMarks());
+                    line = ScoringRules.cappedMax(c.description(), perCourse, courses, c.maxMarks());
                 }
                 lines.add(line);
                 parts.set(i, new Component(c.description(), c.maxMarks(), line.marks().setScale(2, RoundingMode.HALF_UP).stripTrailingZeros()));
