@@ -129,6 +129,12 @@ theirs: to meet you. It is still with you and still locked; after you have met, 
 or send it back, and it is separate from the comment you write with your approval (which they cannot see). Only you and
 the faculty member can read it.
 
+### Downloading appraisal details (HoD)
+On your console, the Faculty list has a checkbox on every row and one in the header (everything shown after your filters). Tick
+the faculty you want; a bar says how many are chosen and offers **Download Excel (.xlsx)** and **Download CSV**. Your choice is kept
+while you search, filter or sort. You can export only faculty of your own departments, the server checks it again, and every
+export is recorded in the audit trail. The columns are those of the administrator's export (see "Appraisal export").
+
 **Revoke** takes an appraisal back at any stage before the Principal's or Director Technical's final approval, even one you have
 already forwarded. Use the *Revoke this appraisal* button under the review box and give the reason. A submitted appraisal (or one
 you are reviewing) goes back to the faculty member as a draft to correct and send again; one you forwarded comes back to you
@@ -171,8 +177,34 @@ Technical; the one who did not act on that appraisal is left empty.
 
 ## Administrator
 
-Administrators configure the system. They **cannot read appraisal content**; they see counts by stage, set-up checks and
-audit entries (with file names and checksums of appraisal entries left out).
+Administrators configure the system. They **cannot open or change an appraisal**; the console shows counts by stage, set-up
+checks and audit entries (with file names and checksums of appraisal entries left out). Since 2026-10-12 they can **export the
+appraisal details** of chosen faculty (see "Appraisal export" below); every export is recorded in the audit trail.
+
+### Choosing several users (`/admin/users`)
+Every row has a checkbox, and the one in the header chooses everything the list shows after your filters. The choice is kept
+while you search, filter or sort (the bar says how many chosen users the filters are hiding), and the bar of actions appears only
+once a user is chosen:
+
+- **Send password reset link**: each chosen active user is e-mailed their own one-time link, valid for 30 minutes, to choose a new
+  password. No password is created, shown or e-mailed, and the current password keeps working until the link is used. You see how
+  many were **sent**, **skipped** (disabled or closed users, yourself, someone sent several links a moment ago) and **failed**
+  (the mail server did not accept the message, or the server has no mail set up), with the reason for each. It needs
+  `FAMS_MAIL_*` and `FAMS_PUBLIC_URL`; without them nothing is issued. Your own password is changed under Account.
+- **Download selected users CSV / Excel**: name, employee ID, e-mail, role, status, department, designation, last sign-in and
+  whether they have chosen their own password. Nothing secret is in the file.
+
+The old "reset the passwords of these users" action (which set everyone back to the standard password and showed it) is gone; a
+single user's **Reset password** on their own row is unchanged.
+
+### Appraisal export (`/admin/exports`)
+Choose the academic year, narrow by department, designation and appraisal status, tick the faculty and download **Excel (.xlsx)**
+or **CSV**. The file has one row per faculty member with: S.No., name, employee ID, department, designation, date of joining,
+Academics (courses, students mentored, projects, achievements), NPTEL and other certifications, FDPs attended, FDPs / guest
+lectures / workshops organised, journals / conferences / patents (also books, funded projects and research scholars),
+contributions (institutional and administrative roles, outreach, memberships and awards), appraisal status, submitted date and the
+HoD's remarks. Several records in one cell are a numbered list; an empty cell shows "—". A faculty member who has not submitted is
+listed as "Not submitted" with "—" everywhere else: **a draft is private to its author and is never exported.**
 
 ### Console (`/admin`)
 Shows account counts, **set-up checks**, appraisals by stage and the latest audit entries. Fix anything red: faculty and

@@ -32,7 +32,7 @@ Nothing here is an institutional rule until confirmed.
 | (new) | Which scoring components apply? | Those of the college's cadre-wise document for criteria B1 to B5, per cadre, exactly as written; the other four criteria have none. Self-scores stay one per criterion | `V9__scoring_components.sql`, `ScoreService.rows` (`docs/scoring.md`) |
 | B14 | Final approval irreversible? | Yes. `APPROVED` is terminal and locked | `AppraisalStatus` |
 | (new) | May an HoD see a faculty draft? | No, only after submission | `AppraisalAccess.load` |
-| (new) | May an Admin read appraisal content? | No. Admin manages configuration, not appraisal content | `AppraisalAccess.load` |
+| (new) | May an Admin read appraisal content? | Not by opening an appraisal (`AppraisalAccess.load` refuses). Since 2026-10-12 an Admin may **export** the appraisal details of chosen faculty (a draft is still private); every export is audited | `AppraisalExportService` (ADR-039) |
 | A5 | Can one person hold several roles? | No, one role per user | `users.role` |
 | C18 | Does the system calculate scores? | No. Marks are self-entered and validated against the maximum | `scoring_policy_criteria.calculation_mode` |
 | F34-36 | Scope | All eight departments from the form are seeded; departments are data, not code | `V2__seed_reference_data.sql` |

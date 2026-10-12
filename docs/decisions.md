@@ -270,3 +270,21 @@ SMTP when configured (FAMS_MAIL_*); a password is never e-mailed. (8) Admin: "Ac
 users can be given another role (audited, sessions ended), each department is shown separately, and an Analytics page shows
 aggregated progress with charts (counts only). (9) The standard password flow and the administrator's reset stay as they were.
 
+**ADR-039: Choosing several rows; appraisal-details export; reset links in bulk (2026-10-12).**
+Decided by the user in one request; where it conflicts with an older rule the new one wins. (1) Tables in the HoD console and the
+administrator's Users list have a checkbox per row, a header checkbox for what the filters show, a bar of actions that exists only
+while something is chosen, and a choice kept by id across search, filter and sort. (2) The appraisal details of chosen faculty can
+be downloaded as a real .xlsx workbook (title with year and department, styled and frozen header, sized columns, wrapped text, real
+dates) or CSV, one row per faculty member in the 15-column department-review layout; several records in a cell are a numbered
+list. An HoD may export only faculty of their own departments and an administrator any; one id outside the caller's reach makes
+the whole request 404 (the same answer as an unknown id), so the ids sent from the browser are never trusted. (3) This **replaces
+the rule that administrators never read appraisal content**: they may export it (not open or edit an appraisal; `AppraisalAccess`
+still refuses them). A **draft stays private to its author** for everyone: it is listed as "Not submitted" with no content (the
+request did not address drafts; the existing rule of ADR on HoD visibility is kept). (4) The administrator's bulk "set these
+passwords back to the standard one", which displayed the standard password, is **removed** and replaced by "Send password reset
+link": the one-time 30 minute link of the forgot-password flow, e-mailed to each chosen active user, with a summary of sent,
+skipped and failed, rate limited per administrator and per user, audited, never revealing a password; the administrator's own
+account is excluded. The start-up token `FAMS_RESET_ALL_PASSWORDS` remains for when nobody can sign in or no mail is set up. (5) No
+new library: the workbook is written directly (Office Open XML), and CSV cells that start with `= + - @` get a leading apostrophe.
+(6) No migration: exports and links use existing tables, and the audit trail records `EXPORT_APPRAISALS`, `EXPORT_USERS`,
+`PASSWORD_RESET_LINK_SENT` and `PASSWORD_RESET_LINKS_BULK`.

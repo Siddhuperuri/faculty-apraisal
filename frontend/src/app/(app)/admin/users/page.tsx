@@ -4,15 +4,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChangeRoleDialog } from "@/components/admin/ChangeRoleDialog";
 import { ImportAccountsDialog } from "@/components/admin/ImportAccountsDialog";
 import { OneTimePasswordDialog } from "@/components/admin/OneTimePassword";
+import { ResetLinksResultDialog } from "@/components/admin/ResetLinksResultDialog";
 import { UserFormDialog } from "@/components/admin/UserFormDialog";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Alert, Badge, Button, EmptyState, Skeleton } from "@/components/ui/primitives";
 import { ConfirmDialog } from "@/components/ui/Dialog";
 import { RefreshButton, useLoadedAt } from "@/components/ui/RefreshButton";
-import { get, post, put } from "@/lib/api";
+import { RowCheckbox, SelectAllCheckbox, SelectionToolbar } from "@/components/ui/Selection";
+import { get, post, postDownload, put, saveFile } from "@/lib/api";
+import { NOTHING, checkState, hiddenCount, toggle, toggleShown, type Selection } from "@/lib/selection";
 import { formatDateTime } from "@/lib/format";
 import { ROLE_LABEL, isWithdrawnRole, roleLabel } from "@/lib/labels";
-import type { AdminReference, AdminUserRow, BulkReset, IssuedPassword, Role } from "@/lib/types";
+import type { AdminReference, AdminUserRow, IssuedPassword, LinkResult, Role } from "@/lib/types";
 
 type Pending = { kind: "disable" | "reset"; user: AdminUserRow } | null;
 
@@ -28,6 +31,9 @@ const SORTS: { value: Sort; label: string }[] = [
   { value: "role", label: "Role" },
 ];
 const ROLE_ORDER: Record<string, number> = { ADMIN: 0, PRINCIPAL: 1, DIRECTOR: 2, HOD: 3, FACULTY: 4 };
+
+/** The server sends this many e-mails in one request; a longer choice is sent in parts, one after another. */
+const LINKS_PER_REQUEST = 50;
 
 export default function UsersPage() {
   const { user: me } = useAuth();
@@ -50,7 +56,12 @@ export default function UsersPage() {
   const [pending, setPending] = useState<Pending>(null);
   const [roleFor, setRoleFor] = useState<AdminUserRow | null>(null);
   const [working, setWorking] = useState(false);
-  const [bulkAsked, setBulkAsked] = useState(false);
+  // The rows ticked for the bulk actions, kept by user id so a search or a filter never drops one.
+  const [selected, setSelected] = useState<Selection>(NOTHING);
+  const [seen, setSeen] = useState<Map<number, AdminUserRow>>(new Map());
+  const [linksAsked, setLinksAsked] = useState(false);
+  const [linkResult, setLinkResult] = useState<LinkResult | null>(null);
+  const [bulkBusy, setBulkBusy] = useState<"links" | "xlsx" | "csv" | null>(null);
 
   const [loadedAt, stamp] = useLoadedAt();
 
@@ -59,7 +70,13 @@ export default function UsersPage() {
     if (query.trim()) params.set("q", query.trim());
     if (role) params.set("role", role);
     try {
-      setRows(await get<AdminUserRow[]>(`/api/admin/users?${params}`));
+      const list = await get<AdminUserRow[]>(`/api/admin/users?${params}`);
+      setRows(list);
+      setSeen((prev) => {
+        const next = new Map(prev);
+        for (const u of list) next.set(u.id, u);
+        return next;
+      });
       setError(null);
       stamp();
     } catch (e) {
@@ -104,22 +121,56 @@ export default function UsersPage() {
       }
     });
 
-  /** The users in the list as filtered, less your own (you would be signed out) and the closed ones of withdrawn roles. */
-  const resettable = useMemo(
-    () => (rows && reference ? shownRows(rows, reference, { status, department, cadre, signIn }) : []).filter((u) => u.id !== me?.id && !isWithdrawnRole(u.role)),
-    [rows, reference, status, department, cadre, signIn, me?.id],
+  /** The chosen users the server will actually send a link to: active, not yourself, not closed. */
+  const linkable = useMemo(
+    () => [...selected].filter((id) => {
+      const u = seen.get(id);
+      return u === undefined || (u.id !== me?.id && u.status === "ACTIVE" && !isWithdrawnRole(u.role));
+    }).length,
+    [selected, seen, me?.id],
   );
 
-  const resetMany = () =>
-    run(async () => {
-      const done = await post<BulkReset>("/api/admin/users/reset-passwords", { ids: resettable.map((u) => u.id) });
-      setBulkAsked(false);
-      setNotice(
-        `${done.reset} password${done.reset === 1 ? " was" : "s were"} set back to the standard one. ` +
-          `Each person must choose a new password at their next sign-in${done.skipped > 0 ? `; ${done.skipped} user${done.skipped === 1 ? " was" : "s were"} left as ${done.skipped === 1 ? "it was" : "they were"}` : ""}.`,
-      );
-      await load();
-    });
+  /** Sends each chosen user a one-time reset link (never a password), in parts, and adds the answers up. */
+  const sendLinks = async () => {
+    setLinksAsked(false);
+    setBulkBusy("links");
+    setNotice(null);
+    setError(null);
+    const ids = [...selected];
+    const total: LinkResult = { requested: 0, sent: 0, skipped: 0, failed: 0, mailReady: true, skippedUsers: [], failedUsers: [] };
+    try {
+      for (let i = 0; i < ids.length; i += LINKS_PER_REQUEST) {
+        const part = await post<LinkResult>("/api/admin/users/send-reset-links", { ids: ids.slice(i, i + LINKS_PER_REQUEST) });
+        total.requested += part.requested;
+        total.sent += part.sent;
+        total.skipped += part.skipped;
+        total.failed += part.failed;
+        total.mailReady = total.mailReady && part.mailReady;
+        total.skippedUsers.push(...part.skippedUsers);
+        total.failedUsers.push(...part.failedUsers);
+      }
+    } catch (e) {
+      setError(`${(e as Error).message}${total.requested > 0 ? ` ${total.sent} link${total.sent === 1 ? " was" : "s were"} sent before it stopped.` : ""}`);
+    } finally {
+      if (total.requested > 0) setLinkResult(total);
+      setBulkBusy(null);
+    }
+  };
+
+  const downloadSelected = async (format: "xlsx" | "csv") => {
+    setBulkBusy(format);
+    setNotice(null);
+    setError(null);
+    try {
+      const file = await postDownload("/api/admin/users/export", { ids: [...selected], format });
+      saveFile(file.blob, file.fileName);
+      setNotice(`${file.fileName} was downloaded (${selected.size} user${selected.size === 1 ? "" : "s"}).`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBulkBusy(null);
+    }
+  };
 
   const enable = (u: AdminUserRow) =>
     run(async () => {
@@ -132,6 +183,9 @@ export default function UsersPage() {
     () => (rows && reference ? shownRows(rows, reference, { status, department, cadre, signIn }, sort) : []),
     [rows, reference, status, department, cadre, signIn, sort],
   );
+  const shownIds = useMemo(() => shown.map((u) => u.id), [shown]);
+  const headerState = checkState(selected, shownIds);
+  const hidden = hiddenCount(selected, shownIds);
   const narrowed = status !== "" || department !== "" || cadre !== "" || signIn !== "";
   const clearAll = () => {
     setQuery("");
@@ -202,28 +256,44 @@ export default function UsersPage() {
             {rows.length >= 500 ? " (the first 500; narrow the search)" : ""}
           </span>
           {(narrowed || query || role || sort) && <Button variant="ghost" size="sm" onClick={clearAll}>Clear all filters</Button>}
-          <Button variant="secondary" size="sm" className="ml-auto" disabled={resettable.length === 0 || working} onClick={() => setBulkAsked(true)}>
-            Reset the passwords of these {resettable.length} user{resettable.length === 1 ? "" : "s"}…
-          </Button>
         </div>
       </div>
+
+      <SelectionToolbar selection={selected} hidden={hidden} singular="user" plural="users" onClear={() => setSelected(NOTHING)}>
+        <Button size="sm" disabled={bulkBusy !== null || working} loading={bulkBusy === "links"} onClick={() => setLinksAsked(true)}>
+          Send password reset link
+        </Button>
+        <Button variant="secondary" size="sm" disabled={bulkBusy !== null} loading={bulkBusy === "csv"} onClick={() => void downloadSelected("csv")}>
+          Download selected users CSV
+        </Button>
+        <Button variant="secondary" size="sm" disabled={bulkBusy !== null} loading={bulkBusy === "xlsx"} onClick={() => void downloadSelected("xlsx")}>
+          Download selected users Excel
+        </Button>
+      </SelectionToolbar>
 
       {shown.length === 0 ? (
         <EmptyState>{query || role || narrowed ? "No users match your search." : "There are no users yet."}</EmptyState>
       ) : (
         <>
+        <label className="flex items-center gap-2 text-sm font-medium sm:hidden">
+          <SelectAllCheckbox state={headerState} onChange={() => setSelected(toggleShown(selected, shownIds))} label={`Select all ${shown.length} users shown`} />
+          Select all {shown.length} shown
+        </label>
         <ul className="rise grid gap-3 sm:hidden" style={{ "--i": 2 } as React.CSSProperties} aria-label="Users">
           {shown.map((u) => {
             const self = u.id === me?.id;
             const closed = isWithdrawnRole(u.role);
             const department = u.role === "FACULTY" ? <>{u.department}<span className="block text-xs text-muted">{u.cadre}</span></> : u.role === "HOD" ? u.hodDepartments ?? "—" : "—";
             return (
-              <li key={u.id} className="rounded-xl border border-line bg-surface p-4 shadow-[var(--shadow-paper)]">
+              <li key={u.id} className={`rounded-xl border bg-surface p-4 shadow-[var(--shadow-paper)] ${selected.has(u.id) ? "border-brand bg-brand-soft/40" : "border-line"}`}>
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="break-words font-display text-lg font-medium leading-snug text-navy">{u.name ?? u.email}</p>
-                    {u.name && <p className="break-all text-xs text-muted">{u.email}</p>}
-                    {u.employeeId && <p className="mt-0.5 text-xs text-muted">ID {u.employeeId}</p>}
+                  <div className="flex min-w-0 items-start gap-3">
+                    <RowCheckbox checked={selected.has(u.id)} onChange={() => setSelected(toggle(selected, u.id))} label={`Select ${u.name ?? u.email}`} />
+                    <div className="min-w-0">
+                      <p className="break-words font-display text-lg font-medium leading-snug text-navy">{u.name ?? u.email}</p>
+                      {u.name && <p className="break-all text-xs text-muted">{u.email}</p>}
+                      {u.employeeId && <p className="mt-0.5 text-xs text-muted">ID {u.employeeId}</p>}
+                    </div>
                   </div>
                   <span className="shrink-0">
                     <Badge tone={u.status === "ACTIVE" ? "ok" : "bad"}>{u.status === "ACTIVE" ? "Active" : "Disabled"}</Badge>
@@ -257,6 +327,9 @@ export default function UsersPage() {
             <caption className="sr-only">Users</caption>
             <thead>
               <tr className="bg-brand-soft text-navy">
+                <th scope="col" className="w-10 px-4 py-2.5">
+                  <SelectAllCheckbox state={headerState} onChange={() => setSelected(toggleShown(selected, shownIds))} label={`Select all ${shown.length} users shown`} />
+                </th>
                 {["Person", "Role", "Department", "Status", "Last sign-in", ""].map((h, i) => (
                   <th key={i} scope="col" className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em]">
                     {h || <span className="sr-only">Actions</span>}
@@ -269,7 +342,10 @@ export default function UsersPage() {
                 const self = u.id === me?.id;
                 const closed = isWithdrawnRole(u.role);
                 return (
-                  <tr key={u.id} className="border-t border-line align-top transition-colors hover:bg-warm/40">
+                  <tr key={u.id} aria-selected={selected.has(u.id)} className={`border-t border-line align-top transition-colors hover:bg-warm/40 ${selected.has(u.id) ? "bg-brand-soft/50" : ""}`}>
+                    <td className="px-4 py-2.5">
+                      <RowCheckbox checked={selected.has(u.id)} onChange={() => setSelected(toggle(selected, u.id))} label={`Select ${u.name ?? u.email}`} />
+                    </td>
                     <td className="px-4 py-2.5">
                       <span className="font-display text-base font-medium">{u.name ?? u.email}</span>
                       {u.name && <span className="block text-xs text-muted">{u.email}</span>}
@@ -353,25 +429,25 @@ export default function UsersPage() {
       <ImportAccountsDialog open={importing} reference={reference} onClose={() => setImporting(false)} onImported={() => void load()} />
       <OneTimePasswordDialog issued={issued?.value ?? null} reason={issued?.reason ?? "created"} onClose={() => setIssued(null)} />
       <ConfirmDialog
-        open={bulkAsked}
-        destructive
-        title={`Reset ${resettable.length} password${resettable.length === 1 ? "" : "s"}?`}
-        confirmLabel={`Reset ${resettable.length} password${resettable.length === 1 ? "" : "s"}`}
+        open={linksAsked}
+        title={`Send a reset link to ${selected.size} user${selected.size === 1 ? "" : "s"}?`}
+        confirmLabel={`Send ${linkable} link${linkable === 1 ? "" : "s"}`}
         message={
           <div className="space-y-2">
             <p>
-              Every user in the list as you have filtered it ({resettable.length}; not your own, and not closed users) will be signed out everywhere, and its current
-              password stops working. Each password becomes the standard one, which its owner must replace at their next sign-in.
+              Each active user among the {selected.size} chosen ({linkable} will be sent one) gets an e-mail with their own link to choose a new
+              password. The link works once and expires in 30 minutes. No password is created, shown or e-mailed.
             </p>
             <p>
-              Anyone who knows the standard password and an e-mail address can sign in to a user until its owner has done so, so reset only the users
-              whose owners are about to sign in.
+              Your own account, disabled and closed users, and anyone who was sent several links a moment ago are skipped. You will see how many
+              were sent, skipped and failed.
             </p>
           </div>
         }
-        onConfirm={() => void resetMany()}
-        onCancel={() => setBulkAsked(false)}
+        onConfirm={() => void sendLinks()}
+        onCancel={() => setLinksAsked(false)}
       />
+      <ResetLinksResultDialog result={linkResult} onClose={() => setLinkResult(null)} />
       <ConfirmDialog
         open={pending !== null}
         destructive={pending?.kind === "disable"}

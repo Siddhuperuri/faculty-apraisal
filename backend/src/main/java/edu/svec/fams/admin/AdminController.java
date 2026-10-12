@@ -3,14 +3,18 @@ package edu.svec.fams.admin;
 import edu.svec.fams.audit.AuditQueryService;
 import edu.svec.fams.auth.FamsUserPrincipal;
 import edu.svec.fams.common.ApiException;
-import edu.svec.fams.common.ValidationException;
 import edu.svec.fams.console.ConsoleService;
 import edu.svec.fams.ops.ImportHistoryService;
+import edu.svec.fams.report.AppraisalExportService;
+import edu.svec.fams.report.Downloads;
+import edu.svec.fams.report.ExportFile;
+import edu.svec.fams.report.ExportRequest;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -43,11 +47,15 @@ public class AdminController {
     private final AuditQueryService audit;
     private final ConsoleService console;
     private final AdminAnalyticsService analytics;
+    private final AdminBulkService bulk;
+    private final AppraisalExportService exports;
 
     public AdminController(AdminUserService users, AccountImportService imports, ImportHistoryService importHistory,
                            AdminSetupService setup, AuditQueryService audit, ConsoleService console,
-                           AdminAnalyticsService analytics) {
+                           AdminAnalyticsService analytics, AdminBulkService bulk, AppraisalExportService exports) {
         this.analytics = analytics;
+        this.bulk = bulk;
+        this.exports = exports;
         this.users = users;
         this.imports = imports;
         this.importHistory = importHistory;
@@ -144,22 +152,38 @@ public class AdminController {
         return users.resetPassword(me, id);
     }
 
-    /** Body {@code {"ids": [..]}}: the accounts to set back to the standard password (see {@link AdminUserService#resetPasswords}). */
-    @PostMapping("/users/reset-passwords")
-    public AdminUserService.BulkReset resetPasswords(@AuthenticationPrincipal FamsUserPrincipal me, @RequestBody Map<String, Object> body) {
-        if (!(body.get("ids") instanceof List<?> raw) || raw.isEmpty()) {
-            throw new ValidationException(Map.of("ids", "Choose at least one account."));
-        }
-        if (raw.size() > AdminUserService.MAX_BULK_RESET) {
-            throw new ValidationException(Map.of("ids", "At most " + AdminUserService.MAX_BULK_RESET + " accounts at a time."));
-        }
-        List<Long> ids = new java.util.ArrayList<>();
-        for (Object o : raw) {
-            Long id = AdminInput.id(o);
-            if (id == null) throw new ValidationException(Map.of("ids", "Every account id must be a whole number."));
-            ids.add(id);
-        }
-        return users.resetPasswords(me, ids);
+    /**
+     * Body {@code {"ids": [..]}}: sends each active user a one-time, expiring link to choose a new password (never a
+     * password). The answer counts what was sent, skipped and failed, with the reason for each user not sent.
+     */
+    @PostMapping("/users/send-reset-links")
+    public AdminBulkService.LinkResult sendResetLinks(@AuthenticationPrincipal FamsUserPrincipal me, @RequestBody Map<String, Object> body) {
+        return bulk.sendResetLinks(me, ExportRequest.ids(body, "ids", AdminBulkService.MAX_LINKS_PER_REQUEST));
+    }
+
+    /** Body {@code {"ids": [..], "format": "xlsx"|"csv"}}: the chosen users as a download. No password or security field is in it. */
+    @PostMapping("/users/export")
+    public ResponseEntity<byte[]> exportUsers(@AuthenticationPrincipal FamsUserPrincipal me, @RequestBody Map<String, Object> body) {
+        ExportFile r = bulk.exportUsers(me, ExportRequest.parse(body, "ids"));
+        return Downloads.file(r.fileName(), r.format(), r.bytes());
+    }
+
+    // ---- appraisal details of faculty (export) ----
+
+    /** The faculty an administrator may choose from for the export: by year, department, cadre and appraisal status. */
+    @GetMapping("/appraisals/roster")
+    public ConsoleService.ExportRoster exportRoster(@RequestParam(required = false) Long academicYearId,
+                                                    @RequestParam(required = false) Long departmentId,
+                                                    @RequestParam(required = false) Long cadreId,
+                                                    @RequestParam(required = false) String status) {
+        return console.exportRoster(academicYearId, departmentId, cadreId, status);
+    }
+
+    /** Body {@code {"facultyIds": [..], "academicYearId": n, "format": "xlsx"|"csv"}}: the appraisal details as a download. */
+    @PostMapping("/appraisals/export")
+    public ResponseEntity<byte[]> exportAppraisals(@AuthenticationPrincipal FamsUserPrincipal me, @RequestBody Map<String, Object> body) {
+        ExportFile r = exports.export(me, ExportRequest.parse(body, "facultyIds"));
+        return Downloads.file(r.fileName(), r.format(), r.bytes());
     }
 
     // ---- departments, academic years, scoring policy ----

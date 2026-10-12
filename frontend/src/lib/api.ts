@@ -100,6 +100,62 @@ export async function postFile<T>(path: string, file: Blob, contentType: string)
   return payload as T;
 }
 
+/**
+ * The file name in a Content-Disposition header: the extended form (filename*=UTF-8''...) first, then the plain one. Only
+ * the last path segment is used, whatever the server sent, so a name can never point outside the downloads folder.
+ */
+export function fileNameFrom(disposition: string | null, fallback = "download"): string {
+  if (!disposition) return fallback;
+  const extended = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(disposition);
+  const plain = /filename\s*=\s*"?([^";]+)"?/i.exec(disposition);
+  let raw = extended?.[1] ?? plain?.[1];
+  if (!raw) return fallback;
+  try {
+    raw = extended ? decodeURIComponent(raw) : raw;
+  } catch {
+    // keep the raw text
+  }
+  const name = raw.split(/[/\\]/).pop()?.trim();
+  return name || fallback;
+}
+
+/** A POST whose answer is a file (a spreadsheet or CSV): the bytes and the name the server gave them. */
+export async function postDownload(path: string, body: unknown): Promise<{ blob: Blob; fileName: string }> {
+  let res: Response;
+  try {
+    res = await fetch(path, {
+      method: "POST",
+      headers: { Accept: "*/*", "Content-Type": "application/json", "X-XSRF-TOKEN": await csrfToken() },
+      credentials: "same-origin",
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError(0, "Cannot reach the server. Check your connection and try again.");
+  }
+  if (!res.ok) {
+    let payload: ErrorPayload = null;
+    try {
+      payload = await res.json();
+    } catch {
+      payload = null;
+    }
+    throw failure(res.status, payload, path);
+  }
+  return { blob: await res.blob(), fileName: fileNameFrom(res.headers.get("Content-Disposition")) };
+}
+
+/** Hands a file to the browser's download. */
+export function saveFile(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
 export const get = <T>(path: string) => api<T>("GET", path);
 export const post = <T>(path: string, body?: unknown) => api<T>("POST", path, body);
 export const put = <T>(path: string, body?: unknown) => api<T>("PUT", path, body);
