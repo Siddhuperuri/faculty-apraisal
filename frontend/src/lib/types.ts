@@ -280,11 +280,44 @@ export interface IssuedPassword {
   temporaryPassword: string;
 }
 
-/** Returned when several passwords are set back at once: how many were, how many were left as they were. */
-export interface BulkReset {
-  reset: number;
+/** A user a reset link was not sent to, and why. */
+export interface LinkOutcome {
+  id: number;
+  email: string;
+  reason: string;
+}
+
+/** The result of sending reset links to several users: how many were sent, skipped and failed, and who and why. */
+export interface LinkResult {
+  requested: number;
+  sent: number;
   skipped: number;
-  temporaryPassword: string;
+  failed: number;
+  /** False when the server cannot send e-mail at all: nothing was issued. */
+  mailReady: boolean;
+  skippedUsers: LinkOutcome[];
+  failedUsers: LinkOutcome[];
+}
+
+/** One faculty member in the administrator's appraisal export list. */
+export interface ExportRow {
+  facultyId: number;
+  name: string;
+  employeeId: string;
+  departmentId: number;
+  department: string;
+  cadre: string;
+  cadreId: number;
+  /** Null until the appraisal is submitted: a draft is private and is not told apart from none. */
+  status: Status | null;
+  stage: Stage;
+  submittedAt: string | null;
+}
+
+export interface ExportRoster {
+  year: YearRef | null;
+  years: YearRef[];
+  rows: ExportRow[];
 }
 
 export interface PolicyVersion {
@@ -338,6 +371,8 @@ export interface DepartmentSummary {
 }
 
 export interface RosterRow {
+  /** The faculty member's record: what the bulk actions (a selection, an export) are asked about. */
+  facultyId: number;
   /** Null for someone who has not submitted: a draft is private, so there is nothing to open. */
   appraisalId: number | null;
   name: string;

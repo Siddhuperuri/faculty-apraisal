@@ -28,7 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
  *       existence is not revealed;</li>
  *   <li>the Principal sees individual appraisals only from the HoD's approval onward; everything earlier is a single
  *       aggregate number ("not yet with you");</li>
- *   <li>an administrator sees counts and set-up checks, never a name or any appraisal content.</li>
+ *   <li>an administrator's overview is counts and set-up checks only; the appraisal-details export (a list of faculty to
+ *       choose from, then a spreadsheet) is the one place an administrator sees names and appraisal content.</li>
  * </ul>
  */
 @Service
@@ -42,11 +43,17 @@ public class ConsoleService {
     // ---- HoD ----
     public record DepartmentSummary(long id, String code, String name, int faculty, Map<String, Integer> counts) {}
     /** @param queryRaised the HoD is reviewing it and has sent the faculty member a message, so it is waiting for them */
-    public record RosterRow(Long appraisalId, String name, String employeeId, String department, String cadre,
+    public record RosterRow(long facultyId, Long appraisalId, String name, String employeeId, String department, String cadre,
                             String status, String stage, OffsetDateTime submittedAt, OffsetDateTime updatedAt,
                             boolean queryRaised) {}
     public record HodConsole(YearRef year, List<YearRef> years, List<DepartmentSummary> departments,
                              Map<String, Integer> totals, List<RosterRow> roster) {}
+
+    // ---- Administrator's appraisal export: who can be chosen ----
+    /** A faculty member for the appraisal-details export; {@code status} is null until the appraisal is submitted (a draft is private). */
+    public record ExportRow(long facultyId, String name, String employeeId, long departmentId, String department, String cadre,
+                            long cadreId, String status, String stage, OffsetDateTime submittedAt) {}
+    public record ExportRoster(YearRef year, List<YearRef> years, List<ExportRow> rows) {}
 
     // ---- Principal ----
     public record PrincipalDepartment(long id, String code, String name, int faculty, int awaiting, int approved, int notYetWithYou) {}
@@ -112,16 +119,16 @@ public class ConsoleService {
     }
 
     /** One row per faculty member of the department(s), with this year's appraisal if there is one. */
-    private record Person(long departmentId, String departmentCode, String departmentName, String name, String employeeId,
-                          String cadre, Long appraisalId, String status, OffsetDateTime submittedAt, OffsetDateTime updatedAt,
-                          boolean queryRaised) {}
+    private record Person(long facultyId, long departmentId, String departmentCode, String departmentName, String name,
+                          String employeeId, long cadreId, String cadre, Long appraisalId, String status, OffsetDateTime submittedAt,
+                          OffsetDateTime updatedAt, boolean queryRaised) {}
 
     private List<Person> people(Long yearId, String departmentFilterSql, List<Object> filterParams, int limit) {
         List<Object> params = new ArrayList<>();
         params.add(yearId);
         params.addAll(filterParams);
         return jdbc.sql("""
-                SELECT d.id, d.code, d.name AS dept, fp.name, fp.employee_id, c.name AS cadre, a.id AS aid, a.status,
+                SELECT d.id, d.code, d.name AS dept, fp.id AS fid, fp.name, fp.employee_id, c.id AS cadre_id, c.name AS cadre, a.id AS aid, a.status,
                        a.submitted_at, a.updated_at,
                        (a.status = 'HOD_REVIEW' AND EXISTS (SELECT 1 FROM appraisal_messages m WHERE m.appraisal_id = a.id AND m.answered_at IS NULL)) AS query_raised
                 FROM faculty_profiles fp
@@ -132,8 +139,8 @@ public class ConsoleService {
                 WHERE (u.status = 'ACTIVE' OR (a.id IS NOT NULL AND a.status <> 'DRAFT'))
                 """ + departmentFilterSql + " ORDER BY d.code, fp.name LIMIT " + limit)
                 .params(params)
-                .query((rs, n) -> new Person(rs.getLong("id"), rs.getString("code"), rs.getString("dept"), rs.getString("name"),
-                        rs.getString("employee_id"), rs.getString("cadre"), rs.getObject("aid", Long.class), rs.getString("status"),
+                .query((rs, n) -> new Person(rs.getLong("fid"), rs.getLong("id"), rs.getString("code"), rs.getString("dept"), rs.getString("name"),
+                        rs.getString("employee_id"), rs.getLong("cadre_id"), rs.getString("cadre"), rs.getObject("aid", Long.class), rs.getString("status"),
                         rs.getObject("submitted_at", OffsetDateTime.class), rs.getObject("updated_at", OffsetDateTime.class),
                         rs.getBoolean("query_raised")))
                 .list();
@@ -168,7 +175,7 @@ public class ConsoleService {
         // A draft is private to its author: it is listed as "not yet submitted", with no appraisal to open.
         List<RosterRow> roster = people.stream().map(p -> {
             boolean visible = p.status() != null && !p.status().equals(AppraisalStatus.DRAFT.name());
-            return new RosterRow(visible ? p.appraisalId() : null, p.name(), p.employeeId(), p.departmentCode(), p.cadre(),
+            return new RosterRow(p.facultyId(), visible ? p.appraisalId() : null, p.name(), p.employeeId(), p.departmentCode(), p.cadre(),
                     visible ? p.status() : null, stage(p.status()).name(), visible ? p.submittedAt() : null,
                     visible ? p.updatedAt() : null, visible && p.queryRaised());
         }).sorted(Comparator
@@ -176,6 +183,45 @@ public class ConsoleService {
                 .thenComparing(RosterRow::department).thenComparing(RosterRow::name)).toList();
 
         return new HodConsole(year, years, departments, totals, roster);
+    }
+
+    // ------------------------------------------------------------------ Administrator: faculty to export
+
+    /**
+     * The faculty an administrator may choose from for the appraisal-details export, narrowed by department, cadre and the
+     * stage of the appraisal. {@code status} is {@code NOT_SUBMITTED} (nothing submitted yet, a draft included: a draft is
+     * private, so it is not told apart from no appraisal at all) or one of the appraisal statuses.
+     */
+    @Transactional(readOnly = true)
+    public ExportRoster exportRoster(Long requestedYear, Long departmentId, Long cadreId, String status) {
+        if (status != null && !status.isBlank() && !status.equals("NOT_SUBMITTED")
+                && java.util.Arrays.stream(AppraisalStatus.values()).noneMatch(s -> s.name().equals(status) && s != AppraisalStatus.DRAFT)) {
+            throw ApiException.badRequest("Unknown status.");
+        }
+        List<YearRef> years = years();
+        YearRef year = pickYear(years, requestedYear);
+        StringBuilder filter = new StringBuilder();
+        List<Object> params = new ArrayList<>();
+        if (departmentId != null) {
+            filter.append(" AND fp.department_id = ?");
+            params.add(departmentId);
+        }
+        if (cadreId != null) {
+            filter.append(" AND fp.cadre_id = ?");
+            params.add(cadreId);
+        }
+        List<ExportRow> rows = people(year == null ? null : year.id(), filter.toString(), params, COLLEGE_LIMIT).stream()
+                .filter(p -> {
+                    if (status == null || status.isBlank()) return true;
+                    boolean submitted = p.status() != null && !p.status().equals(AppraisalStatus.DRAFT.name());
+                    return status.equals("NOT_SUBMITTED") ? !submitted : submitted && status.equals(p.status());
+                })
+                .map(p -> {
+                    boolean submitted = p.status() != null && !p.status().equals(AppraisalStatus.DRAFT.name());
+                    return new ExportRow(p.facultyId(), p.name(), p.employeeId(), p.departmentId(), p.departmentCode(), p.cadre(), p.cadreId(),
+                            submitted ? p.status() : null, stage(p.status()).name(), submitted ? p.submittedAt() : null);
+                }).toList();
+        return new ExportRoster(year, years, rows);
     }
 
     // ------------------------------------------------------------------ Principal

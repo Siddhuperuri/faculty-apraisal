@@ -82,7 +82,9 @@ public class AppraisalAccess {
                     && jdbc.sql("SELECT COUNT(*) FROM hod_assignments WHERE user_id = ? AND department_id = ?")
                             .params(user.id(), core.departmentId()).query(Long.class).single() > 0;
             case PRINCIPAL, DIRECTOR -> FINAL_LEVEL_VISIBLE.contains(core.status());
-            case ADMIN -> false; // ADMIN manages configuration, not appraisal content
+            // An administrator manages configuration and may export appraisal details (AppraisalExportService), but never
+            // opens or edits an appraisal: this is the one place that says who may read or change one.
+            case ADMIN -> false;
         };
         if (!visible) throw ApiException.notFound();
         return core;

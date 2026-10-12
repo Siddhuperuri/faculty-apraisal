@@ -76,7 +76,7 @@ export default function AdminOverviewPage() {
   return (
     <div className="space-y-8">
       <ConsoleHeader eyebrow="Administration" title="Administrator console" aside={<RefreshButton onRefresh={load} loadedAt={loadedAt} />}>
-        Users, set-up and activity. Administrators manage the system; they cannot read or change anyone&apos;s appraisal.
+        Users, set-up and activity. Administrators manage the system and can export appraisal details; they cannot open or change anyone&apos;s appraisal.
       </ConsoleHeader>
 
       <HealthBanners backup={backup} storage={storage} />
@@ -190,7 +190,7 @@ export default function AdminOverviewPage() {
                 { key: "NS", label: "Not started", value: p.NOT_STARTED ?? 0, className: "bg-line" },
               ]}
             />
-            <p className="text-xs text-muted">Counts only. Administrators never see who, or what is written in an appraisal.</p>
+            <p className="text-xs text-muted">Counts only. Names and appraisal details are in the Appraisal export, which is recorded in the audit trail.</p>
           </Card>
         </section>
       </div>

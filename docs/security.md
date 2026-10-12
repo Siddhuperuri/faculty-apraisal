@@ -102,6 +102,15 @@ against guessing, and the administrator and reviewer areas are still enforced on
 - **Exact account match at sign-in:** the database compares addresses loosely (accents, letter width). An address is
   accepted only if it is, lower-cased, character for character the stored one, so look-alike spellings cannot be used
   to get fresh attempt counters for the same account.
+- **Exports and bulk actions (2026-10-12):** the ids a page sends are never trusted. The server re-derives what the caller may
+  have: an HoD's export is limited to their own departments and one id outside them makes the whole request 404 (the answer for
+  an unknown id, so nothing is revealed); a draft is never exported; the administrator's exports are administrator-only. The
+  files select only named columns (never a hash, token or session field), set `Cache-Control: no-store` and
+  `X-Content-Type-Options: nosniff`, and CSV cells that begin with `= + - @` are neutralised so a name cannot run as a formula.
+  Bulk reset links are the forgot-password flow per user (token stored as a SHA-256, 30 minutes, one use), limited per
+  administrator (12 requests in 10 minutes) and per recipient (3 links in 10 minutes, shared with their own requests), exclude the
+  requesting administrator, and are sent one by one so a failure is reported, not hidden. Every export and every batch is in the
+  audit trail with the actor, year, departments, count and format; no password or link is in it.
 - **Checked on every build:** compiler warnings are errors, Checkstyle, SpotBugs with Find Security Bugs, 300+ tests
   against a real MySQL, ESLint and the TypeScript compiler (`scripts/verify.ps1`, `docs/architecture.md`).
 

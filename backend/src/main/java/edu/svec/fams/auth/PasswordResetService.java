@@ -81,15 +81,8 @@ public class PasswordResetService {
                 .query(Long.class).optional();
         if (user.isEmpty()) return;
 
-        byte[] raw = new byte[32];
-        RANDOM.nextBytes(raw);
-        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(raw);
         long userId = user.get();
-        jdbc.sql("UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE user_id = ? AND used_at IS NULL").param(userId).update();
-        jdbc.sql("""
-                INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, requested_from)
-                VALUES (?, ?, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ? MINUTE), ?)""")
-                .params(userId, sha256(token), LIFETIME_MINUTES, address).update();
+        String token = issueToken(userId, address);
         audit.record(userId, "PASSWORD_RESET_REQUESTED", "USER", userId, (String) null);
 
         String link = publicUrl + "/reset-password?token=" + token;
@@ -109,6 +102,55 @@ public class PasswordResetService {
             });
         } else {
             log.warn("A password reset was requested but mail is not configured (FAMS_MAIL_HOST, FAMS_MAIL_FROM, FAMS_PUBLIC_URL).");
+        }
+    }
+
+    /**
+     * A new one-time token for the user: any earlier unused link of theirs is ended, and only the SHA-256 of the new one is
+     * stored. The caller delivers it.
+     */
+    private String issueToken(long userId, String requestedFrom) {
+        byte[] raw = new byte[32];
+        RANDOM.nextBytes(raw);
+        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(raw);
+        jdbc.sql("UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE user_id = ? AND used_at IS NULL").param(userId).update();
+        jdbc.sql("""
+                INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, requested_from)
+                VALUES (?, ?, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL ? MINUTE), ?)""")
+                .params(userId, sha256(token), LIFETIME_MINUTES, requestedFrom).update();
+        return token;
+    }
+
+    /** Whether a link can be e-mailed at all: a mail server and the address the link points to are both configured. */
+    public boolean deliveryConfigured() {
+        return mailer.configured() && !publicUrl.isEmpty();
+    }
+
+    /**
+     * A reset link that an administrator sends to an active user. Unlike {@link #request}, the message is sent now, in the
+     * caller's thread, so the caller knows whether the mail server accepted it. The link is the same one-time, 30 minute
+     * link; it is ended again if the message could not be sent, so no usable link is left that nobody received. Nothing
+     * here ever contains a password.
+     *
+     * @return true when the mail server accepted the message
+     */
+    public boolean sendLink(long userId, String email, long administratorId) {
+        if (!deliveryConfigured()) return false;
+        String token = issueToken(userId, "admin:" + administratorId);
+        String link = publicUrl + "/reset-password?token=" + token;
+        if (logLinks) log.info("Password reset link for user {}: {}", userId, link);
+        try {
+            mailer.send(email, "Choose a new Faculty Appraisal password",
+                    "An administrator has asked for you to choose a new password for your Faculty Appraisal account.\n\n"
+                            + "Open this link to choose it. It works once and expires in " + LIFETIME_MINUTES + " minutes:\n\n"
+                            + link + "\n\nYour current password still works until you do. If you were not expecting this message, "
+                            + "do not open the link; you can ignore it.\n");
+            return true;
+        } catch (java.io.IOException e) {
+            log.warn("A password reset e-mail could not be sent to user {}: {}", userId, e.getMessage());
+            jdbc.sql("UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE user_id = ? AND token_hash = ?")
+                    .params(userId, sha256(token)).update();
+            return false;
         }
     }
 

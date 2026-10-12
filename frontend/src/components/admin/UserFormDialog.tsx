@@ -259,7 +259,7 @@ function Form({
             ? "The Principal gives the final decision on appraisals the Heads of Department have approved and forwarded. The Director Technical can decide the same appraisals."
             : role === "DIRECTOR"
               ? "The Director Technical gives the final decision on appraisals the Heads of Department have approved and forwarded, for the whole college, in the same way as the Principal."
-              : "Administrators manage users, departments, academic years and the scoring policy. They cannot read or change appraisal content."}
+              : "Administrators manage users, departments, academic years and the scoring policy. They cannot open or change an appraisal; they can download faculty appraisal details as an export, which is recorded in the audit trail."}
         </p>
       )}
 

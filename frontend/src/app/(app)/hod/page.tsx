@@ -5,7 +5,9 @@ import Link from "next/link";
 import { ConsoleHeader, STAGE_COLOUR, StageBar, StatTile, YearPicker } from "@/components/console/parts";
 import { RefreshButton, useLoadedAt } from "@/components/ui/RefreshButton";
 import { Alert, Badge, Button, Card, EmptyState, RuledHeading, Skeleton, StatusBadge, linkButton } from "@/components/ui/primitives";
-import { get } from "@/lib/api";
+import { RowCheckbox, SelectAllCheckbox, SelectionToolbar } from "@/components/ui/Selection";
+import { get, postDownload, saveFile } from "@/lib/api";
+import { NOTHING, checkState, hiddenCount, keepOnly, toggle, toggleShown, type Selection } from "@/lib/selection";
 import { formatDateTime } from "@/lib/format";
 import { STAGE_LABEL } from "@/lib/labels";
 import { scrollToId } from "@/lib/focus";
@@ -21,11 +23,17 @@ export default function HodConsolePage() {
   const [dept, setDept] = useState("");
   const [cadre, setCadre] = useState("");
   const [sort, setSort] = useState<RosterSort>("");
+  // The rows ticked for the bulk actions. They are kept by faculty id, so searching, filtering and sorting never lose one.
+  const [selected, setSelected] = useState<Selection>(NOTHING);
+  const [exporting, setExporting] = useState<"xlsx" | "csv" | null>(null);
+  const [exportNotice, setExportNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [loadedAt, stamp] = useLoadedAt();
 
   const load = useCallback(async () => {
     try {
-      setData(await get<HodConsole>(`/api/hod/console${yearId ? `?academicYearId=${yearId}` : ""}`));
+      const loaded = await get<HodConsole>(`/api/hod/console${yearId ? `?academicYearId=${yearId}` : ""}`);
+      setData(loaded);
+      setSelected((sel) => keepOnly(sel, loaded.roster.map((r) => r.facultyId)));
       setError(null);
       stamp();
     } catch (e) {
@@ -45,6 +53,27 @@ export default function HodConsolePage() {
     return counts;
   }, [data]);
   const cadres = useMemo(() => [...new Set((data?.roster ?? []).map((r) => r.cadre))].sort(), [data]);
+  const shownIds = useMemo(() => shown.map((r) => r.facultyId), [shown]);
+  const headerState = checkState(selected, shownIds);
+  const hidden = hiddenCount(selected, shownIds);
+
+  const exportSelected = async (format: "xlsx" | "csv") => {
+    setExporting(format);
+    setExportNotice(null);
+    try {
+      const file = await postDownload("/api/hod/appraisals/export", {
+        facultyIds: [...selected],
+        academicYearId: data?.year?.id,
+        format,
+      });
+      saveFile(file.blob, file.fileName);
+      setExportNotice({ tone: "ok", text: `${file.fileName} was downloaded (${selected.size} faculty).` });
+    } catch (e) {
+      setExportNotice({ tone: "error", text: (e as Error).message });
+    } finally {
+      setExporting(null);
+    }
+  };
   const narrowed = view !== "" || dept !== "" || cadre !== "" || query.trim() !== "";
   const clearFilters = () => {
     setView("");
@@ -207,17 +236,38 @@ export default function HodConsolePage() {
               {(narrowed || sort) && <Button variant="ghost" size="sm" onClick={clearFilters}>Clear filters</Button>}
             </div>
 
+            <SelectionToolbar selection={selected} hidden={hidden} singular="faculty" plural="faculty" onClear={() => setSelected(NOTHING)}>
+              <Button size="sm" loading={exporting === "xlsx"} disabled={exporting !== null} onClick={() => void exportSelected("xlsx")}>
+                Download Excel (.xlsx)
+              </Button>
+              <Button variant="secondary" size="sm" loading={exporting === "csv"} disabled={exporting !== null} onClick={() => void exportSelected("csv")}>
+                Download CSV
+              </Button>
+            </SelectionToolbar>
+            {exportNotice && (
+              <Alert tone={exportNotice.tone === "ok" ? "ok" : "error"} title={exportNotice.tone === "ok" ? "Downloaded" : "Could not export"}>
+                {exportNotice.text}
+              </Alert>
+            )}
+
             {shown.length === 0 ? (
               <EmptyState action={faculty > 0 ? <Button variant="secondary" onClick={clearFilters}>Clear filters</Button> : undefined}>{faculty === 0 ? "No faculty are assigned to your department yet." : "No one matches these filters."}</EmptyState>
             ) : (
               <>
+              <label className="flex items-center gap-2 text-sm font-medium sm:hidden">
+                <SelectAllCheckbox state={headerState} onChange={() => setSelected(toggleShown(selected, shownIds))} label={`Select all ${shown.length} faculty shown`} />
+                Select all {shown.length} shown
+              </label>
               <ul className="grid gap-3 sm:hidden" aria-label="Faculty of your department and where each appraisal stands">
                 {shown.map((r) => (
-                  <li key={r.employeeId} className="rounded-xl border border-line bg-surface p-4 shadow-[var(--shadow-paper)]">
+                  <li key={r.employeeId} className={`rounded-xl border bg-surface p-4 shadow-[var(--shadow-paper)] ${selected.has(r.facultyId) ? "border-brand bg-brand-soft/40" : "border-line"}`}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="font-display text-lg font-medium leading-snug text-navy">{r.name}</p>
-                        <p className="text-xs text-muted">{r.employeeId}</p>
+                      <div className="flex items-start gap-3">
+                        <RowCheckbox checked={selected.has(r.facultyId)} onChange={() => setSelected(toggle(selected, r.facultyId))} label={`Select ${r.name}`} />
+                        <div>
+                          <p className="font-display text-lg font-medium leading-snug text-navy">{r.name}</p>
+                          <p className="text-xs text-muted">{r.employeeId}</p>
+                        </div>
                       </div>
                       {r.status ? <StatusBadge status={r.status} queryRaised={r.queryRaised} /> : <Badge>Not submitted</Badge>}
                     </div>
@@ -237,6 +287,9 @@ export default function HodConsolePage() {
                   <caption className="sr-only">Faculty of your department and where each appraisal stands</caption>
                   <thead>
                     <tr className="bg-brand-soft text-navy">
+                      <th scope="col" className="w-10 px-4 py-2.5">
+                        <SelectAllCheckbox state={headerState} onChange={() => setSelected(toggleShown(selected, shownIds))} label={`Select all ${shown.length} faculty shown`} />
+                      </th>
                       {["Faculty", "Department", "Cadre", "Where it stands", "Submitted", ""].map((h, i) => (
                         <th key={i} scope="col" className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em]">{h || <span className="sr-only">Open</span>}</th>
                       ))}
@@ -244,7 +297,10 @@ export default function HodConsolePage() {
                   </thead>
                   <tbody>
                     {shown.map((r) => (
-                      <tr key={`${r.employeeId}`} className="border-t border-line transition-colors hover:bg-warm/40">
+                      <tr key={`${r.employeeId}`} aria-selected={selected.has(r.facultyId)} className={`border-t border-line transition-colors hover:bg-warm/40 ${selected.has(r.facultyId) ? "bg-brand-soft/50" : ""}`}>
+                        <td className="px-4 py-2.5">
+                          <RowCheckbox checked={selected.has(r.facultyId)} onChange={() => setSelected(toggle(selected, r.facultyId))} label={`Select ${r.name}`} />
+                        </td>
                         <td className="px-4 py-2.5">
                           <span className="font-display text-base font-medium">{r.name}</span>
                           <span className="block text-xs text-muted">{r.employeeId}</span>
@@ -271,7 +327,10 @@ export default function HodConsolePage() {
               </div>
               </>
             )}
-            <p className="text-xs text-muted">A draft is private to the faculty member until they submit it, so it is shown as not yet submitted.</p>
+            <p className="text-xs text-muted">
+              A draft is private to the faculty member until they submit it, so it is shown as not yet submitted, and an export lists the person
+              with &quot;Not submitted&quot; and nothing else. Tick the faculty you want, then download their appraisal details.
+            </p>
           </section>
         </>
       )}

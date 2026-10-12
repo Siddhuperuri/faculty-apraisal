@@ -3,7 +3,7 @@ import { filterRoster, viewOf } from "./roster";
 import type { RosterRow } from "./types";
 
 const row = (name: string, o: Partial<RosterRow> = {}): RosterRow => ({
-  appraisalId: 1, name, employeeId: `E-${name}`, department: "CSE", cadre: "Professor", status: null,
+  facultyId: 1, appraisalId: 1, name, employeeId: `E-${name}`, department: "CSE", cadre: "Professor", status: null,
   stage: "NOT_SUBMITTED", submittedAt: null, updatedAt: null, queryRaised: false, ...o,
 });
 
