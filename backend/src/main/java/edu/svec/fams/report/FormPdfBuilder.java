@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
 
 /**
  * Draws the college's "Faculty Self Appraisal & Assessment Report" from saved data, following the structure,
- * headings and column names of the official form: letterhead, Part A, Part B items 1-11, the declaration, the HoD,
+ * headings and column names of the official form: letterhead, Part A, Part B items 1-12, the declaration (13), the HoD,
  * Principal and Director Technical boxes and Annexure A, followed by Annexure B (the scoring components of the faculty
  * member's cadre). Signature, seal and date lines are left blank on purpose: they are completed on paper. Everything is text from the database, never a screenshot.
  */
@@ -256,6 +256,7 @@ final class FormPdfBuilder {
         awards(doc);
         other(doc);
         scoreSheet(doc);
+        actionPlan(doc);
     }
 
     private void teaching(Document doc) throws DocumentException {
@@ -491,6 +492,12 @@ final class FormPdfBuilder {
         place(doc, textBox(str(o, "instituteContribution"), 44), 56);
     }
 
+    private void actionPlan(Document doc) throws DocumentException {
+        push(heading("12. Action Plan for the Next 2 Years:"));
+        Map<String, Object> plan = first("action-plan");
+        place(doc, textBox(str(plan, "plan"), 44), 56);
+    }
+
     private void scoreSheet(Document doc) throws DocumentException {
         push(heading("11. Self Appraisal Score Sheet:"));
         push(note("Maximum marks for your cadre are given in Annexure A, and the scoring components they are made of in Annexure B."));
@@ -514,7 +521,8 @@ final class FormPdfBuilder {
                 }
                 if (r.maxMarks() == null) {
                     String lines = r.breakdown().stream().filter(l -> l.count() > 0)
-                            .map(l -> l.description() + ": " + l.count() + " x " + ScoringRules.plain(l.perEntry()) + " = " + ScoringRules.plain(l.marks()))
+                            .map(l -> l.description() + " (" + ScoringRules.perEntry(l.perEntry()) + "): " + l.count() + " x "
+                                    + ScoringRules.plain(l.perEntry()) + " = " + ScoringRules.plain(l.marks()))
                             .collect(Collectors.joining("; "));
                     withComponents.add(new Chunk(pdf("\n" + (lines.isEmpty() ? "No entries." : lines + ".")), ITALIC));
                 }
@@ -550,7 +558,7 @@ final class FormPdfBuilder {
     // ====================================================================================================
 
     private void declarationAndReview(Document doc) throws DocumentException {
-        Paragraph decl = new Paragraph("Declaration", BODY_BOLD);
+        Paragraph decl = new Paragraph("13. Declaration", BODY_BOLD);
         decl.setSpacingBefore(10);
         decl.setKeepTogether(true);
         doc.add(decl);

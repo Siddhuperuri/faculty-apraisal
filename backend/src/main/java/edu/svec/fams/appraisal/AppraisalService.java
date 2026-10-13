@@ -6,6 +6,9 @@ import edu.svec.fams.auth.Role;
 import edu.svec.fams.common.ApiException;
 import edu.svec.fams.common.GeneratedKeys;
 import edu.svec.fams.scoring.ScoreService;
+import edu.svec.fams.section.FieldSpec;
+import edu.svec.fams.section.Sections;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -23,6 +26,13 @@ public class AppraisalService {
     public record HistoryRow(String action, String fromStatus, String toStatus, String actorRole,
                              String comment, OffsetDateTime at) {}
 
+    /**
+     * What the faculty member's cadre is asked to teach, for the help shown beside the course list: courses a year and a
+     * semester, the marks each earns and the most the workload part is worth. Null for an appraisal begun under the older
+     * rule, which has no such requirement.
+     */
+    public record CourseLoad(int perYear, int perSemester, BigDecimal marksPerCourse, int workloadMax) {}
+
     /** Part A identity as the form prints it: name, employee ID, department, designation (cadre), e-mail. */
     public record AppraisalView(long id, String status, String academicYear, String facultyName,
                                 String employeeId, String email,
@@ -31,7 +41,7 @@ public class AppraisalService {
                                 OffsetDateTime declaredAt,
                                 List<ScoreService.ScoreRow> scores, List<HistoryRow> history,
                                 List<String> submitBlockers, boolean queryRaised,
-                                LocalDate academicYearStart, LocalDate academicYearEnd) {}
+                                LocalDate academicYearStart, LocalDate academicYearEnd, CourseLoad courseLoad) {}
 
     private record Head(String academicYear, LocalDate academicYearStart, LocalDate academicYearEnd, String facultyName, String employeeId, String email, String department,
                           String cadre, OffsetDateTime submittedAt, OffsetDateTime finalApprovedAt,
@@ -192,7 +202,24 @@ public class AppraisalService {
         return new AppraisalView(id, core.status().name(), head.academicYear(), head.facultyName(),
                 head.employeeId(), head.email(), head.department(), head.cadre(), editable,
                 head.submittedAt(), head.finalApprovedAt(), head.declaredAt(),
-                scores, history, blockers, queryRaised(id), head.academicYearStart(), head.academicYearEnd());
+                scores, history, blockers, queryRaised(id), head.academicYearStart(), head.academicYearEnd(), courseLoad(id));
+    }
+
+    private CourseLoad courseLoad(long id) {
+        return jdbc.sql("""
+                SELECT p.courses_per_year,
+                       (SELECT pc.max_marks FROM scoring_policy_components pc
+                        WHERE pc.policy_id = p.id AND pc.criterion = 'TEACHING_LEARNING' AND LOWER(pc.description) LIKE 'workload%'
+                        ORDER BY pc.sort_order LIMIT 1)
+                FROM appraisals a JOIN scoring_policies p ON p.id = a.scoring_policy_id WHERE a.id = ?""")
+                .param(id)
+                .query((rs, n) -> {
+                    Integer perYear = (Integer) rs.getObject(1);
+                    Integer max = (Integer) rs.getObject(2);
+                    if (perYear == null || perYear <= 0 || max == null) return null;
+                    return new CourseLoad(perYear, Math.max(1, perYear / 2),
+                            BigDecimal.valueOf(max).divide(BigDecimal.valueOf(perYear), 2, java.math.RoundingMode.HALF_UP).stripTrailingZeros(), max);
+                }).optional().orElse(null);
     }
 
     private boolean queryRaised(long id) {
@@ -225,6 +252,14 @@ public class AppraisalService {
                 .param(id).query((rs, n) -> new Object[] {rs.getString(1), rs.getString(2), rs.getObject(3)}).optional().orElse(null);
         if (part == null || part[0] == null || part[1] == null || part[2] == null) {
             missing.add("General Information: contact number, qualification and specialization, and date of joining the institution");
+        }
+        String plan = jdbc.sql("SELECT plan_text FROM action_plan WHERE appraisal_id = ?").param(id)
+                .query(String.class).optional().orElse(null);
+        int words = FieldSpec.countWords(plan);
+        if (words == 0) {
+            missing.add("Action Plan for the Next 2 Years: write your plan (at most " + String.format("%,d", Sections.MAX_ACTION_PLAN_WORDS) + " words)");
+        } else if (words > Sections.MAX_ACTION_PLAN_WORDS) {
+            missing.add("Action Plan for the Next 2 Years: shorten your plan to " + String.format("%,d", Sections.MAX_ACTION_PLAN_WORDS) + " words or fewer");
         }
         return missing;
     }

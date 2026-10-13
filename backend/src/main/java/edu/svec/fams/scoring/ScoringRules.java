@@ -61,15 +61,15 @@ public class ScoringRules {
                 .param(id).query(Integer.class).single();
         out.put("STUDENT_MENTORING", List.of(
                 // 6 marks when any student is mentored, 0 when none: the number of students does not matter
-                capped("Students mentored (6 marks if you mentored any students)", BigDecimal.valueOf(6), mentees > 0 ? 1 : 0, 6),
+                capped("Students mentored (6m if you mentored any students)", BigDecimal.valueOf(6), mentees > 0 ? 1 : 0, 6),
                 cappedMax("Student project guided", BigDecimal.valueOf(2), count("student_projects", null, id), 4),
                 cappedMax("Student achievement", BigDecimal.ONE, count("student_achievements", null, id, "month:month_year"), 5)));
 
         // One qualifying program earns all 5 marks and one certification all 10; further ones add nothing (the cap).
         out.put("FDP_CERTIFICATIONS", List.of(
-                capped("Workshop, FDP, seminar or training of " + MIN_QUALIFYING_DAYS + " days or more (5 marks)", BigDecimal.valueOf(5),
+                capped("Workshop, FDP, seminar or training of " + MIN_QUALIFYING_DAYS + " days or more (5m, earned once)", BigDecimal.valueOf(5),
                         count("fdps", "days >= " + MIN_QUALIFYING_DAYS, id), 5),
-                capped("Certification (10 marks)", BigDecimal.TEN, count("certifications", "duration_weeks >= 1", id), 10)));
+                capped("Certification (10m, earned once)", BigDecimal.TEN, count("certifications", "duration_weeks >= 1", id), 10)));
 
         out.put("ADMINISTRATIVE", List.of(
                 cappedMax("Department-level role", BigDecimal.valueOf(2), count("administrative_roles", "scope = 'DEPARTMENT'", id, "date:from_date", "date:to_date"), 4),
@@ -88,9 +88,12 @@ public class ScoringRules {
         research.add(line("B.Tech project guided", 2, count("student_projects", "level = 'UG'", id)));
         out.put("RESEARCH_PUBLICATIONS", research);
 
+        // A sanctioned project earns 50 marks, however many; an applied one 5, but the applied ones together earn at most 10 a
+        // year. Further applied projects are still recorded: only their marks stop.
         out.put("FUNDED_PROJECTS", List.of(
                 line("Project sanctioned", 50, count("funded_projects", "status = 'SANCTIONED'", id, "year:year")),
-                line("Project applied for (not yet sanctioned)", 5, count("funded_projects", "status = 'APPLIED'", id, "year:year"))));
+                cappedMax("Project applied for (not yet sanctioned)", BigDecimal.valueOf(5),
+                        count("funded_projects", "status = 'APPLIED'", id, "year:year"), 10)));
 
         out.put("PATENTS_BOOKS_IPR", List.of(
                 line("Patent published", 5, count("patents_ipr", "status = 'PUBLISHED'", id, "date:record_date")),
@@ -130,6 +133,11 @@ public class ScoringRules {
     /** How a score limit is worded wherever marks are shown: {@code "Max marks: 10"}, with the limit that is configured. */
     public static String maxMarks(int cap) {
         return "Max marks: " + cap;
+    }
+
+    /** A rate as it is worded wherever per-entry marks are shown: {@code "50m for each"}. */
+    public static String perEntry(BigDecimal marks) {
+        return plain(marks) + "m for each";
     }
 
     /** Marks as people write them: "5", "2.5", "20", never "20.0" or "2E+1". */

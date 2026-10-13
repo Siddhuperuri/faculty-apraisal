@@ -23,7 +23,7 @@ and ignored. The per-entry marks are in code (`ScoringRules`), because they are 
 
 | Criterion | Entry | Marks |
 |---|---|---|
-| B1 Teaching | each course handled: an eighth of each component (see "B1: courses" below) | |
+| B1 Teaching | workload by the cadre's courses a year, course file by the role, the rest an eighth a course (see "B1: courses" below) | |
 | B5 Research & Publications | SCI/SCIE journal paper | 15 |
 | | ESCI/Scopus journal paper (UGC-CARE and others earn nothing) | 10 |
 | | conference paper | 5 |
@@ -31,8 +31,8 @@ and ignored. The per-entry marks are in code (`ScoringRules`), because they are 
 | | Ph.D. guiding (Registered or Submitted) | 5 |
 | | PG guided (M.Tech/MBA Awarded) | 3 |
 | | B.Tech project guided (each UG student project) | 2 |
-| B6 Funded Projects / Consultancy | project sanctioned | 50 |
-| | project applied for | 5 |
+| B6 Funded Projects / Consultancy | project sanctioned (50m for each, no limit) | 50 |
+| | project applied for (5m for each; **Max marks: 10** a year, more may be recorded) | 5 |
 | B7 Patents, Books & IPR | patent published / granted | 5 / 20 |
 | | book published / book chapter | 20 / 5 |
 | B8 Outreach | each entry | 5 |
@@ -48,13 +48,29 @@ and ignored. The per-entry marks are in code (`ScoringRules`), because they are 
   (from and to day), journal and conference papers and books (month), scholars, funded projects and memberships (year, one of
   the two calendar years the academic year spans), patents (day) and outreach (day). What describes the person (joining dates,
   the year a Ph.D. was registered, research profile metrics) is not.
-- **B1: courses.** A faculty member teaches 4 courses in each of the academic year's 2 semesters, and **at most 8** can be added
-  (there is no minimum). Each course earns one eighth of each component of B1, so 8 courses earn all of it (an Assistant
-  Professor's 40 is 5 a course: 2.5 workload, 1.25 course file, 1.25 innovative practices). **Workload is a whole number of
-  marks**: it is worked out exactly (component maximum x courses / 8) and rounded to the nearest whole mark, half up, so a
-  Professor or Associate Professor (workload 15, that is 1.875 a course) earns 2, 4, 6, 8, 9, 11, 13 and 15 for 1 to 8 courses, and
-  8 courses are exactly 15. The other components are not rounded. There is no "student feedback" component any more (policy
-  version 3; the course form still records the Phase-1 and Phase-2 feedback percentages, which earn no marks).
+- **B1: courses (policy version 5 onwards, 2026-10-13).** At most 8 courses can be added and there is no minimum.
+  - **Workload & course delivery** is worth 20 for every cadre and is earned by the **cadre's courses**, each worth the
+    maximum divided by the courses a year the cadre teaches (`scoring_policies.courses_per_year`), never more than 20:
+
+    | Cadre | Courses a year | a semester | Marks a course |
+    |---|---:|---:|---:|
+    | Lecturer, Assistant Professor, Senior Assistant Professor | 8 | 4 | 2.5 |
+    | Associate Professor | 4 | 2 | 5 |
+    | Professor | 2 | 1 | 10 |
+
+    Nobody is made to enter more courses than that; more are recorded and earn nothing extra. Workload is **not** rounded to a
+    whole mark any more.
+  - **Course file / assessment quality** is worth its whole maximum, **10**, when the faculty member is the **Course
+    Coordinator** of at least one course entered, and **4** when every course entered is as a **Course Instructor**. It earns
+    nothing until a course is entered. A course saved before roles were asked for has no role and is given the benefit of the
+    doubt (10). The component's maximum shown (and printed) is the one that applies.
+  - **Innovative / remedial / advanced-learning practices** still earn an eighth of the part for each course.
+  - **B1's maximum** is 40 for a Lecturer and an Assistant Professor and 35 for the other cadres (20 + 10 + 5; it was 30 for an
+    Associate Professor and a Professor, whose workload part was 15). Appraisals begun under versions 1 to 4 keep the earlier
+    rule exactly (an eighth of each part for a course, the workload rounded to a whole mark: a Professor's 15 earns 2, 4, 6, 8, 9,
+    11, 13, 15), because `courses_per_year` is empty on those versions. Drafts moved to version 5 with migration `V37`.
+  - There is no "student feedback" component (version 3 onwards); the course form still records the Phase-1 and Phase-2 feedback
+    percentages, which earn no marks.
 - **B2 to B4: a working rate card** (the college has not published one; change it in `ScoringRules`). Each kind of entry has a rate
   and a cap, and the caps add up to the criterion's 15:
 
@@ -69,6 +85,13 @@ and ignored. The per-entry marks are in code (`ScoringRules`), because they are 
 | | institute-level role | 1.5 | 3 |
 | | event organised or coordinated | 1 | 8 |
 
+## Wording of per-entry rates (2026-10-13)
+
+A rate is worded **`50m for each`** wherever per-entry marks are shown (score panels, the reviewers' score sheet, the report),
+never `(50 each)`; a limit is still `(Max marks: N)`. A faculty member's own page shows only
+`B1 · Teaching & Learning — 0 of 40`: the criterion, its maximum and what they earned. The components and the working
+(`0 courses x 20 / 8 = 0`) are shown to the reviewers only, where they need them to review marks.
+
 ## Limits on per-entry criteria, and institutional roles (2026-10-11)
 
 - **How a limit is worded.** Wherever marks are shown (the score sheet, the section score panels, Score & Review, the dashboards,
@@ -76,8 +99,10 @@ and ignored. The per-entry marks are in code (`ScoringRules`), because they are 
   scoring policy, never a fixed number (the old "(up to N)" is gone). A line that has reached its limit says `Max marks: N`
   after its sum. Ordinary uses of "up to" (a record limit, a date, a file size) are not score limits and are unchanged.
 
-- **Funded projects (B6): at most 2 entries a year and at most 10 marks.** The form, the server (`maxRecords`) and the marks all
-  say the same: a third entry is refused, and whatever the entries are worth, the criterion earns 10 at most.
+- **Funded projects (B6), changed 2026-10-13 (version 5):** each **sanctioned** project earns **50m for each**, with no limit;
+  each **applied** project earns **5m for each** but the applied ones together earn **at most 10 marks a year**
+  (`(Max marks: 10)`), and the number of projects that can be recorded is no longer limited (only their marks are). The criterion
+  itself has no maximum from version 5 (it was 10 for the whole criterion in version 4, with at most 2 entries).
 - **Outreach (B8) and Memberships, awards & recognitions (B9) are limited too** (10 and 5 in policy version 4). The limits are
   **policy data**, not code: the criterion's "maximum" in the scoring policy (0 means no limit), changed by publishing a new
   version under Departments, years & scoring ("Limits for criteria marked per entry"). Appraisals already started keep the limit

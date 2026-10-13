@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { SectionMeta } from "./types";
-import { applyDependencies, isAsked, isBlank, serverErrorsFor, toApiRecord, toFormValues, validate } from "./validate";
+import type { FieldMeta, SectionMeta } from "./types";
+import { applyDependencies, countWords, isAsked, isBlank, liveFieldError, serverErrorsFor, toApiRecord, toFormValues, validate } from "./validate";
 
 const meta: SectionMeta = {
   key: "demo",
@@ -139,5 +139,62 @@ describe("a field asked for only under another choice", () => {
     expect(toApiRecord(cert, { platform: "OTHER", platformOther: "Infosys Springboard" }).platformOther).toBe("Infosys Springboard");
     expect(applyDependencies(cert, { platform: "NPTEL", platformOther: "left over" }, "platform").platformOther).toBe("");
     expect(applyDependencies(cert, { platform: "OTHER", platformOther: "kept" }, "platform").platformOther).toBe("kept");
+  });
+});
+
+describe("immediate validation (as the person types)", () => {
+  const passPercentage = {
+    name: "passPercentage",
+    label: "Pass percentage",
+    type: "DECIMAL",
+    required: true,
+    maxLength: null,
+    min: 0,
+    max: 100,
+    scale: 2,
+    allowed: null,
+  } as FieldMeta;
+
+  it("names the range as soon as 120 is typed, in the server's words", () => {
+    expect(liveFieldError(passPercentage, "120", true)).toBe("Pass percentage must be between 0 and 100.");
+    expect(liveFieldError(passPercentage, "92.5", true)).toBeNull();
+    expect(liveFieldError(passPercentage, "-1", true)).toBe("Pass percentage must be between 0 and 100.");
+    expect(liveFieldError(passPercentage, "9x", true)).toBe("Pass percentage must be a number.");
+    expect(liveFieldError(passPercentage, "90.123", true)).toBe("Pass percentage can have at most 2 decimal places.");
+  });
+
+  it("an empty required field is a problem; an empty optional one is not", () => {
+    expect(liveFieldError(passPercentage, "  ", true)).toBe("Pass percentage is required.");
+    expect(liveFieldError({ ...passPercentage, required: false }, "", false)).toBeNull();
+  });
+
+  it("a semester must be 1 to 8, whole", () => {
+    const semester = { ...passPercentage, name: "semester", label: "Semester", type: "INT", scale: null, min: 1, max: 8, allowed: ["1", "2", "3", "4", "5", "6", "7", "8"] } as FieldMeta;
+    expect(liveFieldError(semester, "9", true)).toBe("Semester must be one of: 1, 2, 3, 4, 5, 6, 7, 8.");
+    expect(liveFieldError(semester, "2.5", true)).toBe("Semester must be a whole number.");
+    expect(liveFieldError(semester, "8", true)).toBeNull();
+  });
+
+  it("a date outside the academic year says so", () => {
+    const when = { name: "fromDate", label: "From date", type: "DATE", required: true, maxLength: null, min: null, max: null, scale: null, allowed: null, inAcademicYear: true } as FieldMeta;
+    const year = { name: "2025-26", start: "2025-06-01", end: "2026-05-31" };
+    expect(liveFieldError(when, "2024-01-01", true, year)).toContain("must be within the academic year 2025-26");
+    expect(liveFieldError(when, "2025-09-01", true, year)).toBeNull();
+    expect(liveFieldError(when, "not a date", true, year)).toBe("From date must be a valid date.");
+  });
+
+  it("a word limit counts words, not characters, and says how many there are", () => {
+    const plan = { name: "plan", label: "Action plan", type: "TEXT", required: false, maxLength: 80000, maxWords: 2000, min: null, max: null, scale: null, allowed: null } as FieldMeta;
+    expect(liveFieldError(plan, Array(2000).fill("word").join(" "), false)).toBeNull();
+    expect(liveFieldError(plan, Array(2001).fill("word").join(" "), false)).toBe("Action plan must be at most 2,000 words (it has 2,001).");
+    expect(liveFieldError(plan, "", false)).toBeNull();            // a draft may leave it empty
+    expect(countWords("  one two\nthree\t four  ")).toBe(4);
+    expect(countWords("   ")).toBe(0);
+  });
+
+  it("a dependent choice is judged against what the choice above offers", () => {
+    const branch = { name: "branch", label: "Branch", type: "ENUM", required: true, maxLength: null, min: null, max: null, scale: null, allowed: ["CSE", "ECE"], dependsOn: "program" } as FieldMeta;
+    expect(liveFieldError(branch, "PHARMACOLOGY", true)).toBe("Branch is not offered under the choice above.");
+    expect(liveFieldError(branch, "CSE", true)).toBeNull();
   });
 });

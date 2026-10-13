@@ -195,11 +195,11 @@ class SectionIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Some values are invalid."))
                 .andExpect(jsonPath("$.fieldErrors['records[0].passPercentage']")
                         .value("Pass percentage must be between 0 and 100."))
-                .andExpect(jsonPath("$.fieldErrors['records[0].courseName']").value("Course name is required."))
+                .andExpect(jsonPath("$.fieldErrors['records[0].courseName']").value("Course is required."))
                 .andExpect(jsonPath("$.fieldErrors['records[0].courseType']")
                         .value("Course type must be one of: THEORY, LAB."))
                 .andExpect(jsonPath("$.fieldErrors['records[0].semester']")
-                        .value("Semester must be one of: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12."))
+                        .value("Semester must be one of: 1, 2, 3, 4, 5, 6, 7, 8."))
                 .andExpect(jsonPath("$.fieldErrors['records[0].hoursPerWeek']")
                         .value("Hours per week must be one of: 1, 2, 3, 4, 5, 6."))
                 .andExpect(jsonPath("$.fieldErrors['records[0].surprise']").value("Not a recognised field."));
@@ -383,7 +383,7 @@ class SectionIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.['teaching-courses']").value(2))
                 .andExpect(jsonPath("$.['fdps']").value(0))
-                .andExpect(jsonPath("$.length()").value(21));
+                .andExpect(jsonPath("$.length()").value(22));
     }
 
     @Test
@@ -463,13 +463,11 @@ class SectionIntegrationTest {
     }
 
     @Test
-    void atMostTwoFundedProjectsCanBeAddedForTheYear() throws Exception {
-        save(faculty, id, "funded-projects", List.of(project("A", "RESEARCH", "SANCTIONED", 1), project("B", "RESEARCH", "APPLIED", 2)))
-                .andExpect(status().isOk());
+    void moreThanTwoFundedProjectsCanBeRecordedAndOnlyTheirMarksAreLimited() throws Exception {
         save(faculty, id, "funded-projects", List.of(project("A", "RESEARCH", "SANCTIONED", 1), project("B", "RESEARCH", "APPLIED", 2),
-                project("C", "CONSULTANCY", "APPLIED", 3)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors.records").value("At most 2 funded projects are allowed here."));
+                project("C", "CONSULTANCY", "APPLIED", 3), project("D", "CONSULTANCY", "APPLIED", 4)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.records.length()").value(4));
     }
 
     @Test
@@ -675,13 +673,13 @@ class SectionIntegrationTest {
 
     @Test
     void aRoleHasAFromDateAndAToDateAndTheyMustBeInOrder() throws Exception {
-        save(faculty, id, "administrative-roles", List.of(rec("scope", "INSTITUTE", "role", "IQAC member",
+        save(faculty, id, "administrative-roles", List.of(rec("scope", "INSTITUTE", "roleCode", "IQAC",
                 "fromDate", "2025-07-01", "toDate", "2026-05-31"))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.records[0].fromDate").value("2025-07-01"));
-        save(faculty, id, "administrative-roles", List.of(rec("scope", "INSTITUTE", "role", "IQAC member",
+        save(faculty, id, "administrative-roles", List.of(rec("scope", "INSTITUTE", "roleCode", "IQAC",
                 "fromDate", "2026-05-31", "toDate", "2025-07-01"))).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors['records[0].toDate']").value("To date must not be before from date."));
-        save(faculty, id, "administrative-roles", List.of(rec("scope", "INSTITUTE", "role", "IQAC member", "period", "2025-26")))
+        save(faculty, id, "administrative-roles", List.of(rec("scope", "INSTITUTE", "roleCode", "IQAC", "period", "2025-26")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors['records[0].fromDate']").value("From date is required."))
                 .andExpect(jsonPath("$.fieldErrors['records[0].period']").value("Not a recognised field."));
@@ -735,7 +733,7 @@ class SectionIntegrationTest {
                 rec(book, "A", "title", "U", "publisher", "P", "isbn", "9780000000002", "monthYear", "2026-05", "type", "BOOK"))).andExpect(status().isOk());
 
         // a role's dates, a patent's date, a conference paper's month and a membership's year
-        save(faculty, id, "administrative-roles", List.of(rec("scope", "INSTITUTE", "role", "R", "fromDate", "2024-07-01", "toDate", "2026-05-31")))
+        save(faculty, id, "administrative-roles", List.of(rec("scope", "INSTITUTE", "roleCode", "IQAC", "fromDate", "2024-07-01", "toDate", "2026-05-31")))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors['records[0].fromDate']").value("From date" + within));
         save(faculty, id, "patents-ipr", List.of(rec("applicantInventors", "A", "title", "P", "type", "UTILITY", "status", "FILED", "recordDate", "2024-02-01")))
                 .andExpect(status().isBadRequest());

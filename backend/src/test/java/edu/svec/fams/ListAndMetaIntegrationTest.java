@@ -89,7 +89,7 @@ class ListAndMetaIntegrationTest {
     void metaDescribesEverySectionForTheForms() throws Exception {
         mvc.perform(get("/api/sections/meta").with(user(f1)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(21))
+                .andExpect(jsonPath("$.length()").value(22))
                 .andExpect(jsonPath("$[0].key").value("general-information"))
                 .andExpect(jsonPath("$[1].key").value("teaching-courses"))
                 .andExpect(jsonPath("$[1].singleton").value(false))
@@ -104,7 +104,7 @@ class ListAndMetaIntegrationTest {
                 .andExpect(jsonPath("$[1].fields[?(@.name=='hoursPerWeek')].allowed.length()").value(6))
                 .andExpect(jsonPath("$[1].fields[?(@.name=='hoursPerWeek')].min").value(1))
                 .andExpect(jsonPath("$[1].fields[?(@.name=='hoursPerWeek')].max").value(6))
-                .andExpect(jsonPath("$[1].fields[?(@.name=='semester')].allowed.length()").value(12))
+                .andExpect(jsonPath("$[1].fields[?(@.name=='semester')].allowed.length()").value(8))
                 .andExpect(jsonPath("$[1].fields[?(@.name=='courseCode')].maxLength").value(32))
                 .andExpect(jsonPath("$[?(@.key=='mentoring-summary')].singleton").value(true))
                 .andExpect(jsonPath("$[?(@.key=='fdps')].dateRanges.length()").value(0))

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -21,6 +22,9 @@ public class TestEcapConfiguration {
     /** Set by a test to make ECAP unavailable; every test that does so must put it back. */
     public static final AtomicBoolean DOWN = new AtomicBoolean(false);
 
+    /** How many times ECAP was asked anything; the form's course entry must leave it at zero. */
+    public static final AtomicInteger CALLS = new AtomicInteger();
+
     /** Codes that ECAP does not have, for the tests of a course that is not in ECAP. */
     public static final String UNKNOWN_PREFIX = "NOPE";
 
@@ -30,6 +34,7 @@ public class TestEcapConfiguration {
         return new EcapClient() {
             @Override
             public List<EcapCourse> search(String query, int limit) {
+                CALLS.incrementAndGet();
                 if (DOWN.get()) throw new EcapUnavailableException("ECAP is not available right now. Please try again in a few minutes.");
                 String q = query.toUpperCase(Locale.ROOT);
                 return q.startsWith(UNKNOWN_PREFIX) ? List.of() : List.of(new EcapCourse(q, "Course " + q));
@@ -37,6 +42,7 @@ public class TestEcapConfiguration {
 
             @Override
             public Optional<EcapCourse> find(String code) {
+                CALLS.incrementAndGet();
                 if (DOWN.get()) throw new EcapUnavailableException("ECAP is not available right now. Please try again in a few minutes.");
                 return code.toUpperCase(Locale.ROOT).startsWith(UNKNOWN_PREFIX) ? Optional.empty() : Optional.of(new EcapCourse(code, "Course " + code));
             }

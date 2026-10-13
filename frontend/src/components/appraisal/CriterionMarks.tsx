@@ -3,6 +3,8 @@
 import { Card } from "@/components/ui/primitives";
 import { formatNumber } from "@/lib/format";
 import { useAppraisal } from "./AppraisalProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { criterionSummary } from "@/lib/score";
 import { ScoreLines } from "./ScoreLines";
 
 /**
@@ -11,8 +13,20 @@ import { ScoreLines } from "./ScoreLines";
  */
 export function CriterionMarks({ criterion }: { criterion: string }) {
   const { appraisal } = useAppraisal();
+  const { user } = useAuth();
   const row = appraisal?.scores.find((r) => r.criterion === criterion);
   if (!row) return null;
+
+  // The faculty member sees the criterion, what it is worth and what they have earned, nothing of how it is worked out.
+  if (user?.role === "FACULTY") {
+    return (
+      <Card className="p-4 sm:p-5">
+        <p className="font-display text-xl font-medium text-navy" aria-live="polite" data-criterion-summary>
+          {criterionSummary(row.reference, row.label, row.score, row.maxMarks)}
+        </p>
+      </Card>
+    );
+  }
 
   return (
     <Card className="p-4 sm:p-5">

@@ -15,7 +15,7 @@ import { formatDateTime } from "@/lib/format";
 import { statusLine } from "@/lib/labels";
 
 /**
- * The last page of the form. For the faculty member it is "Submit": where the appraisal stands, the printed form, and the
+ * The last page of the form. For the faculty member it is section 13, "Declaration and Submit": where the appraisal stands, the printed form, and the
  * declaration and submit button; there is no score page for them. The reviewers (HoD, Principal, Director Technical) keep
  * the score sheet, which they need to review marks.
  */
@@ -29,10 +29,13 @@ export default function ScoreAndReview() {
   return (
     <div className="space-y-6">
       <header className="flex items-end gap-5">
-        <span aria-hidden className="numeral-outline select-none text-7xl sm:text-8xl">12</span>
+        {isFaculty && <span aria-hidden className="numeral-outline select-none text-7xl sm:text-8xl">13</span>}
         <div className="pb-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-brand">{isFaculty ? "Declaration" : "Part B · 11"}</p>
-          <h2 className="font-display text-3xl font-medium tracking-tight text-navy"><span className="sr-only">12. </span>{isFaculty ? "Submit" : "Score & Review"}</h2>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-brand">{isFaculty ? "Declaration" : "Part B · Score sheet"}</p>
+          <h2 className="font-display text-3xl font-medium tracking-tight text-navy">
+            {isFaculty && <span className="sr-only">13. </span>}
+            {isFaculty ? "Declaration and Submit" : "Score & Review"}
+          </h2>
         </div>
       </header>
 
@@ -72,7 +75,7 @@ export default function ScoreAndReview() {
 
       {isFaculty && appraisal.editable && (
         <Card className="space-y-3 p-4 sm:p-5">
-          <SectionBar>Submit</SectionBar>
+          <SectionBar>13. Declaration and Submit</SectionBar>
           <SubmitPanel />
         </Card>
       )}

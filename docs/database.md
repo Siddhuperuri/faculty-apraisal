@@ -135,6 +135,16 @@ columns stay, nullable, holding what was entered before); a certification has `d
 old free-text duration only where that was a plain number of weeks) and `platform_other` (required, and kept, only when the platform
 is OTHER). The old `duration_weeks_hours` column is kept for history and no longer written.
 
+**Workload rule, action plan and role dropdowns (V37).** `scoring_policies.courses_per_year` (NULL on versions 1 to 4, which keep the
+earlier eighth-per-course rule; 8, 8, 8, 4, 2 by cadre on version 5 onwards) makes the workload part earn its maximum divided by
+it for each course. Version 5 is published for every cadre of each open year (B1 40 / 40 / 35 / 35 / 35, funded projects with no
+limit) and drafts move to it, audited. `action_plan` (one row per appraisal, `plan_text MEDIUMTEXT`) holds section 12; its 2,000
+word limit and the requirement to submit are enforced by the application. `administrative_roles` gains `role_code` and
+`role_other`, and `events` gains `activity_code`, `activity_other`, `role_code` and `role_other`: the choice and the typed text;
+`role` and `activity_type` keep the wording shown and reported, worked out by the server. Every earlier row became "Other" with its
+old wording. The reference lists `ROLE_SCOPE`, `ADMIN_ROLE` (a value belongs to INSTITUTE or DEPARTMENT), `EVENT_ACTIVITY` and
+`EVENT_ROLE` each end in the pinned value `OTHER`; semesters 9 to 12 are switched off.
+
 **Sequence of dropdown values (V36).** `reference_values.sort_order` is now unique within a list (`UNIQUE (list_code, sort_order)`):
 the migration numbered each list 10, 20, 30, ... in its existing order, and the administration page changes it only with
 Up / Down (`ReferenceData.move`, which renumbers the list in one transaction under a lock on the list row). Values of a dependent

@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.svec.fams.appraisal.AppraisalService;
 import edu.svec.fams.auth.FamsUserPrincipal;
@@ -27,8 +26,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 /**
- * A course's code and name are ECAP's, chosen from its list and never typed. The tests run against a stand-in ECAP (see
- * {@link TestEcapConfiguration}); how the real API's answers are read is configuration, not behaviour of this application.
+ * A course's name and code are typed by the faculty member, and ECAP is never asked while a course is entered or saved (the
+ * adapter and its search remain for when ECAP is switched on again). The tests run against a stand-in ECAP (see
+ * {@link TestEcapConfiguration}).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -77,36 +77,55 @@ class EcapCourseIntegrationTest {
     }
 
     @Test
-    void theCourseNameIsTakenFromEcapWhateverWasSent() throws Exception {
+    void aCourseIsTypedAndKeptExactlyAsEntered() throws Exception {
+        TestEcapConfiguration.CALLS.set(0);
         save(List.of(course("CS301", "A name somebody typed"))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.records[0].courseCode").value("CS301"))
-                .andExpect(jsonPath("$.records[0].courseName").value("Course CS301"));
+                .andExpect(jsonPath("$.records[0].courseName").value("A name somebody typed"));
+        assertEquals(0, TestEcapConfiguration.CALLS.get(), "ECAP is not asked anything when a course is saved");
     }
 
     @Test
-    void aCourseEcapDoesNotHaveIsRefusedWithAClearMessage() throws Exception {
-        save(List.of(course("NOPE101", "Invented"))).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors['records[0].courseCode']").value("This course is not in ECAP. Choose it from the list of ECAP courses."));
-    }
-
-    @Test
-    void whenEcapIsUnavailableANewCourseIsRefusedPlainlyButASavedOneCanBeSavedAgain() throws Exception {
-        save(List.of(course("CS101", "x"))).andExpect(status().isOk());
-        JsonNode saved = json.readTree(mvc.perform(get("/api/appraisals/" + id + "/sections/teaching-courses").with(user(faculty)))
-                .andReturn().getResponse().getContentAsString());
-        long recordId = saved.get("records").get(0).get("id").asLong();
+    void aCodeEcapDoesNotKnowIsAcceptedAndEcapBeingDownDoesNotBlockManualEntry() throws Exception {
+        TestEcapConfiguration.CALLS.set(0);
+        save(List.of(course("NOPE101", "Invented but typed"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.records[0].courseCode").value("NOPE101"));
 
         TestEcapConfiguration.DOWN.set(true);
-        // a new course: 503 with a message a person can act on, and nothing changes
-        save(List.of(course("CS101", "x"), course("CS102", "y"))).andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.message").value("ECAP is not available right now. Please try again in a few minutes."));
-        // the saved course, unchanged except for another field, still saves
-        Map<String, Object> same = course("CS101", "Course CS101");
-        same.put("id", recordId);
-        same.put("hoursPerWeek", 5);
-        save(List.of(same)).andExpect(status().isOk()).andExpect(jsonPath("$.records[0].hoursPerWeek").value(5));
-        assertEquals(1, json.readTree(mvc.perform(get("/api/appraisals/" + id + "/sections/teaching-courses").with(user(faculty)))
-                .andReturn().getResponse().getContentAsString()).get("records").size());
+        save(List.of(course("NOPE101", "Invented but typed"), course("CS102", "Another course"))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.records.length()").value(2));
+        assertEquals(0, TestEcapConfiguration.CALLS.get());
+    }
+
+    @Test
+    void theFormNamesTheTwoFieldsCourseAndCourseCodeAndRequiresBoth() throws Exception {
+        Map<String, Object> noName = course("CS301", "");
+        save(List.of(noName)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors['records[0].courseName']").value("Course is required."));
+        Map<String, Object> noCode = course("", "Data Structures");
+        save(List.of(noCode)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors['records[0].courseCode']").value("Course Code is required."));
+    }
+
+    @Test
+    void semestersAreOneToEightForEveryDepartment() throws Exception {
+        for (int semester : new int[] {1, 8}) {
+            Map<String, Object> c = course("CS30" + semester, "Course " + semester);
+            c.put("semester", semester);
+            save(List.of(c)).andExpect(status().isOk());
+        }
+        for (int semester : new int[] {0, 9, 12}) {
+            Map<String, Object> c = course("CS399", "Too late");
+            c.put("semester", semester);
+            save(List.of(c)).andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.fieldErrors['records[0].semester']").exists());
+        }
+        for (String dept : new String[] {"ECE", "ME"}) {
+            Map<String, Object> c = course("X1", "Another department");
+            c.put("branch", dept);
+            c.put("semester", 8);
+            save(List.of(c)).andExpect(status().isOk());
+        }
     }
 
     @Test

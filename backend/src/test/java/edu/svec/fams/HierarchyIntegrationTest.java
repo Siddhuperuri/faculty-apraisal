@@ -90,6 +90,16 @@ class HierarchyIntegrationTest {
         }
     }
 
+    @Test
+    void theReportCarriesTheActionPlanAsSection12AndTheDeclarationAsSection13InThatOrder() throws Exception {
+        String text = reportText(faculty, base);
+        int score = text.indexOf("11. Self Appraisal Score Sheet");
+        int plan = text.indexOf("12. Action Plan for the Next 2 Years");
+        int declaration = text.indexOf("13. Declaration");
+        assertTrue(score >= 0 && plan > score && declaration > plan, "sections 11, 12 and 13 in order: " + score + ", " + plan + ", " + declaration);
+        assertTrue(text.contains("Strengthen teaching, research and outreach over the next two years."));
+    }
+
     private void start(FamsUserPrincipal who) throws Exception { call(who, "POST", base + "/review/start", null).andExpect(status().isOk()); }
     private void approve(FamsUserPrincipal who) throws Exception { call(who, "POST", base + "/review/approve", null).andExpect(status().isOk()); }
     private void review(FamsUserPrincipal who) throws Exception { start(who); approve(who); }

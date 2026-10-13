@@ -121,7 +121,7 @@ class CapsAndRolesIntegrationTest {
         assertEquals(10, score(view, "OUTREACH").get("score").asInt());
         assertEquals(5, score(view, "MEMBERSHIPS_AWARDS").get("maxMarks").asInt());
         assertEquals(5, score(view, "MEMBERSHIPS_AWARDS").get("score").asInt());
-        assertEquals(10, score(view, "FUNDED_PROJECTS").get("maxMarks").asInt());
+        assertEquals(true, score(view, "FUNDED_PROJECTS").get("maxMarks").isNull());   // no limit on the criterion since version 5
     }
 
     @Test
@@ -185,10 +185,10 @@ class CapsAndRolesIntegrationTest {
         JsonNode view = json.readTree(send(other, "GET", "/api/appraisals/" + second, null).andReturn().getResponse().getContentAsString());
         JsonNode teaching = score(view, "TEACHING_LEARNING");
         assertEquals(12, teaching.get("components").get(0).get("maxMarks").asInt());
-        // one course: 12 x 1 / 8 = 1.5, to a whole mark = 2; the line says how
+        // a Professor teaches 2 courses a year, so each earns 12 / 2 = 6 of the workload part's 12
         String line = teaching.get("breakdown").get(0).get("description").asText();
-        assertEquals(true, line.contains("1 course x 12 / 8 = 1.5"), line);
-        assertEquals(2, teaching.get("components").get(0).get("awarded").asInt());
+        assertEquals("Workload & course delivery (Max marks: 12)", line);
+        assertEquals(6, teaching.get("components").get(0).get("awarded").asInt());
     }
 
     // ---- institutional roles ----
@@ -218,8 +218,8 @@ class CapsAndRolesIntegrationTest {
         }
         send(faculty, "PUT", "/api/appraisals/" + id + "/sections/institutional-roles", Map.of("records", List.of(rec("role", "HOD")))).andExpect(status().isOk());
         JsonNode teaching = score(sheet(id), "TEACHING_LEARNING");
-        assertEquals(30, teaching.get("maxMarks").asInt());
-        assertEquals(30, teaching.get("score").asInt());                // 30 for the courses, +5 for the role, limited to 30
+        assertEquals(35, teaching.get("maxMarks").asInt());
+        assertEquals(35, teaching.get("score").asInt());                // 35 for the courses, +5 for the role, limited to 35
     }
 
     @Test

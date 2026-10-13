@@ -36,8 +36,6 @@ export interface SectionUi {
   summary?: { key: string; label: string; format: SummaryFormat }[];
   /** Text-field suggestions that are fixed in this file (free text is still allowed); the lists in the database are preferred. */
   suggestions?: Record<string, string[]>;
-  /** A code and a name that are chosen together from ECAP (a course picker); they cannot be typed. */
-  ecapCourse?: { code: string; name: string };
   /** Choice fields shown as radio buttons (one of a few options) instead of a drop-down. */
   radios?: string[];
   /** Helper text shown under a field in the form, by field name. */
@@ -80,15 +78,14 @@ export const PAGES: PageUi[] = [
     number: "02",
     title: "Teaching & Learning",
     formRef: "Part B · 1",
-    description: "Courses you handled during the academic year (chosen from ECAP), with pass percentage and feedback percentages, and any institutional roles you held.",
+    description: "Courses you handled during the academic year, with pass percentage and feedback percentages, and any institutional roles you held.",
     sections: [
       {
         key: "teaching-courses",
         title: "Courses handled during the Academic Year",
         addLabel: "Add course",
-        ecapCourse: { code: "courseCode", name: "courseName" },
         columns: [
-          { header: "Course Code & Name (Theory / Lab)", render: (r) => `${s(r.courseCode)} · ${s(r.courseName)} (${fieldLabel("teaching-courses", "courseType", r.courseType)})` },
+          { header: "Course Code & Course (Theory / Lab)", render: (r) => `${s(r.courseCode)} · ${s(r.courseName)} (${fieldLabel("teaching-courses", "courseType", r.courseType)})` },
           { header: "Program & Branch", render: (r) => `${fieldLabel("teaching-courses", "program", r.program)} · ${fieldLabel("teaching-courses", "branch", r.branch)}` },
           "courseRole",
           "semester",
@@ -211,8 +208,8 @@ export const PAGES: PageUi[] = [
         addLabel: "Add institute-level role",
         columns: ["role", "description", { header: "Duration (From–To)", render: (r) => duration(r, "fromDate", "toDate") }],
         headers: { role: "Role", description: "Responsibility / Description" },
-        hint: "For example: NAAC / NBA criterion coordinator, IQAC, Exam Cell, Training & Placement, NSS / NCC, Anti-Ragging.",
-        fieldHints: { role: "Select or enter your role" },
+        hint: "Choose the role from the list. If it is not there, choose Other and type it.",
+        fieldHints: { roleCode: "Choose a role; pick Other to type your own", roleOther: "Type the role as it should be reported" },
         emptyText: "No institute-level roles added yet.",
       },
       {
@@ -222,8 +219,8 @@ export const PAGES: PageUi[] = [
         addLabel: "Add department-level role",
         columns: ["role", "description", { header: "Duration (From–To)", render: (r) => duration(r, "fromDate", "toDate") }],
         headers: { role: "Role", description: "Responsibility / Description" },
-        hint: "For example: Class Coordinator, Module Coordinator, Lab In-charge, Time-table In-charge, NAAC / NBA criterion coordinator, IQAC, Exam Cell, Training & Placement, NSS / NCC, Anti-Ragging.",
-        fieldHints: { role: "Select or enter your role" },
+        hint: "Choose the role from the list. If it is not there, choose Other and type it.",
+        fieldHints: { roleCode: "Choose a role; pick Other to type your own", roleOther: "Type the role as it should be reported" },
         emptyText: "No department-level roles added yet.",
       },
       {
@@ -232,6 +229,7 @@ export const PAGES: PageUi[] = [
         addLabel: "Add event",
         columns: ["activityType", "role", "title", { header: "Duration (From–To)", render: (r) => duration(r) }, "beneficiaries"],
         headers: { activityType: "Type of Activity", role: "Role", title: "Title / Details of the Event", beneficiaries: "No. of Beneficiaries" },
+        fieldHints: { activityCode: "Pick Other to type your own", roleCode: "Pick Other to type your own" },
         emptyText: "No events added yet.",
       },
     ],
@@ -318,14 +316,13 @@ export const PAGES: PageUi[] = [
         ],
         headers: { title: "Title", type: "Type", fundingAgencyClient: "Funding Agency / Client", amount: "Amount (Rs.)", status: "Status", year: "Year" },
         filters: ["status", "type", "role", "year"],
-        maxRecords: 2,
         summary: [
           { key: "sanctioned", label: "Sanctioned", format: "count" },
           { key: "applied", label: "Applied", format: "count" },
           { key: "totalAmountSanctioned", label: "Total Amount Sanctioned (Rs.)", format: "rupees" },
           { key: "consultancyRevenue", label: "Consultancy Revenue (Rs.)", format: "rupees" },
         ],
-        hint: "At most 2 projects can be added for the academic year, and together they earn at most 10 marks. Only projects whose year falls in the academic year being appraised are accepted.",
+        hint: "A sanctioned project earns 50m for each. An applied project earns 5m for each, and the applied projects together earn at most 10m in the academic year (you can still record more). Only projects whose year falls in the academic year being appraised are accepted.",
         emptyText: "No projects added yet.",
       },
     ],
@@ -409,6 +406,14 @@ export const PAGES: PageUi[] = [
     formRef: "Part B · 10",
     description: "Anything else you contributed at department or institute level.",
     sections: [{ key: "other-contributions", title: "Any Other Contributions" }],
+  },
+  {
+    slug: "action-plan",
+    number: "12",
+    title: "Action Plan for the Next 2 Years",
+    formRef: "Part B · 11",
+    description: "Where you plan to take your teaching, research and contributions over the next two years. Required before you can submit; up to 2,000 words.",
+    sections: [{ key: "action-plan", title: "Action Plan for the Next 2 Years" }],
   },
 ];
 

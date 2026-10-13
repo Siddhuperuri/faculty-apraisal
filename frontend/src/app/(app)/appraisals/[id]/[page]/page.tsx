@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { CourseLoadHelp } from "@/components/appraisal/CourseLoadHelp";
 import { CriterionMarks } from "@/components/appraisal/CriterionMarks";
 import { IdentityBlock } from "@/components/appraisal/IdentityBlock";
 import { FocusOnArrival, RequirementsSummary } from "@/components/appraisal/RequirementsSummary";
@@ -39,6 +40,8 @@ export default function SectionPage() {
 
       {ui.criterion && <CriterionMarks criterion={ui.criterion} />}
 
+      {ui.slug === "teaching" && <CourseLoadHelp />}
+
       {ui.identity && (
         <Card className="p-4 sm:p-5">
           <IdentityBlock />
@@ -60,7 +63,7 @@ export default function SectionPage() {
           <span />
         )}
         <Link href={next ? `${base}/${next.slug}` : base} className={linkButton("primary")}>
-          {next ? `Next: ${next.title} →` : user?.role === "FACULTY" ? "Next: Submit →" : "Next: Score & Review →"}
+          {next ? `Next: ${next.title} →` : user?.role === "FACULTY" ? "Next: Declaration and Submit →" : "Next: Score & Review →"}
         </Link>
       </nav>
     </div>

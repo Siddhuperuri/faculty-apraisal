@@ -310,3 +310,26 @@ break a row. File names are `HOD_Appraisal_Export_<year>_<dept>.xlsx|csv` (`Admi
 is changed with Up / Down arrows only**; the free-typed Order number and the `sortOrder` field of the update call are removed.
 Each move is saved at once, audited, administrator-only, and the sequence is unique per list (V36 renumbers existing lists in
 their current order). Filters and grouped record lists follow the saved sequence instead of sorting alphabetically.
+
+**ADR-041: Cadre workload, course roles, funded-project cap, action plan, role dropdowns (2026-10-13).**
+Decided by the user in one request; where it conflicts with an older rule the new one wins. (1) **Faculty see only the criterion,
+its maximum and their score** (`B1 · Teaching & Learning — 0 of 40`); the working stays in the API and on the reviewers' score
+sheet. (2) **B1 workload** is 20 for every cadre and earns 2.5 / 2.5 / 2.5 / 5 / 10 marks a course (8 / 8 / 8 / 4 / 2 courses a
+year), capped at 20 and not rounded; **course file** is 10 with a coordinated course, 4 when every course is as an instructor
+(and nothing before a course is entered; a course with no recorded role gets the benefit of the doubt). The user's wording
+"award/provide the component maximum" was read as: the component earns its applicable maximum once a course is entered. Both
+are **policy version 5**, published like V24, V33 and V35; older versions keep the old rule through a NULL
+`courses_per_year`, so no submitted appraisal changes. **Decision to review:** B1's maximum becomes 35 (not 30) for an Associate
+Professor and a Professor, because their workload part is now 20 and the parts add up to 35. (3) **ECAP is not called**: the
+courses are typed (Course, Course Code), the adapter and its endpoint stay for later; semesters are 1 to 8, enforced in the form
+and by a range check even where the list is edited. (4) **Validation is live**: every field is checked as the person types or
+leaves it with the server's own wording; Save is held while a touched field is wrong; the server remains the authority.
+(5) **Role dropdown + Other**: institute and department roles, and the type and role of an event, are database lists ending in a
+pinned "Other" with a typed text beside it; the shown wording is worked out by the server; earlier rows became "Other" with their
+old wording. Security, workflow and scoring fields are not given a free-text Other. (6) **Funded projects**: 50m for each sanctioned
+project without a limit, 5m for each applied project with the applied ones capped at 10 a year, and the number of projects is no
+longer limited (only the marks); per-entry rates are worded `50m for each`. (7) **Section 12, Action Plan for the Next 2
+Years**: one text of at most 2,000 words (words, not characters), empty in a draft, required to submit, on the report and as the
+last column of the appraisal export (a column added after the 15 the user specified, so their order is unchanged); the
+declaration is section 13, "Declaration and Submit". Score & Review remains the reviewers' view-only page and takes no section
+number.

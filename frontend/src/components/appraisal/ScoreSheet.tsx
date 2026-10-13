@@ -74,8 +74,9 @@ export function ScoreSheet({ scores, cadre, editable }: { scores: ScoreRow[]; ca
       </div>
       {editable ? (
         <Alert tone="info" title="Your marks are worked out for you">
-          Every mark here is calculated from the entries you make in the form and changes as soon as an entry is saved. Teaching &amp; Learning earns an eighth of each of its parts for each course (up to 8 courses), the workload part rounded to a whole mark;
-          the other criteria earn marks for each entry, and B2 to B4 stop at their maximum. There is nothing to type on this page.
+          Every mark here is calculated from the entries you make in the form and changes as soon as an entry is saved. Teaching &amp; Learning
+          earns its workload part for each course by your cadre&apos;s requirement; the other criteria earn marks for each entry, and
+          the limited ones stop at their maximum. There is nothing to type on this page.
         </Alert>
       ) : (
         <p className="text-xs text-muted">Marks are calculated from the entries.</p>

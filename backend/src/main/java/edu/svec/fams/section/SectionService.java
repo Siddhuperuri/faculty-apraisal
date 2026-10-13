@@ -5,7 +5,6 @@ import edu.svec.fams.audit.AuditService;
 import edu.svec.fams.auth.FamsUserPrincipal;
 import edu.svec.fams.common.ApiException;
 import edu.svec.fams.common.ValidationException;
-import edu.svec.fams.ecap.EcapClient;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -47,14 +46,12 @@ public class SectionService {
     private final AppraisalAccess access;
     private final AuditService audit;
     private final ChoiceSource choices;
-    private final EcapClient ecap;
 
-    public SectionService(JdbcClient jdbc, AppraisalAccess access, AuditService audit, ChoiceSource choices, EcapClient ecap) {
+    public SectionService(JdbcClient jdbc, AppraisalAccess access, AuditService audit, ChoiceSource choices) {
         this.jdbc = jdbc;
         this.access = access;
         this.audit = audit;
         this.choices = choices;
-        this.ecap = ecap;
     }
 
     @Transactional(readOnly = true)
@@ -103,7 +100,6 @@ public class SectionService {
 
         List<Map<String, Object>> existing = loadRows(spec, appraisalId);
         List<Map<String, Object>> wanted = validate(spec, appraisalId, incoming, existing);
-        if (spec.key().equals("teaching-courses")) verifyCourses(wanted, existing);
 
         int changes = spec.singleton() ? applySingle(spec, appraisalId, existing, wanted)
                                        : applyList(spec, appraisalId, existing, wanted);
@@ -113,38 +109,6 @@ public class SectionService {
                     "{\"section\":\"" + spec.key() + "\",\"changes\":" + changes + "}");
         }
         return view(spec, appraisalId);
-    }
-
-    // ---- courses come from ECAP ----
-
-    /**
-     * A course's code and name are ECAP's, not typed: a course that is new or whose code or name changed must be a course
-     * ECAP has, and its name is taken from ECAP. A course that is saved again unchanged is not looked up, so an
-     * appraisal can still be saved while ECAP is down. When ECAP cannot be reached for a new course the save is refused
-     * with a plain message ({@link EcapUnavailableException}, a 503) and nothing is changed.
-     */
-    private void verifyCourses(List<Map<String, Object>> wanted, List<Map<String, Object>> existing) {
-        Map<Long, Map<String, Object>> byId = new HashMap<>();
-        for (Map<String, Object> r : existing) byId.put((Long) r.get("id"), r);
-        Map<String, String> errors = new LinkedHashMap<>();
-        for (int i = 0; i < wanted.size(); i++) {
-            Map<String, Object> rec = wanted.get(i);
-            Map<String, Object> before = rec.get("id") == null ? null : byId.get((Long) rec.get("id"));
-            Object code = rec.get("courseCode");
-            if (code == null) continue;
-            if (before != null && Objects.equals(before.get("courseCode"), code)
-                    && Objects.equals(before.get("courseName"), rec.get("courseName"))) {
-                continue;
-            }
-            var found = ecap.find(code.toString());
-            if (found.isEmpty()) {
-                errors.put("records[" + i + "].courseCode", "This course is not in ECAP. Choose it from the list of ECAP courses.");
-            } else {
-                rec.put("courseCode", found.get().code());
-                rec.put("courseName", found.get().name());
-            }
-        }
-        if (!errors.isEmpty()) throw new ValidationException(errors);
     }
 
     // ---- validation ----
@@ -187,6 +151,7 @@ public class SectionService {
             Map<String, Object> before = rec.get("id") == null ? null : existingById.get((Long) rec.get("id"));
             for (FieldSpec f : spec.fields()) {
                 if (derived != null && f.name().equals(derived.daysField())) continue;   // worked out below
+                if (isEffective(spec, f.name())) continue;                                // worked out below
                 Object raw1 = raw.get(f.name());
                 if (keepsSavedValue(f, raw1, before)) {
                     rec.put(f.name(), before.get(f.name()));
@@ -217,6 +182,22 @@ public class SectionService {
                 }
             }
 
+            for (SectionSpec.EffectiveText e : spec.effectiveTexts()) {
+                String code = rec.get(e.codeField()) instanceof String c ? c : null;
+                Object typed = rec.get(e.otherField());
+                String wording = null;
+                if ("OTHER".equals(code)) {
+                    wording = typed instanceof String t ? t : null;
+                } else if (code != null) {
+                    wording = choices.labels(e.list()).get(code);
+                    if (wording == null && before != null && code.equals(before.get(e.codeField()))) wording = (String) before.get(e.field());
+                }
+                if (wording != null && wording.length() > spec.field(e.field()).maxLength()) {
+                    wording = wording.substring(0, spec.field(e.field()).maxLength());
+                }
+                rec.put(e.field(), wording);
+            }
+
             for (SectionSpec.DateRange r : spec.dateRanges()) {
                 Object s = rec.get(r.startField());
                 Object e = rec.get(r.endField());
@@ -244,6 +225,10 @@ public class SectionService {
         }
         if (!errors.isEmpty()) throw new ValidationException(errors);
         return out;
+    }
+
+    private static boolean isEffective(SectionSpec spec, String field) {
+        return spec.effectiveTexts().stream().anyMatch(e -> e.field().equals(field));
     }
 
     /**

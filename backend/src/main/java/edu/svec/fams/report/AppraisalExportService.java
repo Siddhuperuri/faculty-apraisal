@@ -49,7 +49,7 @@ public class AppraisalExportService {
             "S.No.", "Faculty Name", "Employee ID", "Department", "Cadre", "Date of Joining", "Academics",
             "Certifications", "FDPs Attended", "FDPs/Guest Lectures/Workshops Organized",
             "Journals/Conferences/Patents", "Contributions/Remarks",
-            "Appraisal Status", "Submitted Date", "HoD Remarks");
+            "Appraisal Status", "Submitted Date", "HoD Remarks", "Action Plan");
 
     /** What a cell with nothing to show contains. */
     static final String NONE = "—";
@@ -127,7 +127,8 @@ public class AppraisalExportService {
                     visible ? joined(content.contributions.get(a)) : NONE,
                     visible ? ReportLabels.statusLabel(f.status()) : "Not submitted",
                     visible && f.submittedAt() != null ? (Object) f.submittedAt().atZoneSameInstant(COLLEGE_ZONE).toLocalDate() : NONE,
-                    visible ? content.hodRemarks.getOrDefault(a, NONE) : NONE));
+                    visible ? content.hodRemarks.getOrDefault(a, NONE) : NONE,
+                    visible ? content.actionPlans.getOrDefault(a, NONE) : NONE));
         }
 
         TreeSet<String> codes = new TreeSet<>();
@@ -213,6 +214,7 @@ public class AppraisalExportService {
         final Map<Long, List<String>> research = new HashMap<>();
         final Map<Long, List<String>> contributions = new HashMap<>();
         final Map<Long, String> hodRemarks = new HashMap<>();
+        final Map<Long, String> actionPlans = new HashMap<>();
 
         static Content load(JdbcClient jdbc, List<Long> ids) {
             Content c = new Content();
@@ -297,6 +299,11 @@ public class AppraisalExportService {
             c.add(jdbc, ids, c.contributions, "SELECT * FROM memberships_awards WHERE appraisal_id IN (:ids) ORDER BY id", rs ->
                     "Membership/award: " + rs.getString("item") + " - " + rs.getString("awarding_body") + "; "
                             + ReportLabels.label(rs.getString("level")) + "; " + rs.getInt("year"));
+
+            for (Object[] row : jdbc.sql("SELECT appraisal_id, plan_text FROM action_plan WHERE appraisal_id IN (:ids)").param("ids", ids)
+                    .query((rs, n) -> new Object[] {rs.getLong(1), rs.getString(2)}).list()) {
+                if (row[1] != null && !((String) row[1]).isBlank()) c.actionPlans.put((Long) row[0], ((String) row[1]).strip());
+            }
 
             // The HoD's approval remark is the one printed on the report; a remark made earlier is used when there is none.
             Map<Long, String> approval = new HashMap<>();

@@ -44,12 +44,31 @@ export function isAsked(f: FieldMeta, values: FormValues): boolean {
 
 const num = (s: string) => (s.trim() === "" || Number.isNaN(Number(s)) ? null : Number(s));
 
+/** The number of words in a text: runs of characters between spaces, tabs and line breaks (as the server counts them). */
+export function countWords(text: string): number {
+  const found = text.trim().match(/\S+/g);
+  return found ? found.length : 0;
+}
+
+/**
+ * What is wrong with one value, in the server's wording; null when it is fine. The same check runs as a person types or
+ * leaves a field and again on save; the server remains the authority.
+ */
+export function checkField(f: FieldMeta, raw: string, allowed: string[] | null = f.allowed): string | null {
+  return fieldError(f, raw, allowed);
+}
+
 function fieldError(f: FieldMeta, raw: string, allowed: string[] | null = f.allowed): string | null {
   const v = raw.trim();
   if (v === "") return f.required ? `${f.label} is required.` : null;
   switch (f.type) {
-    case "TEXT":
+    case "TEXT": {
+      if (f.maxWords != null) {
+        const words = countWords(v);
+        if (words > f.maxWords) return `${f.label} must be at most ${f.maxWords.toLocaleString("en-US")} words (it has ${words.toLocaleString("en-US")}).`;
+      }
       return f.maxLength != null && v.length > f.maxLength ? `${f.label} must be at most ${f.maxLength} characters.` : null;
+    }
     case "INT": {
       const n = num(v);
       if (n == null || !Number.isInteger(n)) return `${f.label} must be a whole number.`;
@@ -73,6 +92,24 @@ function fieldError(f: FieldMeta, raw: string, allowed: string[] | null = f.allo
     case "MONTH_YEAR":
       return /^\d{4}-(0[1-9]|1[0-2])$/.test(v) ? null : `${f.label} must be a month and year.`;
   }
+}
+
+/**
+ * The problem a value has by the field's own limits, or null: what the person sees as they type or on leaving the field.
+ * An empty value is a problem only when the field is required; a date, month or year that must fall in the academic year is
+ * checked when the year is known.
+ */
+export function liveFieldError(
+  meta: FieldMeta,
+  value: string,
+  required: boolean,
+  range?: { start: string; end: string; name?: string },
+): string | null {
+  if (value.trim() === "") return required ? `${meta.label} is required.` : null;
+  const found = fieldError(meta, value, meta.allowed);
+  if (found) return found;
+  if (meta.inAcademicYear && range?.name) return outsideYear(meta, value.trim(), { name: range.name, start: range.start, end: range.end });
+  return null;
 }
 
 /** The academic year an appraisal is for: its name and first and last day (YYYY-MM-DD). */
@@ -99,7 +136,7 @@ export function outsideYear(f: FieldMeta, v: string, year: YearBounds): string |
 export function validate(meta: SectionMeta, values: FormValues, hidden: string[] = [], year?: YearBounds): FieldErrors {
   const errors: FieldErrors = {};
   for (const f of meta.fields) {
-    if (hidden.includes(f.name) || f.derived || !isAsked(f, values)) continue;   // a derived field is worked out, not typed
+    if (hidden.includes(f.name) || f.derived || f.effective || !isAsked(f, values)) continue;   // worked out, not typed
     if (f.onlyWhenField && (values[f.name] ?? "").trim() === "") {
       const parent = meta.fields.find((x) => x.name === f.onlyWhenField);
       errors[f.name] = `${f.label} is required when ${parent?.label ?? "the choice above"} is Other.`;

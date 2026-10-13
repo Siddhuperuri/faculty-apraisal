@@ -51,6 +51,8 @@ The form has eleven pages that follow the printed form. Open them from the secti
 | 09 Outreach | Part B 8 | Outreach activities by role |
 | 10 Memberships, Awards & Recognitions | Part B 9 | Memberships and awards |
 | 11 Other Contributions | Part B 10 | Anything else |
+| 12 Action Plan for the Next 2 Years | Part B 11 | One text of at most 2,000 words, **required before you can submit** (a draft may leave it empty) |
+| 13 Declaration and Submit | | The declaration and the submit button |
 
 How the pages work:
 - **Autosave.** Changes are saved as you go; the save status shows near the top. You can leave and come back.
@@ -169,13 +171,16 @@ Technical; the one who did not act on that appraisal is left empty.
 
 ## Things that changed on 2026-10-11
 
-- **Courses** are chosen from ECAP: search by code or name and pick the course; the code and name cannot be typed. If ECAP cannot
-  be reached you are told and can try again; nothing is lost.
+- **Courses** are typed: **Course** and **Course Code** are two ordinary fields (ECAP is not used for now). Semester is 1 to 8
+  for every department. The page tells you how many courses your cadre teaches (for example 4 a semester, 8 a year) and what each
+  earns; you are never made to enter more than that.
 - **Institutional roles** (Head of the Department, Associate Dean ...) are listed on the Teaching & Learning page and earn the marks set
   for them within the page's maximum.
-- **Funded projects**: at most 2 for the year, and together at most 10 marks. **Outreach** and **Memberships** also have limits.
+- **Funded projects**: a sanctioned project earns 50m for each; an applied one 5m for each, and the applied ones together earn at
+  most 10m a year. You can record as many as you have. **Outreach** and **Memberships** also have limits.
 - **ISBN** is required for every book and book chapter (ISBN-10 or ISBN-13, with or without hyphens).
-- There is no separate score page for faculty any more: the last page is **Submit**. Your marks still go on the printed form.
+- There is no separate score page for faculty: the last page is **13 Declaration and Submit**. Your marks still go on the printed form,
+  and each page shows only its criterion, what it is worth and what you have earned (`B1 · Teaching & Learning — 0 of 40`).
 - **Signing out**: after 30 minutes without activity you are signed out; two minutes before, you are asked whether to stay signed
   in. What you had typed into an open form is kept in the browser tab and offered again after you sign in.
 - **Forgot your password?** Use the link on the sign-in page; you are e-mailed a one-time link to choose your own password.
@@ -299,3 +304,16 @@ sign in, change the password, create the real accounts, then remove both variabl
 | "Not saved" with a field named | That value breaks a rule (a limit, a date order, a format). Fix the field and save again |
 | Conflict (409) on review | Another reviewer acted first. Refresh |
 | Report says DRAFT | The appraisal is not yet finally approved |
+
+## Things that changed on 2026-10-13
+
+- **Course workload** follows your cadre: Lecturer, Assistant Professor and Senior Assistant Professor 4 courses a semester (2.5 marks
+  each), Associate Professor 2 (5 marks), Professor 1 (10 marks); the workload part is at most 20. The **course file** is worth 10 if you
+  are the Course Coordinator of at least one course you entered, and 4 if you are only a Course Instructor.
+- **Courses are typed again** (Course, Course Code); **semesters are 1 to 8**.
+- **Mistakes show as you type.** A field is checked as you type or leave it (for example *Pass percentage must be between 0 and 100.*),
+  Save stays off while a field you touched is wrong, and nothing you typed is erased.
+- **Institute-level and department-level roles** are chosen from a list that ends in **Other**; choose Other to type your own. The
+  type and role of an **event** work the same way.
+- **Action Plan for the Next 2 Years** (section 12) is new and needed before you can submit; the declaration is now section 13.
+- **Funded projects**: 50m for each sanctioned, 5m for each applied (at most 10m for the applied ones together).
