@@ -333,3 +333,11 @@ Years**: one text of at most 2,000 words (words, not characters), empty in a dra
 last column of the appraisal export (a column added after the 15 the user specified, so their order is unchanged); the
 declaration is section 13, "Declaration and Submit". Score & Review remains the reviewers' view-only page and takes no section
 number.
+
+**ADR-042: One-time reset of all appraisal data (2026-10-13).**
+The user asked for every draft and all appraisal form data to be removed from the live deployment, which cannot be done from the
+console (history tables are append-only and the database is not reachable from outside). `FAMS_RESET_APPRAISALS=<token>`
+(`StartupAppraisalReset`) removes every appraisal of every status with its form data, scores, messages, review history and issued
+reports (rows and files), once per token, in one transaction, using the migration user to drop and re-create the three
+"no delete" triggers; accounts, profiles, policies, lists and the audit trail are kept and one `APPRAISALS_RESET` entry records
+the counts. No appraisal content is written to the log or the audit trail.
