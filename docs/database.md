@@ -47,6 +47,7 @@ departments ──< faculty_profiles >── cadres
 | `status` | `ACTIVE` or `DISABLED` |
 | `must_change_password` | Set on creation and reset; only makes the interface recommend a password change (`passwordChangeRecommended` in `me`), never blocks anything. Cleared by a voluntary change or a reset link |
 | `session_version` | Bumped on password change or reset; older sessions end |
+| `deleted_at` | Set when the account was deleted permanently but must stay as an anonymous stub (no e-mail, name, password or employee ID); such a row is in no list, count or sign-in (V38) |
 | `password_changed_at`, `last_login_at` | Informational |
 | `created_at`, `updated_at` | Timestamps |
 
@@ -145,6 +146,17 @@ word limit and the requirement to submit are enforced by the application. `admin
 old wording. The reference lists `ROLE_SCOPE`, `ADMIN_ROLE` (a value belongs to INSTITUTE or DEPARTMENT), `EVENT_ACTIVITY` and
 `EVENT_ROLE` each end in the pinned value `OTHER`; semesters 9 to 12 are switched off.
 
+**Form clean-up and account removal (V38).** `general_information.teaching_experience_years` is `DECIMAL(5,1)` (up to 1,000;
+required by the application, the column stays nullable for old rows). `funded_projects.amount` is nullable: an applied project has
+none; an amount an applied project already held is left in place and is never read as an amount. `conference_papers.citations`
+stays and keeps every value, but is no longer written or read. `reference_values`: `BOOK_TYPE/CHAPTER` is labelled "Book Chapter"
+and `OUTREACH_ROLE/EXTERNAL_EXAMINER` "Project External Examiner" (codes unchanged); `OUTREACH_ROLE/OTHERS` is switched off and
+`OTHER` (pinned last) added. `outreach` gains `role_code` and `role_other`, and `role` (now up to 100) keeps the wording shown and
+reported; every earlier row keeps its wording (the old "Others" became "Other" with the text "Others"). `users.deleted_at` marks an
+account that was deleted permanently but is kept as an anonymous stub because append-only records point at it (`review_actions`,
+`appraisal_messages`, `import_history`, `restore_tests`, `handover_notes`, `dean_assignments`, or a faculty record whose appraisals
+went through review). Every list, count, sign-in and access query filters on it.
+
 **Sequence of dropdown values (V36).** `reference_values.sort_order` is now unique within a list (`UNIQUE (list_code, sort_order)`):
 the migration numbered each list 10, 20, 30, ... in its existing order, and the administration page changes it only with
 Up / Down (`ReferenceData.move`, which renumbers the list in one transaction under a lock on the list row). Values of a dependent
@@ -211,6 +223,8 @@ dead ten minutes after its window starts and is purged; the table is bounded at 
 | V19 to V21 | The HoD's messages to the faculty member, their edits, and the kept earlier wordings |
 | V22 | Administrator operations: import history, restore tests, handover notes |
 | V23 | The Director Technical role (`DIRECTOR`) added to the roles a user may have |
+| V24 to V37 | Uniform B2 to B4 policy, reference data in tables, caps and role marks, reset tokens, workload rule, action plan and role dropdowns (see the notes above and the migration files) |
+| V38 | Teaching experience up to 1,000, optional project amount, outreach role and its typed text, "Book Chapter" and "Project External Examiner" wording, `users.deleted_at` |
 
 ## Working with the schema
 

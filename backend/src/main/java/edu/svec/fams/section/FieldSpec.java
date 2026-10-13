@@ -33,6 +33,8 @@ public final class FieldSpec {
     private List<String> allowed = List.of();
     private String listCode;
     private boolean isbn;
+    private boolean doiOrIssn;
+    private boolean currency;
     private int maxWords;
 
     private FieldSpec(String name, String column, String label, Type type, boolean required) {
@@ -81,6 +83,27 @@ public final class FieldSpec {
         FieldSpec f = new FieldSpec(name, column, label, Type.TEXT, required);
         f.maxLength = 24;
         f.isbn = true;
+        return f;
+    }
+
+    /**
+     * Where a paper can be found: a DOI (10.1000/xyz123) and/or an ISSN (1234-5678), separated by spaces, commas or
+     * semicolons. At least one of the values given must be a valid DOI or a valid ISSN; the text is kept as typed.
+     */
+    public static FieldSpec doiOrIssn(String name, String column, String label, int maxLength, boolean required) {
+        FieldSpec f = new FieldSpec(name, column, label, Type.TEXT, required);
+        f.maxLength = maxLength;
+        f.doiOrIssn = true;
+        return f;
+    }
+
+    /** An amount of money in rupees: 0 or more, at most two decimal places, no more than {@code max}. */
+    public static FieldSpec currency(String name, String column, String label, double max, boolean required) {
+        FieldSpec f = new FieldSpec(name, column, label, Type.DECIMAL, required);
+        f.min = BigDecimal.ZERO;
+        f.max = BigDecimal.valueOf(max);
+        f.scale = 2;
+        f.currency = true;
         return f;
     }
 
@@ -162,6 +185,16 @@ public final class FieldSpec {
     public boolean isbn() { return isbn; }
 
     /**
+     * The special format the browser must check as well ("ISBN", "DOI_ISSN" or "CURRENCY"), or null for a plain field. The
+     * server's own check is the authority; this only lets the form say the same thing as the person types.
+     */
+    public String format() {
+        if (isbn) return "ISBN";
+        if (doiOrIssn) return "DOI_ISSN";
+        return currency ? "CURRENCY" : null;
+    }
+
+    /**
      * @return the normalised value (String, Integer, BigDecimal, LocalDate) or null when empty/invalid.
      *         Problems are added to {@code errors} under {@code path}.
      */
@@ -208,6 +241,9 @@ public final class FieldSpec {
                 return fail(path, errors, label + " contains characters that are not allowed.");
             }
         }
+        if (doiOrIssn && !hasValidDoiOrIssn(v)) {
+            return fail(path, errors, label + " must include a valid DOI (such as 10.1000/xyz123) or ISSN (such as 1234-5678).");
+        }
         if (isbn) {
             String digits = v.replace("-", "").replace(" ", "").toUpperCase(java.util.Locale.ROOT);
             if (!validIsbn(digits)) {
@@ -216,6 +252,38 @@ public final class FieldSpec {
             return digits;
         }
         return v;
+    }
+
+    private static final Pattern DOI = Pattern.compile("^10\\.[0-9]{4,9}/\\S+$");
+    private static final Pattern ISSN = Pattern.compile("^[0-9]{4}-[0-9]{3}[0-9Xx]$");
+    private static final Pattern LABEL_ONLY = Pattern.compile("^(?i:doi|issn|e-?issn|p-?issn|print|online)[:.]?$");
+    private static final Pattern DOI_PREFIX = Pattern.compile("^(?i:(?:https?://(?:dx\\.)?doi\\.org/)|(?:doi\\.org/)|(?:doi:))");
+    private static final Pattern ISSN_PREFIX = Pattern.compile("^(?i:(?:e-?issn|p-?issn|issn):)");
+
+    /**
+     * True when at least one value in the text is a valid DOI (10.NNNN/anything, also written doi:10... or as a doi.org
+     * address) or a valid ISSN (NNNN-NNNN, the last character a check digit that is verified).
+     */
+    public static boolean hasValidDoiOrIssn(String text) {
+        if (text == null) return false;
+        for (String token : text.strip().split("[\\s,;]+")) {
+            if (token.isEmpty() || LABEL_ONLY.matcher(token).matches()) continue;
+            String doi = DOI_PREFIX.matcher(token).replaceFirst("");
+            if (DOI.matcher(doi).matches()) return true;
+            String issn = ISSN_PREFIX.matcher(token).replaceFirst("");
+            if (ISSN.matcher(issn).matches() && validIssn(issn)) return true;
+        }
+        return false;
+    }
+
+    /** NNNN-NNN plus a check character: the weighted sum of the eight digits (8 down to 1) must divide by 11. */
+    static boolean validIssn(String issn) {
+        String d = issn.replace("-", "").toUpperCase(java.util.Locale.ROOT);
+        int sum = 0;
+        for (int i = 0; i < 7; i++) sum += (8 - i) * (d.charAt(i) - '0');
+        int check = (11 - sum % 11) % 11;
+        char expected = check == 10 ? 'X' : (char) ('0' + check);
+        return d.charAt(7) == expected;
     }
 
     /** ISBN-10: nine digits and a check digit (0 to 9 or X); ISBN-13: 978 or 979 and ten more digits; check digits verified. */
@@ -250,6 +318,13 @@ public final class FieldSpec {
 
     private Object decimalValue(Object raw, String path, Map<String, String> errors, ChoiceSource choices) {
         BigDecimal v = toNumber(raw);
+        if (currency) {
+            if (v == null || v.signum() < 0 || v.stripTrailingZeros().scale() > scale) {
+                return fail(path, errors, label + " must be a valid amount: 0 or more, with at most 2 decimal places.");
+            }
+            if (v.compareTo(max) > 0) return fail(path, errors, label + " must be at most " + max.toBigInteger() + ".");
+            return v.setScale(scale);
+        }
         if (v == null) return fail(path, errors, label + " must be a number.");
         if (listCode != null && !isOneOf(v, choices)) return fail(path, errors, notOnList(choices));
         if (v.stripTrailingZeros().scale() > scale) {

@@ -83,7 +83,7 @@ public class AdminBulkService {
         if (!limiter.tryAcquire("bulk-links|admin|" + actor.id(), MAX_LINK_REQUESTS).granted()) {
             throw new ApiException(HttpStatus.TOO_MANY_REQUESTS, "Too many requests to send reset links. Please wait a few minutes.");
         }
-        List<Target> found = jdbc.sql("SELECT id, email, role, status FROM users WHERE id IN (:ids)").param("ids", ids)
+        List<Target> found = jdbc.sql("SELECT id, email, role, status FROM users WHERE id IN (:ids) AND deleted_at IS NULL").param("ids", ids)
                 .query((rs, n) -> new Target(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4))).list();
         Map<Long, Target> byId = new HashMap<>();
         for (Target t : found) byId.put(t.id(), t);
@@ -143,7 +143,7 @@ public class AdminBulkService {
                 LEFT JOIN faculty_profiles fp ON fp.user_id = u.id
                 LEFT JOIN departments d ON d.id = fp.department_id
                 LEFT JOIN cadres c ON c.id = fp.cadre_id
-                WHERE u.id IN (:ids)""").param("ids", request.ids())
+                WHERE u.id IN (:ids) AND u.deleted_at IS NULL""").param("ids", request.ids())
                 .query((rs, n) -> new Object[] {rs.getString("name"), rs.getString("employee_id"), rs.getString("email"),
                         rs.getString("role"), rs.getString("status"), rs.getString("dept"), rs.getString("cadre"),
                         rs.getObject("last_login_at", OffsetDateTime.class), rs.getBoolean("must_change_password"),

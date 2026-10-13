@@ -19,7 +19,9 @@ describe("form structure vs server definitions", () => {
 
   it("every server section is shown on some page (nothing is unreachable)", () => {
     const shown = new Set(PAGES.flatMap((p) => p.sections.map((s) => s.key)));
-    for (const s of sections) expect(shown.has(s.key), `${s.key} has no page`).toBe(true);
+    // The institutional roles are no longer on the form (2026-10-13) but the server still holds and scores what was entered.
+    const notOnTheForm = new Set(["institutional-roles"]);
+    for (const s of sections) expect(shown.has(s.key) || notOnTheForm.has(s.key), `${s.key} has no page`).toBe(true);
   });
 
   it("every table column and header refers to a real field", () => {
@@ -66,12 +68,11 @@ describe("form structure vs server definitions", () => {
       }
   });
 
-  it("radio buttons and field hints refer to real choice and text fields", () => {
+  it("radio buttons refer to real choice fields", () => {
     for (const p of PAGES)
       for (const ui of p.sections) {
         const fields = new Map(byKey.get(ui.key)!.fields.map((f) => [f.name, f]));
         for (const r of ui.radios ?? []) expect(fields.get(r)?.type, `${ui.key}: radio ${r}`).toBe("ENUM");
-        for (const h of Object.keys(ui.fieldHints ?? {})) expect(fields.has(h), `${ui.key}: hint ${h}`).toBe(true);
       }
   });
 
@@ -93,10 +94,9 @@ describe("form structure vs server definitions", () => {
     expect(f.get("semester")!.allowed).toHaveLength(8);   // semesters 1 to 8 for every department
   });
 
-  it("the administrative role fields say the role is chosen, and Other lets it be typed", () => {
+  it("the administrative roles are two lists on the page, one for each level", () => {
     const roles = PAGES.flatMap((p) => p.sections).filter((s) => s.key === "administrative-roles");
     expect(roles).toHaveLength(2);
-    for (const ui of roles) expect(ui.fieldHints?.roleCode).toBe("Choose a role; pick Other to type your own");
   });
 
   it("FDPs have a duration in days and no dates; certifications have weeks and a platform name for Other", () => {
@@ -156,12 +156,48 @@ describe("form structure vs server definitions", () => {
     expect(events.find((x) => x.name === "activityOther")).toMatchObject({ onlyWhenField: "activityCode" });
   });
 
-  it("institutional roles are on the Teaching & Learning page, from a database list", () => {
+  it("the Teaching & Learning page shows the courses only: no institutional roles box", () => {
     const page = PAGES.find((p) => p.slug === "teaching")!;
-    expect(page.sections.map((x) => x.key)).toContain("institutional-roles");
+    expect(page.sections.map((x) => x.key)).toEqual(["teaching-courses"]);
+    expect(page.description.toLowerCase()).not.toContain("institutional role");
+    // the roles themselves are still held and scored by the server, from a database list
     const role = byKey.get("institutional-roles")!.fields.find((f) => f.name === "role")!;
     expect(role.allowed).toEqual(expect.arrayContaining(["HOD", "ASSOCIATE_DEAN"]));
-    expect(role.labels?.HOD).toBeTruthy();
+    // and no section on any page is listed twice under the same key without a scope
+    for (const p of PAGES) expect(p.sections.every((s) => byKey.has(s.key)), p.slug).toBe(true);
+  });
+
+  it("teaching experience is required, between 0 and 1000", () => {
+    const f = byKey.get("general-information")!.fields.find((x) => x.name === "teachingExperienceYears")!;
+    expect(f.required).toBe(true);
+    expect([f.min, f.max]).toEqual([0, 1000]);
+  });
+
+  it("a journal paper needs a DOI or ISSN", () => {
+    const f = byKey.get("journal-publications")!.fields.find((x) => x.name === "doiIssn")!;
+    expect(f.required).toBe(true);
+    expect(f.format).toBe("DOI_ISSN");
+  });
+
+  it("a conference paper has no citation count, on the form or in its table", () => {
+    expect(byKey.get("conference-papers")!.fields.map((f) => f.name)).not.toContain("citations");
+    const ui = PAGES.flatMap((p) => p.sections).find((s) => s.key === "conference-papers")!;
+    expect(JSON.stringify(ui.columns)).not.toContain("citations");
+    expect(JSON.stringify(ui.headers)).not.toContain("Citations");
+  });
+
+  it("a project's amount follows its status: asked for when sanctioned, greyed out and empty otherwise", () => {
+    const amount = byKey.get("funded-projects")!.fields.find((f) => f.name === "amount")!;
+    expect(amount).toMatchObject({ onlyWhenField: "status", onlyWhenEquals: "SANCTIONED", onlyWhenDisabled: true, format: "CURRENCY", required: false });
+  });
+
+  it("a chapter is a Book Chapter on screen and an outreach role can be Other with a typed role", () => {
+    expect(byKey.get("books")!.fields.find((f) => f.name === "type")!.labels?.CHAPTER).toBe("Book Chapter");
+    const role = byKey.get("outreach")!.fields.find((f) => f.name === "roleCode")!;
+    expect(role.labels?.EXTERNAL_EXAMINER).toBe("Project External Examiner");
+    expect(role.allowed!.at(-1)).toBe("OTHER");
+    expect(byKey.get("outreach")!.fields.find((f) => f.name === "roleOther")).toMatchObject({ onlyWhenField: "roleCode", onlyWhenEquals: "OTHER", onlyWhenDisabled: false });
+    expect(byKey.get("outreach")!.fields.find((f) => f.name === "role")!.effective).toBe(true);
   });
 
   it("funded projects are not limited in number, an ISBN is required, and institute roles come before department roles", () => {

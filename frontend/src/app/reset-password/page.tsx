@@ -73,7 +73,6 @@ function ResetForm() {
               <label htmlFor="new-password" className="mb-1 block text-sm font-semibold">New password</label>
               <PasswordInput id="new-password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)}
                 className="block w-full rounded-sm border border-line-strong bg-surface px-3 py-2 text-[15px]" />
-              <p className="mt-1 text-xs text-muted">At least 10 characters, and not an easy one to guess.</p>
             </div>
             <div>
               <label htmlFor="again" className="mb-1 block text-sm font-semibold">Type it again</label>

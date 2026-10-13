@@ -89,10 +89,12 @@ export default function ScoreAndReview() {
 
       {user.role === "HOD" && <MessageComposer appraisalId={appraisal.id} status={appraisal.status} />}
 
-      <Card className="space-y-3 p-4 sm:p-5">
-        <RuledHeading>Review history</RuledHeading>
-        <HistoryTimeline history={appraisal.history} forFaculty={isFaculty} />
-      </Card>
+      {!isFaculty && (
+        <Card className="space-y-3 p-4 sm:p-5">
+          <RuledHeading>Review history</RuledHeading>
+          <HistoryTimeline history={appraisal.history ?? []} />
+        </Card>
+      )}
     </div>
   );
 }

@@ -166,7 +166,7 @@ export function MessageComposer({ appraisalId, status }: { appraisalId: number; 
             />
             <p id="hod-message-help" className="mt-1 text-xs text-muted">
               They are shown this on their dashboard, with a request to meet you. The appraisal stays with you and stays locked. You can edit a message until you
-              approve the appraisal (they are shown that it was edited), but not delete it. The comment you write when you approve is separate, and they cannot see it. {text.length} / {MAX}
+              approve the appraisal (they are shown that it was edited), but not delete it. The comment you write when you approve is separate, and they cannot see it.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -235,7 +235,7 @@ function SentMessage({ appraisalId, m, canEdit, onChanged }: { appraisalId: numb
             onChange={(e) => setDraft(e.target.value)}
             className="block w-full rounded-sm border border-line-strong px-3 py-2 text-sm"
           />
-          <p className="text-xs text-muted">The faculty member is shown the new wording as an update, marked as edited. The earlier wording is kept for the record, and only Heads of the Department can see it. {draft.length} / {MAX}</p>
+          <p className="text-xs text-muted">The faculty member is shown the new wording as an update, marked as edited. The earlier wording is kept for the record, and only Heads of the Department can see it.</p>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" loading={busy} disabled={!draft.trim()} onClick={() => void save()}>Save change</Button>
             <Button size="sm" variant="secondary" onClick={() => setEditing(false)}>Cancel</Button>

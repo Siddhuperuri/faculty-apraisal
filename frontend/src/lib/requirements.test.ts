@@ -53,3 +53,28 @@ describe("buildRequirements: the action plan", () => {
     });
   });
 });
+
+describe("buildRequirements: teaching experience and journal papers (2026-10-13)", () => {
+  it("lists a required Part A field that is empty, such as the teaching experience", () => {
+    const withExperience = {
+      ...meta,
+      fields: [
+        ...meta.fields,
+        { name: "teachingExperienceYears", label: "Teaching experience (years)", type: "DECIMAL", required: true, maxLength: null, min: 0, max: 1000, scale: 1, allowed: null } as FieldMeta,
+      ],
+    } as SectionMeta;
+    const [r] = buildRequirements({
+      blockers: ["General Information: contact number, ..., and teaching experience"],
+      general: { meta: withExperience, record: { contactNo: "9876543210", qualification: "M.Tech", teachingExperienceYears: null } },
+    });
+    expect(r.links).toEqual([{ label: "Teaching experience (years)", focus: "teachingExperienceYears" }]);
+  });
+
+  it("sends the person to the research page for a paper without a DOI or ISSN", () => {
+    const [r] = buildRequirements({
+      blockers: ["Journal publications: give a valid DOI or ISSN for the paper that lack one"],
+      general: { meta, record: null },
+    });
+    expect(r).toMatchObject({ page: "research", heading: "Journal publications", links: [{ label: "Open the page", focus: null }] });
+  });
+});

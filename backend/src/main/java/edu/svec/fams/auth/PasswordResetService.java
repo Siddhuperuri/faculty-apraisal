@@ -77,7 +77,7 @@ public class PasswordResetService {
             log.warn("Password reset requests are being refused from {}", address);
             return;
         }
-        var user = jdbc.sql("SELECT id FROM users WHERE LOWER(email) = ? AND status = 'ACTIVE'").param(email)
+        var user = jdbc.sql("SELECT id FROM users WHERE LOWER(email) = ? AND status = 'ACTIVE' AND deleted_at IS NULL").param(email)
                 .query(Long.class).optional();
         if (user.isEmpty()) return;
 

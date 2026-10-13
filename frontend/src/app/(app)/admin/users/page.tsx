@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChangeRoleDialog } from "@/components/admin/ChangeRoleDialog";
+import { DeleteUserDialog } from "@/components/admin/DeleteUserDialog";
 import { ImportAccountsDialog } from "@/components/admin/ImportAccountsDialog";
 import { OneTimePasswordDialog } from "@/components/admin/OneTimePassword";
 import { ResetLinksResultDialog } from "@/components/admin/ResetLinksResultDialog";
@@ -55,6 +56,7 @@ export default function UsersPage() {
   const [issued, setIssued] = useState<{ value: IssuedPassword; reason: "created" | "reset" } | null>(null);
   const [pending, setPending] = useState<Pending>(null);
   const [roleFor, setRoleFor] = useState<AdminUserRow | null>(null);
+  const [deleting, setDeleting] = useState<AdminUserRow | null>(null);
   const [working, setWorking] = useState(false);
   // The rows ticked for the bulk actions, kept by user id so a search or a filter never drops one.
   const [selected, setSelected] = useState<Selection>(NOTHING);
@@ -306,7 +308,12 @@ export default function UsersPage() {
                   <div><dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Last sign-in</dt><dd className="mt-0.5">{u.lastLoginAt ? formatDateTime(u.lastLoginAt) : "Never"}</dd></div>
                   <div className="col-span-2"><dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Department</dt><dd className="mt-0.5">{department}</dd></div>
                 </dl>
-                {closed ? <p className="mt-4 border-t border-line pt-3 text-xs text-muted">{WITHDRAWN_NOTE}</p> : (
+                {closed ? (
+                  <div className="mt-4 space-y-2 border-t border-line pt-3">
+                    <p className="text-xs text-muted">{WITHDRAWN_NOTE}</p>
+                    <Button variant="danger" size="sm" className="w-full" disabled={self || working} onClick={() => setDeleting(u)}>Delete permanently<span className="sr-only"> {u.email}</span></Button>
+                  </div>
+                ) : (
                 <div className="mt-4 grid grid-cols-2 gap-2 border-t border-line pt-3">
                   <Button variant="secondary" size="sm" className="w-full" onClick={() => setForm({ userId: u.id })}>Edit<span className="sr-only"> {u.email}</span></Button>
                   <Button variant="secondary" size="sm" className="w-full" disabled={self || working || u.status !== "ACTIVE"} title={self ? "You cannot change your own role" : u.status !== "ACTIVE" ? "Enable the user first" : undefined} onClick={() => setRoleFor(u)}>Change role<span className="sr-only"> {u.email}</span></Button>
@@ -316,6 +323,7 @@ export default function UsersPage() {
                   ) : (
                     <Button variant="secondary" size="sm" className="col-span-2 w-full" disabled={working} onClick={() => void enable(u)}>Enable user<span className="sr-only"> {u.email}</span></Button>
                   )}
+                  <Button variant="danger" size="sm" className="col-span-2 w-full" disabled={self || working} title={self ? "You cannot delete the account you are signed in with" : undefined} onClick={() => setDeleting(u)}>Delete permanently<span className="sr-only"> {u.email}</span></Button>
                 </div>
                 )}
               </li>
@@ -371,7 +379,14 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-2.5 text-muted">{u.lastLoginAt ? formatDateTime(u.lastLoginAt) : "Never"}</td>
                     <td className="px-4 py-2.5">
-                      {closed ? <p className="max-w-64 text-right text-xs text-muted">{WITHDRAWN_NOTE}</p> : (
+                      {closed ? (
+                        <div className="flex flex-col items-end gap-1.5">
+                          <p className="max-w-64 text-right text-xs text-muted">{WITHDRAWN_NOTE}</p>
+                          <Button variant="danger" size="sm" disabled={self || working} onClick={() => setDeleting(u)}>
+                            Delete permanently<span className="sr-only"> {u.email}</span>
+                          </Button>
+                        </div>
+                      ) : (
                       <div className="flex flex-wrap justify-end gap-1.5">
                         <Button variant="secondary" size="sm" onClick={() => setForm({ userId: u.id })}>
                           Edit<span className="sr-only"> {u.email}</span>
@@ -391,6 +406,9 @@ export default function UsersPage() {
                             Enable<span className="sr-only"> {u.email}</span>
                           </Button>
                         )}
+                        <Button variant="danger" size="sm" disabled={self || working} title={self ? "You cannot delete the account you are signed in with" : undefined} onClick={() => setDeleting(u)}>
+                          Delete permanently<span className="sr-only"> {u.email}</span>
+                        </Button>
                       </div>
                       )}
                     </td>
@@ -414,6 +432,20 @@ export default function UsersPage() {
         }}
         onSaved={() => {
           setNotice("Details saved.");
+          void load();
+        }}
+      />
+      <DeleteUserDialog
+        user={deleting}
+        onClose={() => setDeleting(null)}
+        onDeleted={(message, id) => {
+          setNotice(message);
+          setSelected((cur) => (cur.has(id) ? toggle(cur, id) : cur));
+          setSeen((prev) => {
+            const next = new Map(prev);
+            next.delete(id);
+            return next;
+          });
           void load();
         }}
       />

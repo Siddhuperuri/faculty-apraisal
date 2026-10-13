@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
  *       policy divides it. Worked out by {@link ScoreService}, which knows the policy.</li>
  *   <li>B2 to B4: marks for each kind of entry, up to a cap for each; the caps add up to the criterion's maximum of 15.
  *       Mentoring is 6 marks when any student is mentored, project guidance 2 for each project up to 4, a workshop or
- *       FDP of at least 5 days earns 5 once and a certification 10 once. The rest are a working rule that is easy to
+ *       FDP earns 2.5 (two earn the whole 5, more add nothing) and a certification 10 once. The rest are a working rule that is easy to
  *       change here.</li>
  *   <li>B5 to B9: the college's fixed rate card per entry, the same for every cadre, with no upper limit. A journal
  *       paper counts by its indexing (UGC-CARE and others earn nothing), Ph.D. scholars awarded are "guided" and
@@ -39,9 +39,6 @@ public class ScoringRules {
             this(description, perEntry, count, marks, null);
         }
     }
-
-    /** A workshop, FDP, seminar or training program counts towards the marks only when it lasted at least this many days. */
-    static final int MIN_QUALIFYING_DAYS = 5;
 
     /** The first and last day of the appraisal's academic year; each use needs the appraisal id bound to its {@code ?}. */
     private static final String START = "(SELECT ay.start_date FROM appraisals ap JOIN academic_years ay ON ay.id = ap.academic_year_id WHERE ap.id = ?)";
@@ -65,10 +62,10 @@ public class ScoringRules {
                 cappedMax("Student project guided", BigDecimal.valueOf(2), count("student_projects", null, id), 4),
                 cappedMax("Student achievement", BigDecimal.ONE, count("student_achievements", null, id, "month:month_year"), 5)));
 
-        // One qualifying program earns all 5 marks and one certification all 10; further ones add nothing (the cap).
+        // Each FDP earns 2.5 marks, whatever its length, and two earn the whole 5; more are recorded but add nothing. One
+        // certification earns all 10 and further ones add nothing (the cap).
         out.put("FDP_CERTIFICATIONS", List.of(
-                capped("Workshop, FDP, seminar or training of " + MIN_QUALIFYING_DAYS + " days or more (5m, earned once)", BigDecimal.valueOf(5),
-                        count("fdps", "days >= " + MIN_QUALIFYING_DAYS, id), 5),
+                cappedMax("FDP / workshop / seminar / training attended", new BigDecimal("2.5"), count("fdps", null, id), 5),
                 capped("Certification (10m, earned once)", BigDecimal.TEN, count("certifications", "duration_weeks >= 1", id), 10)));
 
         out.put("ADMINISTRATIVE", List.of(

@@ -136,7 +136,7 @@ public class ConsoleService {
                 JOIN departments d ON d.id = fp.department_id
                 JOIN cadres c ON c.id = fp.cadre_id
                 LEFT JOIN appraisals a ON a.faculty_id = fp.id AND a.academic_year_id = ?
-                WHERE (u.status = 'ACTIVE' OR (a.id IS NOT NULL AND a.status <> 'DRAFT'))
+                WHERE u.deleted_at IS NULL AND (u.status = 'ACTIVE' OR (a.id IS NOT NULL AND a.status <> 'DRAFT'))
                 """ + departmentFilterSql + " ORDER BY d.code, fp.name LIMIT " + limit)
                 .params(params)
                 .query((rs, n) -> new Person(rs.getLong("fid"), rs.getLong("id"), rs.getString("code"), rs.getString("dept"), rs.getString("name"),
@@ -237,7 +237,8 @@ public class ConsoleService {
         List<PrincipalDepartment> departments = new ArrayList<>();
         int[] sum = new int[4];
         for (var d : jdbc.sql("SELECT id, code, name FROM departments WHERE active = TRUE "
-                        + "OR EXISTS (SELECT 1 FROM faculty_profiles fp WHERE fp.department_id = departments.id) ORDER BY code")
+                        + "OR EXISTS (SELECT 1 FROM faculty_profiles fp JOIN users fu ON fu.id = fp.user_id AND fu.deleted_at IS NULL "
+                        + "WHERE fp.department_id = departments.id) ORDER BY code")
                 .query((rs, n) -> new Object[] {rs.getLong(1), rs.getString(2), rs.getString(3)}).list()) {
             int faculty = 0, awaiting = 0, approved = 0;
             for (Person p : people) {
@@ -273,7 +274,7 @@ public class ConsoleService {
 
         Map<String, int[]> byRole = new LinkedHashMap<>();
         for (Role r : Role.values()) byRole.put(r.name(), new int[2]);
-        jdbc.sql("SELECT role, status, COUNT(*) FROM users GROUP BY role, status").query((rs, n) -> {
+        jdbc.sql("SELECT role, status, COUNT(*) FROM users WHERE deleted_at IS NULL GROUP BY role, status").query((rs, n) -> {
             int[] c = byRole.get(rs.getString(1));
             if (c != null) c[AccountStatus.isActive(rs.getString(2)) ? 0 : 1] += rs.getInt(3);
             return null;
@@ -291,7 +292,7 @@ public class ConsoleService {
             jdbc.sql("""
                     SELECT a.status, COUNT(*) FROM appraisals a
                     JOIN faculty_profiles fp ON fp.id = a.faculty_id JOIN users u ON u.id = fp.user_id
-                    WHERE a.academic_year_id = ? AND (u.status = 'ACTIVE' OR a.status <> 'DRAFT') GROUP BY a.status""")
+                    WHERE a.academic_year_id = ? AND u.deleted_at IS NULL AND (u.status = 'ACTIVE' OR a.status <> 'DRAFT') GROUP BY a.status""")
                     .param(year.id()).query((rs, n) -> {
                         pipeline.put(rs.getString(1), rs.getInt(2));
                         started[0] += rs.getInt(2);

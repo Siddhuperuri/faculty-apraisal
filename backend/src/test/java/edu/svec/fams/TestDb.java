@@ -27,7 +27,10 @@ public class TestDb {
         // rename a value put its wording back themselves.)
         jdbc.sql("DELETE FROM reference_values WHERE created_by IS NOT NULL").update();
         // everything is offered again except the semesters beyond 8, which the migration switched off for every department
-        jdbc.sql("UPDATE reference_values SET active = TRUE WHERE NOT (list_code = 'SEMESTER' AND CAST(code AS UNSIGNED) > 8)").update();
+        // (and the closed "Others" of the outreach roles, which V38 switched off in favour of "Other")
+        jdbc.sql("UPDATE reference_values SET active = TRUE WHERE NOT (list_code = 'SEMESTER' AND CAST(code AS UNSIGNED) > 8)"
+                + " AND NOT (list_code = 'OUTREACH_ROLE' AND code = 'OTHERS')").update();
+        jdbc.sql("UPDATE reference_values SET active = FALSE, locked = FALSE WHERE list_code = 'OUTREACH_ROLE' AND code = 'OTHERS'").update();
         reference.refresh();
         // The history tables are append-only via triggers; TRUNCATE is the test-only way to clear them.
         jdbc.sql("TRUNCATE TABLE audit_logs").update();
@@ -85,7 +88,7 @@ public class TestDb {
     /** Fills in the least an appraisal needs before it may be submitted through the API (see AppraisalService.submitBlockers). */
     public void complete(long appraisalId) {
         jdbc.sql("UPDATE general_information SET contact_no = '9000000000', qualification_specialization = 'M.Tech', "
-                + "joining_date_institution = '2015-06-01', joining_date_designation = '2020-06-01' WHERE appraisal_id = ?")
+                + "joining_date_institution = '2015-06-01', joining_date_designation = '2020-06-01', teaching_experience_years = 8.5 WHERE appraisal_id = ?")
                 .param(appraisalId).update();
         jdbc.sql("INSERT INTO action_plan (appraisal_id, plan_text) VALUES (?, 'Strengthen teaching, research and outreach over the next two years.') "
                 + "ON DUPLICATE KEY UPDATE plan_text = VALUES(plan_text)").param(appraisalId).update();

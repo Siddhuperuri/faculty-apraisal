@@ -258,8 +258,7 @@ class WorkflowIntegrationTest {
                 .andExpect(jsonPath("$.status").value("HOD_APPROVED"));
         call(faculty, "GET", base, null)
                 .andExpect(jsonPath("$.editable").value(false))
-                .andExpect(jsonPath("$.history[-1:].action").value("HOD_APPROVE"))
-                .andExpect(jsonPath("$.history[2].comment").value(org.hamcrest.Matchers.nullValue()));   // remarks are not for the faculty member
+                .andExpect(jsonPath("$.history").doesNotExist());   // the faculty member is never shown the review history
         call(hod, "GET", base, null).andExpect(jsonPath("$.history[2].comment").value("Attach FDP certificates next year"));
 
         call(principal, "POST", base + "/review/start", null)
@@ -272,7 +271,8 @@ class WorkflowIntegrationTest {
         call(faculty, "GET", base, null)
                 .andExpect(jsonPath("$.editable").value(false))
                 .andExpect(jsonPath("$.finalApprovedAt").isNotEmpty())
-                .andExpect(jsonPath("$.history.length()").value(5));
+                .andExpect(jsonPath("$.history").doesNotExist());
+        call(hod, "GET", base, null).andExpect(jsonPath("$.history.length()").value(5));
 
         Integer audits = jdbc.sql("SELECT COUNT(*) FROM audit_logs WHERE entity_id = ?")
                 .param(id).query(Integer.class).single();
@@ -299,7 +299,7 @@ class WorkflowIntegrationTest {
         long id = Long.parseLong(created.replaceAll("\\D+", ""));
         String base = "/api/appraisals/" + id;
         jdbc.sql("UPDATE general_information SET contact_no = NULL, qualification_specialization = NULL, "
-                + "joining_date_institution = NULL, joining_date_designation = NULL WHERE appraisal_id = ?").param(id).update();
+                + "joining_date_institution = NULL, joining_date_designation = NULL, teaching_experience_years = NULL WHERE appraisal_id = ?").param(id).update();
 
         // everything is missing, and the owner is told exactly what
         call(faculty, "GET", base, null).andExpect(jsonPath("$.submitBlockers.length()").value(2))
@@ -311,7 +311,7 @@ class WorkflowIntegrationTest {
 
         // the details are filled in: only the action plan is missing
         jdbc.sql("UPDATE general_information SET contact_no = '9000000000', qualification_specialization = 'M.Tech', "
-                + "joining_date_institution = '2015-06-01', joining_date_designation = '2020-06-01' WHERE appraisal_id = ?").param(id).update();
+                + "joining_date_institution = '2015-06-01', joining_date_designation = '2020-06-01', teaching_experience_years = 7 WHERE appraisal_id = ?").param(id).update();
         call(faculty, "GET", base, null).andExpect(jsonPath("$.submitBlockers.length()").value(1))
                 .andExpect(jsonPath("$.submitBlockers[0]").value(org.hamcrest.Matchers.startsWith("Action Plan")));
         // a plan of blanks is no plan

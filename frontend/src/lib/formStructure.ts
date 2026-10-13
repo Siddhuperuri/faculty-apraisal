@@ -38,8 +38,6 @@ export interface SectionUi {
   suggestions?: Record<string, string[]>;
   /** Choice fields shown as radio buttons (one of a few options) instead of a drop-down. */
   radios?: string[];
-  /** Helper text shown under a field in the form, by field name. */
-  fieldHints?: Record<string, string>;
   emptyText?: string;
   /** Rendered as a fixed grid of rows (one per allowed value of this field) instead of an add/remove list. */
   fixedBy?: string;
@@ -78,7 +76,7 @@ export const PAGES: PageUi[] = [
     number: "02",
     title: "Teaching & Learning",
     formRef: "Part B · 1",
-    description: "Courses you handled during the academic year, with pass percentage and feedback percentages, and any institutional roles you held.",
+    description: "Courses you handled during the academic year, with pass percentage and feedback percentages.",
     sections: [
       {
         key: "teaching-courses",
@@ -115,15 +113,6 @@ export const PAGES: PageUi[] = [
           { key: "averageFeedback", label: "Average Feedback % (Ph-1 & Ph-2)", format: "percent" },
         ],
         emptyText: "No courses added yet.",
-      },
-      {
-        key: "institutional-roles",
-        title: "Institutional roles held",
-        addLabel: "Add role",
-        columns: ["role", "remarks"],
-        headers: { role: "Role", remarks: "Remarks" },
-        hint: "Roles such as Head of the Department or Associate Dean earn the marks the college has set for them under the scoring policy; they count within the Teaching & Learning maximum.",
-        emptyText: "No institutional roles added.",
       },
     ],
   },
@@ -174,7 +163,7 @@ export const PAGES: PageUi[] = [
         addLabel: "Add program",
         columns: ["title", "mode", "institutionVenue", "days"],
         headers: { title: "Title of the Program", mode: "Mode", institutionVenue: "Organizing Institution / Venue", days: "Duration (No. of Days)" },
-        hint: "A program of 5 days or more earns the 5 marks (once, however many you add). Shorter programs are recorded but earn no marks.",
+        hint: "Each program earns 2.5 marks, whatever its length. Two earn the full 5; further programs are recorded but add no marks.",
         emptyText: "No programs added yet.",
       },
       {
@@ -209,7 +198,6 @@ export const PAGES: PageUi[] = [
         columns: ["role", "description", { header: "Duration (From–To)", render: (r) => duration(r, "fromDate", "toDate") }],
         headers: { role: "Role", description: "Responsibility / Description" },
         hint: "Choose the role from the list. If it is not there, choose Other and type it.",
-        fieldHints: { roleCode: "Choose a role; pick Other to type your own", roleOther: "Type the role as it should be reported" },
         emptyText: "No institute-level roles added yet.",
       },
       {
@@ -220,7 +208,6 @@ export const PAGES: PageUi[] = [
         columns: ["role", "description", { header: "Duration (From–To)", render: (r) => duration(r, "fromDate", "toDate") }],
         headers: { role: "Role", description: "Responsibility / Description" },
         hint: "Choose the role from the list. If it is not there, choose Other and type it.",
-        fieldHints: { roleCode: "Choose a role; pick Other to type your own", roleOther: "Type the role as it should be reported" },
         emptyText: "No department-level roles added yet.",
       },
       {
@@ -229,7 +216,6 @@ export const PAGES: PageUi[] = [
         addLabel: "Add event",
         columns: ["activityType", "role", "title", { header: "Duration (From–To)", render: (r) => duration(r) }, "beneficiaries"],
         headers: { activityType: "Type of Activity", role: "Role", title: "Title / Details of the Event", beneficiaries: "No. of Beneficiaries" },
-        fieldHints: { activityCode: "Pick Other to type your own", roleCode: "Pick Other to type your own" },
         emptyText: "No events added yet.",
       },
     ],
@@ -267,8 +253,8 @@ export const PAGES: PageUi[] = [
         key: "conference-papers",
         title: "Conference papers published",
         addLabel: "Add conference paper",
-        columns: ["title", "conference", "level", "monthYear", "venue", "doiIndexedIn", "citations"],
-        headers: { title: "Title of the Paper", conference: "Name of the Conference", level: "Level", monthYear: "Month & Year", venue: "Venue", doiIndexedIn: "DOI / Indexed in", citations: "No. of Citations" },
+        columns: ["title", "conference", "level", "monthYear", "venue", "doiIndexedIn"],
+        headers: { title: "Title of the Paper", conference: "Name of the Conference", level: "Level", monthYear: "Month & Year", venue: "Venue", doiIndexedIn: "DOI / Indexed in" },
         emptyText: "No conference papers added yet.",
       },
       { key: "research-metrics", title: "Research profile metrics", fixedBy: "platform" },
@@ -351,14 +337,14 @@ export const PAGES: PageUi[] = [
       {
         key: "books",
         title: "Books / Book chapters",
-        addLabel: "Add book or chapter",
+        addLabel: "Add book or book chapter",
         columns: ["authors", "title", "publisher", "isbn", "monthYear", "type"],
-        headers: { authors: "Authors", title: "Title of the Book / Chapter", publisher: "Publisher", isbn: "ISBN", monthYear: "Month & Year", type: "Type (Book / Chapter)" },
+        headers: { authors: "Authors", title: "Title of the Book / Chapter", publisher: "Publisher", isbn: "ISBN", monthYear: "Month & Year", type: "Type (Book / Book Chapter)" },
         summary: [
           { key: "books", label: "No. of Books Published", format: "count" },
           { key: "chapters", label: "No. of Book Chapters Published", format: "count" },
         ],
-        emptyText: "No books or chapters added yet.",
+        emptyText: "No books or book chapters added yet.",
       },
     ],
   },

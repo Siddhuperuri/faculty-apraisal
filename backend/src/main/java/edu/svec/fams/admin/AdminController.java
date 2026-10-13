@@ -49,10 +49,13 @@ public class AdminController {
     private final AdminAnalyticsService analytics;
     private final AdminBulkService bulk;
     private final AppraisalExportService exports;
+    private final UserDeletionService deletion;
 
     public AdminController(AdminUserService users, AccountImportService imports, ImportHistoryService importHistory,
                            AdminSetupService setup, AuditQueryService audit, ConsoleService console,
-                           AdminAnalyticsService analytics, AdminBulkService bulk, AppraisalExportService exports) {
+                           AdminAnalyticsService analytics, AdminBulkService bulk, AppraisalExportService exports,
+                           UserDeletionService deletion) {
+        this.deletion = deletion;
         this.analytics = analytics;
         this.bulk = bulk;
         this.exports = exports;
@@ -145,6 +148,22 @@ public class AdminController {
     public AdminUserService.UserDetail updateUser(@AuthenticationPrincipal FamsUserPrincipal me, @PathVariable long id,
                                                   @RequestBody Map<String, Object> body) {
         return users.update(me, id, body);
+    }
+
+    /** What deleting the account would remove and keep, and whether it may be deleted at all. For the confirmation warning. */
+    @GetMapping("/users/{id}/deletion-preview")
+    public UserDeletionService.Preview deletionPreview(@AuthenticationPrincipal FamsUserPrincipal me, @PathVariable long id) {
+        return deletion.preview(me, id);
+    }
+
+    /**
+     * Removes the account for good. Body {@code {"confirmEmail": "<the account's e-mail address>"}}: the address must be typed,
+     * and is checked here. Refused for the administrator's own account and for the only active administrator.
+     */
+    @PostMapping("/users/{id}/delete-permanently")
+    public UserDeletionService.Result deletePermanently(@AuthenticationPrincipal FamsUserPrincipal me, @PathVariable long id,
+                                                        @RequestBody Map<String, Object> body) {
+        return deletion.delete(me, id, body);
     }
 
     @PostMapping("/users/{id}/reset-password")

@@ -86,7 +86,8 @@ export interface AppraisalView {
   finalApprovedAt: string | null;
   declaredAt: string | null;
   scores: ScoreRow[];
-  history: HistoryRow[];
+  /** The review history: for the reviewers and the administrator only. The faculty member is never sent it. */
+  history?: HistoryRow[];
   /** What is still missing before it can be submitted to the HoD; empty when it is ready (or not the owner's to submit). */
   submitBlockers: string[];
   /** The HoD is reviewing it and has sent the faculty member a message. */
@@ -138,6 +139,10 @@ export interface FieldMeta {
   maxWords?: number | null;
   /** The wording that is shown and reported, worked out by the server from a choice and its "Other" text; not typed. */
   effective?: boolean;
+  /** A format the browser checks as the person types, besides the type: a DOI or ISSN, an ISBN, an amount in rupees. */
+  format?: "ISBN" | "DOI_ISSN" | "CURRENCY" | null;
+  /** With `onlyWhenField`: while the condition does not hold the field stays on the form, greyed out and empty, not hidden. */
+  onlyWhenDisabled?: boolean;
 }
 
 /** One value of a database-managed dropdown list (Admin > Lists). */
@@ -612,4 +617,28 @@ export interface RoleMarks {
   label: string;
   active: boolean;
   marks: number;
+}
+
+/** What deleting an account permanently would remove and keep (Admin > Users > Delete permanently), asked before it is confirmed. */
+export interface DeletionPreview {
+  id: number;
+  email: string;
+  name: string | null;
+  role: Role | WithdrawnRole;
+  status: string;
+  canDelete: boolean;
+  blockedReason: string | null;
+  appraisalsRemoved: number;
+  appraisalsKept: number;
+  keepsAnonymousRecord: boolean;
+  departmentsUnassigned: string[];
+  departmentsLeftWithoutHead: string[];
+}
+
+export interface DeletionResult {
+  id: number;
+  outcome: "REMOVED" | "ANONYMIZED";
+  appraisalsRemoved: number;
+  appraisalsKept: number;
+  departmentsUnassigned: number;
 }

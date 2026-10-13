@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { CourseLoadHelp } from "@/components/appraisal/CourseLoadHelp";
 import { CriterionMarks } from "@/components/appraisal/CriterionMarks";
 import { IdentityBlock } from "@/components/appraisal/IdentityBlock";
 import { FocusOnArrival, RequirementsSummary } from "@/components/appraisal/RequirementsSummary";
@@ -10,7 +9,6 @@ import { SectionView } from "@/components/appraisal/SectionView";
 import { Alert, Card, linkButton } from "@/components/ui/primitives";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { nextPrev, pageBySlug } from "@/lib/formStructure";
-
 
 export default function SectionPage() {
   const { id, page } = useParams<{ id: string; page: string }>();
@@ -39,8 +37,6 @@ export default function SectionPage() {
       <RequirementsSummary />
 
       {ui.criterion && <CriterionMarks criterion={ui.criterion} />}
-
-      {ui.slug === "teaching" && <CourseLoadHelp />}
 
       {ui.identity && (
         <Card className="p-4 sm:p-5">

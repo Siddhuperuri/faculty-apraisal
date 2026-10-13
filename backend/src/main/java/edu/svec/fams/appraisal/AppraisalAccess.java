@@ -68,6 +68,7 @@ public class AppraisalAccess {
                 SELECT a.id, fp.user_id AS owner, fp.department_id AS dept, a.status,
                        (a.status = 'HOD_REVIEW' AND EXISTS (SELECT 1 FROM appraisal_messages m WHERE m.appraisal_id = a.id AND m.answered_at IS NULL)) AS raised
                 FROM appraisals a JOIN faculty_profiles fp ON fp.id = a.faculty_id
+                JOIN users fu ON fu.id = fp.user_id AND fu.deleted_at IS NULL
                 WHERE a.id = ?""" + (lock ? " FOR UPDATE OF a" : ""))
                 .param(id)
                 .query((rs, n) -> new Core(rs.getLong("id"), rs.getLong("owner"), rs.getLong("dept"),

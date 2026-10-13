@@ -109,7 +109,7 @@ export function ReviewPanel({ role }: { role: ReviewerRole }) {
           <label htmlFor="review-comment" className="mb-1 block text-sm font-medium">{level.boxTitle}</label>
           <textarea id="review-comment" rows={5} maxLength={MAX} value={comment} onChange={(e) => setComment(e.target.value)} aria-describedby="review-help" className="block w-full rounded-sm border border-line-strong px-3 py-2 text-sm" />
           <p id="review-help" className="mt-1 text-xs text-muted">
-            Optional. Your comment is recorded with your approval and printed in this box on the report. The faculty member cannot see it. {comment.length} / {MAX}
+            Optional. Your comment is recorded with your approval and printed in this box on the report. The faculty member cannot see it.
           </p>
           {role === "HOD" && (
             <p className="mt-1 text-xs text-muted">

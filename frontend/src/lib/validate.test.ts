@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FieldMeta, SectionMeta } from "./types";
-import { applyDependencies, countWords, isAsked, isBlank, liveFieldError, serverErrorsFor, toApiRecord, toFormValues, validate } from "./validate";
+import { applyDependencies, countWords, hasValidDoiOrIssn, isAsked, isBlank, liveFieldError, serverErrorsFor, toApiRecord, toFormValues, validate, validIsbn } from "./validate";
 
 const meta: SectionMeta = {
   key: "demo",
@@ -196,5 +196,70 @@ describe("immediate validation (as the person types)", () => {
     const branch = { name: "branch", label: "Branch", type: "ENUM", required: true, maxLength: null, min: null, max: null, scale: null, allowed: ["CSE", "ECE"], dependsOn: "program" } as FieldMeta;
     expect(liveFieldError(branch, "PHARMACOLOGY", true)).toBe("Branch is not offered under the choice above.");
     expect(liveFieldError(branch, "CSE", true)).toBeNull();
+  });
+});
+
+describe("formats checked as the person types", () => {
+  const base = { required: false, min: null, max: null, scale: null, allowed: null } as const;
+  const doi = { ...base, name: "doiIssn", label: "DOI or ISSN", type: "TEXT", required: true, maxLength: 80, format: "DOI_ISSN" } as FieldMeta;
+  const isbn = { ...base, name: "isbn", label: "ISBN", type: "TEXT", required: true, maxLength: 24, format: "ISBN" } as FieldMeta;
+  const amount = { ...base, name: "amount", label: "Amount (Rs.)", type: "DECIMAL", min: 0, max: 1e11, scale: 2, maxLength: null, format: "CURRENCY" } as FieldMeta;
+
+  it("a DOI or ISSN field needs at least one valid value, as the server counts it", () => {
+    expect(liveFieldError(doi, "", true)).toBe("DOI or ISSN is required.");
+    const message = "DOI or ISSN must include a valid DOI (such as 10.1000/xyz123) or ISSN (such as 1234-5678).";
+    for (const bad of ["n/a", "none", "12345678", "0378-5954", "10.12/short", "ISSN:"]) expect(liveFieldError(doi, bad, true), bad).toBe(message);
+    for (const good of ["10.1000/xyz123", "0378-5955", "2434-561X", "doi:10.1016/j.cell.2020.01.001", "https://doi.org/10.1109/5.771073", "ISSN: 0378-5955", "10.1000/abc, 0378-5955"]) {
+      expect(liveFieldError(doi, good, true), good).toBeNull();
+    }
+    expect(hasValidDoiOrIssn("1050-124X")).toBe(true);
+    expect(hasValidDoiOrIssn("1050-124Y")).toBe(false);
+  });
+
+  it("an ISBN needs its check digit", () => {
+    expect(validIsbn("978-0-13-468599-1")).toBe(true);
+    expect(validIsbn("0-306-40615-2")).toBe(true);
+    expect(validIsbn("978-0-13-468599-2")).toBe(false);
+    expect(liveFieldError(isbn, "123", true)).toBe("ISBN must be a valid ISBN-10 or ISBN-13 (for example 978-0-13-468599-1).");
+    expect(liveFieldError(isbn, "9780134685991", true)).toBeNull();
+  });
+
+  it("an amount is 0 or more with at most two decimal places", () => {
+    const message = "Amount (Rs.) must be a valid amount: 0 or more, with at most 2 decimal places.";
+    for (const bad of ["-1", "-0.01", "abc", "12.345", "1,000"]) expect(liveFieldError(amount, bad, false), bad).toBe(message);
+    for (const good of ["0", "250000.50", "40000", "12.3"]) expect(liveFieldError(amount, good, false), good).toBeNull();
+    expect(liveFieldError(amount, "100000000001", false)).toBe("Amount (Rs.) must be at most 100000000000.");
+    expect(liveFieldError(amount, "", false)).toBeNull();
+  });
+});
+
+describe("a field that depends on another choice", () => {
+  const base = { min: null, max: null, scale: null, allowed: null, maxLength: null } as const;
+  const projects: SectionMeta = {
+    key: "funded-projects",
+    singleton: false,
+    uniqueField: null,
+    dateRanges: [],
+    fields: [
+      { ...base, name: "status", label: "Status", type: "ENUM", required: true, allowed: ["SANCTIONED", "APPLIED"], labels: { SANCTIONED: "Sanctioned", APPLIED: "Applied" } },
+      { ...base, name: "amount", label: "Amount (Rs.)", type: "DECIMAL", required: false, scale: 2, min: 0, max: 1e11, format: "CURRENCY", onlyWhenField: "status", onlyWhenEquals: "SANCTIONED", onlyWhenDisabled: true },
+    ] as FieldMeta[],
+  };
+
+  it("the amount is required when the project is sanctioned, in the server's words", () => {
+    expect(validate(projects, { status: "SANCTIONED", amount: "" }).amount).toBe("Amount (Rs.) is required when Status is Sanctioned.");
+    expect(validate(projects, { status: "SANCTIONED", amount: "5000" })).toEqual({});
+  });
+
+  it("it is not asked, not checked and sent as empty while the project is only applied for", () => {
+    expect(validate(projects, { status: "APPLIED", amount: "" })).toEqual({});
+    expect(validate(projects, { status: "APPLIED", amount: "garbage" })).toEqual({});
+    expect(toApiRecord(projects, { status: "APPLIED", amount: "5000" }).amount).toBeNull();
+    expect(toApiRecord(projects, { status: "SANCTIONED", amount: "5000" }).amount).toBe("5000");
+  });
+
+  it("changing the status to applied clears what was typed", () => {
+    expect(applyDependencies(projects, { status: "APPLIED", amount: "5000" }, "status").amount).toBe("");
+    expect(applyDependencies(projects, { status: "SANCTIONED", amount: "5000" }, "status").amount).toBe("5000");
   });
 });

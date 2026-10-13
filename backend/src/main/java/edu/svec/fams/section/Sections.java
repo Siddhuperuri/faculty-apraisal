@@ -41,7 +41,7 @@ public final class Sections {
                 listed("phdStatus", "phd_status", "Ph.D. status", true, "PHD_STATUS"),
                 date("joiningDateInstitution", "joining_date_institution", "Date of joining (institution)", false).forSubmission(),
                 date("joiningDateDesignation", "joining_date_designation", "Date of promotion", false),
-                decimal("teachingExperienceYears", "teaching_experience_years", "Teaching experience (years)", 0, 80, 1, false),
+                decimal("teachingExperienceYears", "teaching_experience_years", "Teaching experience (years)", 0, 1000, 1, true),
                 decimal("industryExperienceYears", "industry_experience_years", "Industry experience (years)", 0, 80, 1, false),
                 decimal("researchExperienceYears", "research_experience_years", "Research experience (years)", 0, 80, 1, false),
                 text("researchIds", "research_ids", "ORCID / Scopus / Google Scholar / Vidwan ID", 300, false)));
@@ -138,7 +138,7 @@ public final class Sections {
                 text("volumeIssuePage", "volume_issue_page", "Volume, issue and page numbers", 80, false),
                 monthYear("monthYear", "month_year", "Month and year", true),
                 listed("indexing", "indexing", "Indexing", true, "JOURNAL_INDEXING"),
-                text("doiIssn", "doi_issn", "DOI or ISSN", 80, false))
+                FieldSpec.doiOrIssn("doiIssn", "doi_issn", "DOI or ISSN", 80, true))
                 .summary(Summaries::journals));
         add(SectionSpec.list("conference-papers", "conference_papers",
                 text("title", "title", "Title", 400, true),
@@ -146,8 +146,7 @@ public final class Sections {
                 listed("level", "level", "Level", true, "CONFERENCE_LEVEL"),
                 monthYear("monthYear", "month_year", "Month and year", true),
                 text("venue", "venue", "Venue", 200, false),
-                text("doiIndexedIn", "doi_indexed_in", "DOI or indexed in", 120, false),
-                integer("citations", "citations", "Number of citations", 0, 1000000, true)));
+                text("doiIndexedIn", "doi_indexed_in", "DOI or indexed in", 120, false)));
         add(SectionSpec.list("research-metrics", "research_metrics",
                 listed("platform", "platform", "Platform", true, "METRICS_PLATFORM"),
                 integer("totalPublications", "total_publications", "Total publications", 0, 1000000, true),
@@ -174,12 +173,13 @@ public final class Sections {
                 text("team", "team", "Team", 300, false),
                 listed("type", "type", "Type", true, "FUNDED_TYPE"),
                 text("fundingAgencyClient", "funding_agency_client", "Funding agency or client", 200, true),
-                decimal("amount", "amount", "Amount (Rs.)", 0, 1e11, 2, true),
+                FieldSpec.currency("amount", "amount", "Amount (Rs.)", 1e11, false),
                 date("startDate", "start_date", "Start date", true),
                 date("endDate", "end_date", "End date", true),
                 listed("status", "status", "Status", true, "FUNDED_STATUS"),
                 year("year", "year", "Year", true))
                 .dateRange("startDate", "endDate")
+                .disabledUnless("amount", "status", "SANCTIONED")   // an applied project has no sanctioned amount
                 .summary(Summaries::fundedProjects));
 
         // 7. Patents, books & IPR
@@ -202,11 +202,15 @@ public final class Sections {
 
         // 8. Outreach
         add(SectionSpec.list("outreach", "outreach",
-                listed("role", "role", "Role", true, "OUTREACH_ROLE"),
+                listed("roleCode", "role_code", "Role", true, "OUTREACH_ROLE"),
+                text("roleOther", "role_other", "Other role", 80, false),
                 text("eventActivity", "event_activity", "Event or activity", 300, true),
                 text("organization", "organization", "Name of organization or institution", 200, true),
                 text("venue", "venue", "Venue", 200, false),
-                date("eventDate", "event_date", "Date", true)));
+                date("eventDate", "event_date", "Date", true),
+                text("role", "role", "Role (as reported)", 100, false))
+                .conditionalField("roleOther", "roleCode", "OTHER")
+                .effectiveText("role", "roleCode", "roleOther", "OUTREACH_ROLE"));
 
         // 9. Professional memberships, awards & recognitions
         add(SectionSpec.list("memberships-awards", "memberships_awards",

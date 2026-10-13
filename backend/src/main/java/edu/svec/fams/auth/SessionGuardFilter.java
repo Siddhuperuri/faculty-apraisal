@@ -41,7 +41,7 @@ public final class SessionGuardFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof FamsUserPrincipal p) {
-            Row row = jdbc.sql("SELECT status, role, session_version FROM users WHERE id = ?")
+            Row row = jdbc.sql("SELECT status, role, session_version FROM users WHERE id = ? AND deleted_at IS NULL")
                     .param(p.id())
                     .query((rs, n) -> new Row(rs.getString(1), rs.getString(2), rs.getInt(3)))
                     .optional().orElse(null);

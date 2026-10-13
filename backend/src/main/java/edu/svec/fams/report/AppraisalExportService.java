@@ -84,6 +84,7 @@ public class AppraisalExportService {
                        fp.joining_date_institution AS profile_joined,
                        a.id AS aid, a.status, a.submitted_at
                 FROM faculty_profiles fp
+                JOIN users fu ON fu.id = fp.user_id AND fu.deleted_at IS NULL
                 JOIN departments d ON d.id = fp.department_id
                 JOIN cadres c ON c.id = fp.cadre_id
                 LEFT JOIN appraisals a ON a.faculty_id = fp.id AND a.academic_year_id = :year
@@ -265,7 +266,7 @@ public class AppraisalExportService {
             c.add(jdbc, ids, c.research, "SELECT * FROM conference_papers WHERE appraisal_id IN (:ids) ORDER BY id", rs ->
                     "Conference: " + rs.getString("title") + " - " + rs.getString("conference") + " (" + ReportLabels.label(rs.getString("level"))
                             + "); " + ReportLabels.monthYear(rs.getString("month_year")) + opt("; ", rs.getString("venue"))
-                            + opt("; indexed in ", rs.getString("doi_indexed_in")) + "; citations " + rs.getInt("citations"));
+                            + opt("; indexed in ", rs.getString("doi_indexed_in")));
             c.add(jdbc, ids, c.research, "SELECT * FROM patents_ipr WHERE appraisal_id IN (:ids) ORDER BY id", rs ->
                     "Patent/IPR: " + rs.getString("title") + paren(ReportLabels.label(rs.getString("type")),
                             ReportLabels.label(rs.getString("status")),
@@ -276,8 +277,10 @@ public class AppraisalExportService {
                             + rs.getString("publisher") + "; ISBN " + rs.getString("isbn") + "; " + ReportLabels.monthYear(rs.getString("month_year")));
             c.add(jdbc, ids, c.research, "SELECT * FROM funded_projects WHERE appraisal_id IN (:ids) ORDER BY id", rs ->
                     "Funded project: " + rs.getString("title") + " (" + ReportLabels.label(rs.getString("role")) + "; "
-                            + ReportLabels.label(rs.getString("type")) + "; " + rs.getString("funding_agency_client") + "; Rs. "
-                            + ReportLabels.number(rs.getBigDecimal("amount")) + "; " + ReportLabels.label(rs.getString("status")) + "; "
+                            + ReportLabels.label(rs.getString("type")) + "; " + rs.getString("funding_agency_client") + "; "
+                            + ("SANCTIONED".equals(rs.getString("status")) && rs.getBigDecimal("amount") != null
+                                    ? "Rs. " + ReportLabels.number(rs.getBigDecimal("amount")) + "; " : "")
+                            + ReportLabels.label(rs.getString("status")) + "; "
                             + rs.getInt("year") + ")");
             c.add(jdbc, ids, c.research, "SELECT * FROM research_scholars WHERE appraisal_id IN (:ids) ORDER BY id", rs ->
                     "Research scholar: " + rs.getString("name") + " (" + ReportLabels.label(rs.getString("degree")) + "; "
@@ -294,7 +297,7 @@ public class AppraisalExportService {
                             + paren(period(rs.getObject("from_date", LocalDate.class), rs.getObject("to_date", LocalDate.class)))
                             + opt(" - ", rs.getString("description")));
             c.add(jdbc, ids, c.contributions, "SELECT * FROM outreach WHERE appraisal_id IN (:ids) ORDER BY id", rs ->
-                    "Outreach: " + ReportLabels.label(rs.getString("role")) + " - " + rs.getString("event_activity")
+                    "Outreach: " + rs.getString("role") + " - " + rs.getString("event_activity")
                             + paren(rs.getString("organization"), rs.getString("venue"), period(rs.getObject("event_date", LocalDate.class), null)));
             c.add(jdbc, ids, c.contributions, "SELECT * FROM memberships_awards WHERE appraisal_id IN (:ids) ORDER BY id", rs ->
                     "Membership/award: " + rs.getString("item") + " - " + rs.getString("awarding_body") + "; "

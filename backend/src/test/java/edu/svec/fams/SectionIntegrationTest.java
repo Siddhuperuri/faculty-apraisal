@@ -217,7 +217,7 @@ class SectionIntegrationTest {
                 .andExpect(jsonPath("$.fieldErrors['records[0].days']")
                         .value("Duration (in days) must be between 1 and 366."));
 
-        save(faculty, id, "journal-publications", List.of(rec("title", "T", "authorPosition", "1", "journal", "J",
+        save(faculty, id, "journal-publications", List.of(rec("title", "T", "authorPosition", "1", "journal", "J", "doiIssn", "10.1000/xyz123",
                 "monthYear", "2026-13", "indexing", "SCOPUS")))
                 .andExpect(jsonPath("$.fieldErrors['records[0].monthYear']")
                         .value("Month and year must be a month and year (YYYY-MM)."));
@@ -439,7 +439,7 @@ class SectionIntegrationTest {
     void journalCountsFollowTheIndexingColumnsOfTheForm() throws Exception {
         List<Object> rows = new ArrayList<>();
         for (String idx : new String[] {"SCI_SCIE", "SCOPUS", "SCOPUS", "UGC_CARE_ABDC", "OTHERS", "OTHERS", "OTHERS"}) {
-            rows.add(rec("title", "T" + rows.size(), "authorPosition", "1", "journal", "J",
+            rows.add(rec("title", "T" + rows.size(), "authorPosition", "1", "journal", "J", "doiIssn", "10.1000/xyz123",
                     "monthYear", "2026-05", "indexing", idx));
         }
         save(faculty, id, "journal-publications", rows).andExpect(status().isOk())
@@ -496,8 +496,10 @@ class SectionIntegrationTest {
     }
 
     private static Map<String, Object> project(String title, String type, String status, double amount) {
-        return rec("title", title, "role", "PI", "type", type, "fundingAgencyClient", "Agency", "amount", amount,
+        Map<String, Object> p = rec("title", title, "role", "PI", "type", type, "fundingAgencyClient", "Agency",
                 "startDate", "2026-01-01", "endDate", "2026-12-31", "status", status, "year", 2026);
+        if ("SANCTIONED".equals(status)) p.put("amount", amount);   // an applied project has no amount
+        return p;
     }
 
     @Test
@@ -522,14 +524,15 @@ class SectionIntegrationTest {
     }
 
     @Test
-    void outreachRoleMustBeOneOfTheFormsEleven() throws Exception {
-        Map<String, Object> ok = rec("role", "JOURNAL_REVIEWER", "eventActivity", "Reviewed 3 papers",
+    void outreachRoleMustBeOneOfTheListOrOtherWithTheTypedRole() throws Exception {
+        Map<String, Object> ok = rec("roleCode", "JOURNAL_REVIEWER", "eventActivity", "Reviewed 3 papers",
                 "organization", "IEEE", "eventDate", "2026-03-03");
-        save(faculty, id, "outreach", List.of(ok)).andExpect(status().isOk());
+        save(faculty, id, "outreach", List.of(ok)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.records[0].role").value("Reviewer for Journals"));
         Map<String, Object> bad = new java.util.LinkedHashMap<>(ok);
-        bad.put("role", "Keynote speaker");
+        bad.put("roleCode", "Keynote speaker");
         save(faculty, id, "outreach", List.of(bad)).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors['records[0].role']").exists());
+                .andExpect(jsonPath("$.fieldErrors['records[0].roleCode']").exists());
     }
 
     // ---- changes of 2026-10-09 ----
@@ -629,10 +632,10 @@ class SectionIntegrationTest {
 
     @Test
     void theDateOfPromotionIsOptional() throws Exception {
-        save(faculty, id, "general-information", List.of(rec("phdStatus", "NOT_APPLICABLE", "joiningDateInstitution", "2015-06-01")))
+        save(faculty, id, "general-information", List.of(rec("phdStatus", "NOT_APPLICABLE", "teachingExperienceYears", 9, "joiningDateInstitution", "2015-06-01")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.records[0].joiningDateDesignation").isEmpty());
-        save(faculty, id, "general-information", List.of(rec("phdStatus", "NOT_APPLICABLE", "joiningDateInstitution", "2015-06-01",
+        save(faculty, id, "general-information", List.of(rec("phdStatus", "NOT_APPLICABLE", "teachingExperienceYears", 9, "joiningDateInstitution", "2015-06-01",
                 "joiningDateDesignation", "2020-07-01")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.records[0].joiningDateDesignation").value("2020-07-01"));
@@ -687,7 +690,7 @@ class SectionIntegrationTest {
 
     @Test
     void theAuthorPositionIsANumberFromOneToEight() throws Exception {
-        Map<String, Object> paper = rec("title", "T", "authorPosition", "8", "journal", "J", "monthYear", "2026-05", "indexing", "SCOPUS");
+        Map<String, Object> paper = rec("title", "T", "authorPosition", "8", "journal", "J", "monthYear", "2026-05", "indexing", "SCOPUS", "doiIssn", "1234-5679");
         save(faculty, id, "journal-publications", List.of(paper)).andExpect(status().isOk());
         paper.put("authorPosition", "9");
         save(faculty, id, "journal-publications", List.of(paper)).andExpect(status().isBadRequest())
@@ -715,12 +718,12 @@ class SectionIntegrationTest {
         String within = " must be within the academic year 2025-26 (01-06-2025 to 31-05-2026).";
         // the first and last day are inside; the day before and the day after are not
         save(faculty, id, "outreach", List.of(
-                rec("role", "RESOURCE_PERSON", "eventActivity", "A", "organization", "X", "eventDate", "2025-06-01"),
-                rec("role", "RESOURCE_PERSON", "eventActivity", "B", "organization", "X", "eventDate", "2026-05-31")))
+                rec("roleCode", "RESOURCE_PERSON", "eventActivity", "A", "organization", "X", "eventDate", "2025-06-01"),
+                rec("roleCode", "RESOURCE_PERSON", "eventActivity", "B", "organization", "X", "eventDate", "2026-05-31")))
                 .andExpect(status().isOk());
-        save(faculty, id, "outreach", List.of(rec("role", "RESOURCE_PERSON", "eventActivity", "A", "organization", "X", "eventDate", "2025-05-31")))
+        save(faculty, id, "outreach", List.of(rec("roleCode", "RESOURCE_PERSON", "eventActivity", "A", "organization", "X", "eventDate", "2025-05-31")))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors['records[0].eventDate']").value("Date" + within));
-        save(faculty, id, "outreach", List.of(rec("role", "RESOURCE_PERSON", "eventActivity", "A", "organization", "X", "eventDate", "2026-06-01")))
+        save(faculty, id, "outreach", List.of(rec("roleCode", "RESOURCE_PERSON", "eventActivity", "A", "organization", "X", "eventDate", "2026-06-01")))
                 .andExpect(status().isBadRequest());
 
         // months: June 2025 to May 2026
@@ -737,7 +740,7 @@ class SectionIntegrationTest {
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors['records[0].fromDate']").value("From date" + within));
         save(faculty, id, "patents-ipr", List.of(rec("applicantInventors", "A", "title", "P", "type", "UTILITY", "status", "FILED", "recordDate", "2024-02-01")))
                 .andExpect(status().isBadRequest());
-        save(faculty, id, "conference-papers", List.of(rec("title", "T", "conference", "C", "level", "NAT", "monthYear", "2026-07", "citations", 0)))
+        save(faculty, id, "conference-papers", List.of(rec("title", "T", "conference", "C", "level", "NAT", "monthYear", "2026-07")))
                 .andExpect(status().isBadRequest());
         save(faculty, id, "memberships-awards", List.of(rec("item", "I", "awardingBody", "B", "level", "NAT", "year", 2024)))
                 .andExpect(status().isBadRequest())
@@ -750,7 +753,8 @@ class SectionIntegrationTest {
         save(faculty, id, "research-metrics", List.of(rec("platform", "SCOPUS", "totalPublications", 3, "totalCitations", 4, "hIndex", 1, "i10Index", 0)))
                 .andExpect(status().isOk());
         save(faculty, id, "phd-progress", List.of(rec("registrationYear", 2019))).andExpect(status().isOk());
-        save(faculty, id, "general-information", List.of(rec("joiningDateInstitution", "2012-06-15", "phdStatus", "PURSUING"))).andExpect(status().isOk());
+        save(faculty, id, "general-information", List.of(rec("joiningDateInstitution", "2012-06-15", "phdStatus", "PURSUING",
+                "teachingExperienceYears", 9))).andExpect(status().isOk());
     }
 
     @Test

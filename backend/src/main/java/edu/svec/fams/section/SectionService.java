@@ -174,11 +174,19 @@ public class SectionService {
 
             for (SectionSpec.ConditionalField c : spec.conditionalFields()) {
                 boolean asked = c.equals().equals(rec.get(c.onField()));
+                String onLabel = spec.field(c.onField()).label();
                 if (!asked) {
+                    Object sent = raw.get(c.field());
+                    boolean given = sent != null && !(sent instanceof String s && s.isBlank());
+                    if (c.disabled() && given && rec.get(c.onField()) != null) {
+                        // the form shows it greyed out and empty; a value here is a mistake that must not be kept
+                        errors.put(prefix + "." + c.field(), spec.field(c.field()).label() + " must be left empty unless "
+                                + onLabel + " is " + valueLabel(spec, c) + ".");
+                    }
                     rec.put(c.field(), null);   // not asked for under the other choice, so nothing is kept
                 } else if (rec.get(c.field()) == null) {
                     errors.putIfAbsent(prefix + "." + c.field(), spec.field(c.field()).label() + " is required when "
-                            + spec.field(c.onField()).label() + " is Other.");
+                            + onLabel + " is " + valueLabel(spec, c) + ".");
                 }
             }
 
@@ -225,6 +233,14 @@ public class SectionService {
         }
         if (!errors.isEmpty()) throw new ValidationException(errors);
         return out;
+    }
+
+    /** How the value that asks for a conditional field is worded in a message: "Other", "Sanctioned". */
+    private String valueLabel(SectionSpec spec, SectionSpec.ConditionalField c) {
+        FieldSpec on = spec.field(c.onField());
+        String label = on.listCode() != null ? choices.labels(on.listCode()).get(c.equals()) : null;
+        if (label != null) return label;
+        return "OTHER".equals(c.equals()) ? "Other" : c.equals();
     }
 
     private static boolean isEffective(SectionSpec spec, String field) {
@@ -405,6 +421,10 @@ public class SectionService {
                     Map<String, Object> m = new LinkedHashMap<>();
                     m.put("id", rs.getLong("id"));
                     for (FieldSpec f : spec.fields()) m.put(f.name(), read(rs, f));
+                    // A value kept from before the rule (an amount against a project that is only applied for) is not shown.
+                    for (SectionSpec.ConditionalField c : spec.conditionalFields()) {
+                        if (!c.equals().equals(m.get(c.onField()))) m.put(c.field(), null);
+                    }
                     return m;
                 }).list();
     }

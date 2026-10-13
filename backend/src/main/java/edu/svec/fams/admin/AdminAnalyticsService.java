@@ -54,6 +54,7 @@ public class AdminAnalyticsService {
         jdbc.sql("""
                 SELECT fp.department_id, a.status, COUNT(*) FROM appraisals a
                 JOIN faculty_profiles fp ON fp.id = a.faculty_id
+                JOIN users fu ON fu.id = fp.user_id AND fu.deleted_at IS NULL
                 WHERE a.academic_year_id = ? GROUP BY fp.department_id, a.status""").param(year.id())
                 .query(rs -> {
                     byDept.computeIfAbsent(rs.getLong(1), k -> zeroes()).merge(rs.getString(2), rs.getInt(3), Integer::sum);
@@ -95,7 +96,7 @@ public class AdminAnalyticsService {
                 rate(submitted, totalFaculty), rate(approved, submitted));
 
         List<RoleCount> users = jdbc.sql("""
-                SELECT role, SUM(status = 'ACTIVE'), SUM(status = 'DISABLED') FROM users GROUP BY role ORDER BY role""")
+                SELECT role, SUM(status = 'ACTIVE'), SUM(status = 'DISABLED') FROM users WHERE deleted_at IS NULL GROUP BY role ORDER BY role""")
                 .query((rs, n) -> new RoleCount(rs.getString(1), rs.getInt(2), rs.getInt(3))).list();
         int never = jdbc.sql("SELECT COUNT(*) FROM users WHERE status = 'ACTIVE' AND last_login_at IS NULL")
                 .query(Integer.class).single();

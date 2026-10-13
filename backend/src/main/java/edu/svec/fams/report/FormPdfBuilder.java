@@ -363,8 +363,7 @@ final class FormPdfBuilder {
                 new Col("Level (Nat / Intl)", 7, r -> label(r.get("level")), false),
                 new Col("Month & Year", 8, r -> monthYear(r.get("monthYear")), false),
                 new Col("Venue", 10, r -> str(r, "venue"), false),
-                new Col("DOI / Indexed in", 11, r -> str(r, "doiIndexedIn"), false),
-                new Col("No. of Citations", 7, r -> str(r, "citations"), true)),
+                new Col("DOI / Indexed in", 14, r -> str(r, "doiIndexedIn"), false)),
                 rows("conference-papers"));
 
         push(sub("(c) Research profile metrics"));
@@ -451,14 +450,14 @@ final class FormPdfBuilder {
                 new Col("Publisher", 14, r -> str(r, "publisher"), false),
                 new Col("ISBN", 11, r -> str(r, "isbn"), false),
                 new Col("Month & Year", 9, r -> monthYear(r.get("monthYear")), false),
-                new Col("Type (Book / Chapter)", 8, r -> label(r.get("type")), false)),
+                new Col("Type (Book / Book Chapter)", 8, r -> label(r.get("type")), false)),
                 rows("books"));
     }
 
     private void outreach(Document doc) throws DocumentException {
         push(heading("8. Outreach:"));
         grid(doc, List.of(
-                new Col("Role*", 16, r -> label(r.get("role")), false),
+                new Col("Role*", 16, r -> str(r, "role"), false),
                 new Col("Event / Activity", 24, r -> str(r, "eventActivity"), false),
                 new Col("Name of the Organization / Institution", 20, r -> str(r, "organization"), false),
                 new Col("Venue", 12, r -> str(r, "venue"), false),
@@ -467,8 +466,8 @@ final class FormPdfBuilder {
         Paragraph foot = new Paragraph();
         foot.add(new Chunk("* Role may be: ", FontFactory.getFont(FontFactory.TIMES_BOLDITALIC, 7.5f)));
         foot.add(new Chunk("Conference Session Chair / Expert Lectures Delivered / Resource Person / Editorial Board Member / "
-                + "Reviewer for Journals / External Examiner / External Thesis Evaluated / Visiting Researcher / "
-                + "Industry Interaction or MoU / International Conferences Attended / Others.", FontFactory.getFont(FontFactory.TIMES_ITALIC, 7.5f)));
+                + "Reviewer for Journals / Project External Examiner / External Thesis Evaluated / Visiting Researcher / "
+                + "Industry Interaction or MoU / International Conferences Attended / Other (written in).", FontFactory.getFont(FontFactory.TIMES_ITALIC, 7.5f)));
         foot.setSpacingBefore(2);
         doc.add(foot);
     }
