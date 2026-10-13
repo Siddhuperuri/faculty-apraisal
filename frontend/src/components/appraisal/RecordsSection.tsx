@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { byListOrder } from "@/lib/sequence";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, EmptyState, Skeleton } from "@/components/ui/primitives";
 import { ConfirmDialog, Dialog } from "@/components/ui/Dialog";
@@ -71,10 +72,13 @@ export function RecordsSection({ ui }: { ui: SectionUi }) {
       const k = String(r[by.field] ?? "");
       buckets.set(k, [...(buckets.get(k) ?? []), r]);
     }
-    return [...buckets.entries()]
-      .sort(([a], [b]) => Number(a) - Number(b) || a.localeCompare(b))
+    const groupField = meta?.fields.find((f) => f.name === by.field);
+    const offered = groupField?.allowed ?? Object.values(groupField?.allowedBy ?? {}).flat();
+    const keys = byListOrder([...buckets.keys()], offered, offered.length === 0);
+    return keys
+      .map((k) => [k, buckets.get(k) ?? []] as const)
       .map(([k, rows]) => ({ key: k, title: by.title(k, rows.length) as string | null, rows }));
-  }, [shown, ui.groupBy]);
+  }, [shown, ui.groupBy, meta]);
 
   if (st.error) {
     return (
@@ -392,7 +396,10 @@ function resolveFilters(meta: SectionMeta, ui: SectionUi, records: Rec[]): Filte
     if (!f || (ui.scope && f.name === ui.scope.field)) continue;
     const values = [...new Set(records.map((r) => r[name]).filter((v) => v != null && v !== "").map(String))];
     if (values.length < 2) continue;
-    values.sort((a, b) => (f.type === "INT" || f.type === "DECIMAL" ? Number(a) - Number(b) : a.localeCompare(b)));
+    // In the order the administrator saved for that dropdown (what the form offers), not alphabetically.
+    const offered = f.allowed ?? Object.values(f.allowedBy ?? {}).flat();
+    const sorted = byListOrder(values, offered, f.type === "INT" || f.type === "DECIMAL");
+    values.splice(0, values.length, ...sorted);
     out.push({ name, label: ui.headers?.[name] ?? f.label, options: values.map((v) => ({ value: v, label: formatCell(f, v) })) });
   }
   for (const d of ui.derivedFilters ?? []) out.push({ name: d.name, label: d.label, options: d.options, of: d.of });

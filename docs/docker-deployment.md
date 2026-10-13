@@ -214,7 +214,7 @@ and run the `up -d` command (section 7). The log says `Bootstrap administrator c
 docker compose -f docker-compose.production.yml --env-file .env.docker logs backend | grep -i bootstrap
 ```
 
-Open `https://<FAMS_PUBLIC_HOST>/`, sign in, and choose a new password when asked. Then **delete both lines from `.env.docker`** and run
+Open `https://<FAMS_PUBLIC_HOST>/`, sign in, and change the password under Account. Then **delete both lines from `.env.docker`** and run
 `up -d` again (it recreates the backend). Continue with the administrator console's checklist (`docs/deployment.md`, "First start"): departments, an open
 year, accounts, a second administrator.
 

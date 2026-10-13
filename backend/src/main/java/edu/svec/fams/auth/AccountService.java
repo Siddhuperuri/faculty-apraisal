@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AccountService {
 
-    public record AccountState(boolean mustChangePassword) {}
+    public record AccountState(boolean changeRecommended) {}
 
     private static final Logger log = LoggerFactory.getLogger(AccountService.class);
 

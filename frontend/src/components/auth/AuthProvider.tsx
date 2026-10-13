@@ -10,7 +10,7 @@ interface AuthContext {
   user: Me | null | undefined;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  /** Re-reads who is signed in (after a password change, which clears the "must change" hold). */
+  /** Re-reads who is signed in (after a password change, which clears the reminder). */
   refresh: () => Promise<void>;
 }
 

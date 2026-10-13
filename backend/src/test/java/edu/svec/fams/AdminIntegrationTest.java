@@ -157,12 +157,12 @@ class AdminIntegrationTest {
         assertEquals("ASST_PROF", row.get("cadre"));
         assertEquals(0, new java.math.BigDecimal("6.5").compareTo((java.math.BigDecimal) row.get("teaching_experience_years")));
 
-        // they can sign in with it, are held at the password change, then can start an appraisal
+        // they can sign in with it and work at once; the temporary password is only a recommendation to change it
         MockHttpSession s = http.login("new.faculty@test.edu", temp);
-        http.get(s, "/api/auth/me").andExpect(jsonPath("$.mustChangePassword").value(true)).andExpect(jsonPath("$.role").value("FACULTY"));
-        http.post(s, "/api/appraisals", null).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
-        http.post(s, "/api/auth/change-password", Map.of("currentPassword", temp, "newPassword", "maple-river-42")).andExpect(status().isNoContent());
+        http.get(s, "/api/auth/me").andExpect(jsonPath("$.passwordChangeRecommended").value(true)).andExpect(jsonPath("$.role").value("FACULTY"));
         http.post(s, "/api/appraisals", null).andExpect(status().isCreated());
+        http.post(s, "/api/auth/change-password", Map.of("currentPassword", temp, "newPassword", "maple-river-42")).andExpect(status().isNoContent());
+        http.get(s, "/api/auth/me").andExpect(jsonPath("$.passwordChangeRecommended").value(false));
         // part A of the new appraisal starts from the record the administrator entered
         assertEquals("9876543210", jdbc.sql("SELECT contact_no FROM general_information").query(String.class).single());
     }
@@ -257,7 +257,7 @@ class AdminIntegrationTest {
         db.faculty("ravi@test.edu", "E002", "ECE", "PROFESSOR");
         db.hod("hod@test.edu", "CSE");
         String all = http.get(admin, "/api/admin/users").andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        assertFalse(all.replace("mustChangePassword", "").toLowerCase().contains("password"), all);   // the flag's name is not a secret
+        assertFalse(all.replace("mustChangePassword", "").replace("passwordChangeRecommended", "").toLowerCase().contains("password"), all);   // the flag's name is not a secret
         assertFalse(all.contains("$2a$") || all.contains("$2b$"), all);
         assertEquals(4, json.readTree(all).size());
 
@@ -351,8 +351,8 @@ class AdminIntegrationTest {
         http.get(theirs, "/api/auth/me").andExpect(status().isUnauthorized());                  // old session ended
         assertEquals(401, http.tryLogin("reset@test.edu", TestDb.PASSWORD).getResponse().getStatus());   // old password dead
         MockHttpSession fresh = http.login("reset@test.edu", temp);
-        http.get(fresh, "/api/auth/me").andExpect(jsonPath("$.mustChangePassword").value(true));
-        http.get(fresh, "/api/appraisals").andExpect(status().isForbidden());
+        http.get(fresh, "/api/auth/me").andExpect(jsonPath("$.passwordChangeRecommended").value(true));
+        http.get(fresh, "/api/appraisals").andExpect(status().isOk());       // never held at a password screen
 
         http.post(admin, "/api/admin/users/999999/reset-password", null).andExpect(status().isNotFound());
     }

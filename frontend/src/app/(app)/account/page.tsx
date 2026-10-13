@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Alert, Button, Card } from "@/components/ui/primitives";
 import { ApiError, get, post, put } from "@/lib/api";
@@ -139,11 +138,9 @@ function DetailsCard({ email }: { email: string }) {
   );
 }
 
-/** Your own account: contact number, and the password (which the old password an administrator gives forces first). */
+/** Your own account: contact number, and the password, which a person may change at any time. */
 export default function AccountPage() {
-  const { user, refresh, logout } = useAuth();
-  const router = useRouter();
-  const forced = !!user?.mustChangePassword;
+  const { user, refresh } = useAuth();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [again, setAgain] = useState("");
@@ -161,7 +158,7 @@ export default function AccountPage() {
     e.preventDefault();
     setMessage(null);
     const local: Record<string, string> = {};
-    if (!current) local.currentPassword = forced ? "Enter your old password." : "Enter your current password.";
+    if (!current) local.currentPassword = "Enter your current password.";
     const failed = checks.find((c) => !c.ok);
     if (failed) local.newPassword = `Password rule not met: ${failed.rule.toLowerCase()}.`;
     if (again !== next) local.again = "The two new passwords do not match.";
@@ -176,7 +173,6 @@ export default function AccountPage() {
       setNext("");
       setAgain("");
       setDone(true);
-      if (forced) router.replace("/");
     } catch (err) {
       if (err instanceof ApiError && err.fieldErrors) {
         setErrors(err.fieldErrors);
@@ -193,30 +189,31 @@ export default function AccountPage() {
     <div className="mx-auto max-w-xl space-y-6">
       <div className="rise">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand">Your account</p>
-        <h1 className="mt-1 font-display text-4xl font-medium tracking-tight text-navy">{forced ? "Choose a new password" : "Account"}</h1>
+        <h1 className="mt-1 font-display text-4xl font-medium tracking-tight text-navy">Account</h1>
         <p className="mt-1 text-sm text-muted">
           Signed in as <span className="font-semibold text-ink">{user.email}</span> · {ROLE_LABEL[user.role]}
         </p>
       </div>
 
-      {forced && (
-        <Alert tone="warn" title="Your password must be changed before you continue">
-          An administrator gave you an old password. Enter it below as your old password, then choose one only you know.
+      {user.passwordChangeRecommended && !done && (
+        <Alert tone="warn" title="You are using a temporary password">
+          You can carry on using the application, but we recommend choosing a password only you know. Enter the temporary one
+          below as your current password.
         </Alert>
       )}
-      {done && !forced && (
+      {done && (
         <Alert tone="ok" title="Password changed">
           Your other sessions, if any, were signed out. This one stays signed in.
         </Alert>
       )}
       {message && <Alert tone="error" title="Could not change the password">{message}</Alert>}
 
-      {!forced && user.role !== "ADMIN" && <DetailsCard email={user.email} />}
+      {user.role !== "ADMIN" && <DetailsCard email={user.email} />}
 
       <Card className="rise p-5" >
         <h2 className="mb-4 font-display text-xl font-medium text-navy">Change password</h2>
         <form onSubmit={submit} noValidate className="space-y-5" aria-label="Change password">
-          <PasswordField label={forced ? "Old password" : "Current password"} value={current} onChange={setCurrent} error={errors.currentPassword} autoComplete="current-password" autoFocus />
+          <PasswordField label="Current password" value={current} onChange={setCurrent} error={errors.currentPassword} autoComplete="current-password" autoFocus />
           <PasswordField label="New password" value={next} onChange={setNext} error={errors.newPassword} autoComplete="new-password" />
           <ul className="password-checklist grid gap-2 text-xs sm:grid-cols-2" aria-label="Password rules">
             {checks.map((c) => (
@@ -228,13 +225,7 @@ export default function AccountPage() {
           </ul>
           <PasswordField label="Type the new password again" value={again} onChange={setAgain} error={errors.again ?? (mismatch ? "The two new passwords do not match." : undefined)} autoComplete="new-password" />
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-            {forced ? (
-              <Button type="button" variant="ghost" onClick={() => void logout()}>
-                Sign out instead
-              </Button>
-            ) : (
-              <span className="text-xs text-muted">Changing it signs out your other sessions.</span>
-            )}
+            <span className="text-xs text-muted">Changing it signs out your other sessions.</span>
             <Button type="submit" loading={busy}>
               Change password
             </Button>

@@ -180,7 +180,9 @@ public class ReferenceData implements ChoiceSource {
         if (exists) {
             throw new ValidationException(Map.of("code", "This list already has that value" + (parent.isEmpty() ? "." : " under that choice.")));
         }
-        int next = of(listCode).stream().mapToInt(Value::sortOrder).max().orElse(0) + 10;
+        lockList(listCode);   // one change to a list's sequence at a time
+        int next = jdbc.sql("SELECT COALESCE(MAX(sort_order), 0) + 10 FROM reference_values WHERE list_code = ?")
+                .param(listCode).query(Integer.class).single();
         jdbc.sql("""
                 INSERT INTO reference_values (list_code, code, parent_code, label, report_label, sort_order, created_by)
                 VALUES (?,?,?,?,?,?,?)""")
@@ -192,7 +194,7 @@ public class ReferenceData implements ChoiceSource {
         return created;
     }
 
-    /** Changes the wording, order or on/off state of a value. Its code never changes. A locked value cannot be switched off. */
+    /** Changes the wording or on/off state of a value. Its code never changes, and its place is changed with {@link #move}. A locked value cannot be switched off. */
     @Transactional
     public Value update(long actorId, long id, Map<String, Object> body) {
         Value current = snap().values().values().stream().flatMap(List::stream).filter(v -> v.id() == id).findFirst()
@@ -208,13 +210,8 @@ public class ReferenceData implements ChoiceSource {
         String reportLabel = body.containsKey("reportLabel") ? text(body.get("reportLabel")) : current.reportLabel();
         if (reportLabel != null && reportLabel.length() > 160) errors.put("reportLabel", "Report wording must be at most 160 characters.");
 
-        int sortOrder = current.sortOrder();
         if (body.containsKey("sortOrder")) {
-            if (body.get("sortOrder") instanceof Number n && n.doubleValue() == n.intValue() && n.intValue() >= 0 && n.intValue() <= 100000) {
-                sortOrder = n.intValue();
-            } else {
-                errors.put("sortOrder", "Order must be a whole number from 0 to 100000.");
-            }
+            errors.put("sortOrder", "The order is changed one place at a time with the Up and Down arrows.");
         }
         boolean active = current.active();
         if (body.containsKey("active")) {
@@ -231,11 +228,79 @@ public class ReferenceData implements ChoiceSource {
         }
         if (!errors.isEmpty()) throw new ValidationException(errors);
 
-        jdbc.sql("UPDATE reference_values SET label = ?, report_label = ?, sort_order = ?, active = ? WHERE id = ?")
-                .params(label, reportLabel, sortOrder, active, id).update();
+        jdbc.sql("UPDATE reference_values SET label = ?, report_label = ?, active = ? WHERE id = ?")
+                .params(label, reportLabel, active, id).update();
         audit.recordDetails(actorId, "REFERENCE_VALUE_UPDATED", "REFERENCE_LIST", id,
-                Map.of("list", current.list(), "code", current.code(), "label", label, "active", active, "sortOrder", sortOrder));
+                Map.of("list", current.list(), "code", current.code(), "label", label, "active", active));
         return load().values().get(current.list()).stream().filter(v -> v.id() == id).findFirst().orElseThrow();
+    }
+
+    private record Slot(long id, String parent, boolean active) {}
+
+    /**
+     * Moves a value one place earlier ({@code UP}) or later ({@code DOWN}) among the active values it shares a list and a
+     * parent choice with, and saves it at once. The whole list is then numbered 10, 20, 30, ... in its new order, so a
+     * sequence is always unique and stable: the two values that changed places are the only ones whose number changes.
+     * Switched-off values keep their place in the sequence and are stepped over. Moving past either end is not an error
+     * and changes nothing. Nothing about a value but its place changes: code, wording, state and scoring are untouched.
+     */
+    @Transactional
+    public Value move(long actorId, long id, Object rawDirection) {
+        String direction = rawDirection instanceof String d ? d.strip().toUpperCase(java.util.Locale.ROOT) : "";
+        if (!direction.equals("UP") && !direction.equals("DOWN")) {
+            throw new ValidationException(Map.of("direction", "Direction must be UP or DOWN."));
+        }
+        String list = jdbc.sql("SELECT list_code FROM reference_values WHERE id = ?").param(id).query(String.class).optional()
+                .orElseThrow(ApiException::notFound);
+        lockList(list);
+
+        List<Slot> slots = new ArrayList<>(jdbc.sql(
+                "SELECT id, parent_code, active FROM reference_values WHERE list_code = ? ORDER BY sort_order, id")
+                .param(list).query((rs, n) -> new Slot(rs.getLong(1), rs.getString(2), rs.getBoolean(3))).list());
+        int at = -1;
+        for (int i = 0; i < slots.size(); i++) {
+            if (slots.get(i).id() == id) at = i;
+        }
+        Slot me = slots.get(at);
+        if (!me.active()) {
+            throw new ValidationException(Map.of("direction", "A switched-off value cannot be moved. Switch it on first."));
+        }
+        int step = direction.equals("UP") ? -1 : 1;
+        int other = -1;
+        for (int i = at + step; i >= 0 && i < slots.size(); i += step) {
+            if (slots.get(i).active() && slots.get(i).parent().equals(me.parent())) {
+                other = i;
+                break;
+            }
+        }
+        if (other >= 0) {
+            java.util.Collections.swap(slots, at, other);
+            resequence(list, slots);
+            audit.recordDetails(actorId, "REFERENCE_VALUE_MOVED", "REFERENCE_LIST", id,
+                    Map.of("list", list, "direction", direction, "position", other + 1));
+        }
+        return load().values().get(list).stream().filter(v -> v.id() == id).findFirst().orElseThrow();
+    }
+
+    /** Numbers the list 10, 20, 30, ... in the given order, writing only what changed (through temporary negatives, as the numbers are unique). */
+    private void resequence(String list, List<Slot> ordered) {
+        Map<Long, Integer> current = new LinkedHashMap<>();
+        jdbc.sql("SELECT id, sort_order FROM reference_values WHERE list_code = ?").param(list)
+                .query((rs, n) -> current.put(rs.getLong(1), rs.getInt(2))).list();
+        List<long[]> changes = new ArrayList<>();
+        for (int i = 0; i < ordered.size(); i++) {
+            int wanted = (i + 1) * 10;
+            long rowId = ordered.get(i).id();
+            if (current.get(rowId) != wanted) changes.add(new long[] {rowId, wanted});
+        }
+        int temp = 0;
+        for (long[] c : changes) jdbc.sql("UPDATE reference_values SET sort_order = ? WHERE id = ?").params(--temp, c[0]).update();
+        for (long[] c : changes) jdbc.sql("UPDATE reference_values SET sort_order = ? WHERE id = ?").params((int) c[1], c[0]).update();
+    }
+
+    /** Serialises changes to one list's sequence (adding, moving) across requests and instances. */
+    private void lockList(String list) {
+        jdbc.sql("SELECT code FROM reference_lists WHERE code = ? FOR UPDATE").param(list).query(String.class).optional();
     }
 
     private static String text(Object raw) {

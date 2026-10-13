@@ -61,10 +61,26 @@ class ExportWritersTest {
     }
 
     @Test
-    void theHeaderRowIsFrozenAndTheTitleSpansTheTable() throws Exception {
+    void theHeaderRowIsFrozenFilteredAndNothingIsMerged() throws Exception {
         String sheet = unzip(XlsxWriter.write(table(List.of()))).get("xl/worksheets/sheet1.xml");
         assertTrue(sheet.contains("<pane ySplit=\"3\" topLeftCell=\"A4\" activePane=\"bottomLeft\" state=\"frozen\"/>"));
-        assertTrue(sheet.contains("<mergeCell ref=\"A1:D1\"/>"));
+        assertTrue(sheet.contains("<autoFilter ref=\"A3:D3\"/>"));
+        assertFalse(sheet.contains("mergeCell"), "a merged title would break sorting and filtering");
+    }
+
+    @Test
+    void withoutASubtitleTheHeaderIsRowTwoAndThereIsExactlyOneSheet() throws Exception {
+        ExportTable t = new ExportTable("Appraisals", "Title", null, List.of("S.No.", "Name"),
+                List.of(new ArrayList<>(java.util.Arrays.asList(1, "A")), new ArrayList<>(java.util.Arrays.asList(2, "B"))));
+        Map<String, String> parts = unzip(XlsxWriter.write(t));
+        String sheet = parts.get("xl/worksheets/sheet1.xml");
+        assertEquals(1, parts.keySet().stream().filter(n -> n.startsWith("xl/worksheets/")).count());
+        assertTrue(sheet.contains("<dimension ref=\"A1:B4\"/>"), sheet);
+        assertTrue(sheet.contains("<c r=\"A1\" s=\"1\" t=\"inlineStr\">"));
+        assertTrue(sheet.contains("<c r=\"A2\" s=\"3\" t=\"inlineStr\"><is><t xml:space=\"preserve\">S.No.</t>"));
+        assertTrue(sheet.contains("<autoFilter ref=\"A2:B4\"/>"));
+        assertTrue(sheet.contains("<c r=\"A4\" s=\"6\"><v>2</v></c>"));
+        assertFalse(sheet.contains("r=\"5\""), "no phantom rows");
     }
 
     @Test
@@ -93,8 +109,28 @@ class ExportWritersTest {
         assertEquals((byte) 0xEF, bytes[0]);
         String text = new String(bytes, StandardCharsets.UTF_8);
         assertTrue(text.startsWith("﻿S.No.,Name,Joined,Notes\r\n"));
-        assertTrue(text.contains("1,'=SUM(A1),2020-06-15,\"say \"\"hi\"\", then\nleave\"\r\n"), text);
+        assertTrue(text.contains("1,'=SUM(A1),15-Jun-2020,\"say \"\"hi\"\", then; leave\"\r\n"), text);
         assertTrue(text.contains("2,'-5 apples,,'+1\r\n"), text);
+    }
+
+    @Test
+    void lineBreaksOfEveryKindBecomeOneReadableSeparator() {
+        assertEquals("a; b", CsvWriter.cell("a\nb"));
+        assertEquals("a; b", CsvWriter.cell("a\r\nb"));
+        assertEquals("a; b", CsvWriter.cell("a\rb"));
+        assertEquals("a; b; c", CsvWriter.cell("a \n\n b\n\nc"));
+        assertEquals("a", CsvWriter.cell("\n a \r\n"));
+        assertEquals("\"x, \"\"y\"\"; z\"", CsvWriter.cell("x, \"y\"\nz"));
+        assertEquals("", CsvWriter.cell(null));
+        assertEquals("—", CsvWriter.cell("—"));
+    }
+
+    @Test
+    void aCsvRecordNeverSpansTwoLines() {
+        List<List<Object>> rows = List.of(new ArrayList<>(java.util.Arrays.asList(1, "one\ntwo", null, "x\r\ny")));
+        String text = new String(CsvWriter.write(table(rows)), StandardCharsets.UTF_8);
+        assertEquals(2, text.split("\r\n").length, "a header line and one record line");
+        assertFalse(text.replace("\r\n", "").contains("\n"));
     }
 
     @Test

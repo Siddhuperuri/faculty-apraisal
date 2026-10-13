@@ -102,8 +102,8 @@ The frontend keeps only presentation: page grouping, the form's headings and whi
 
 | Method & path | Who | Purpose |
 |---|---|---|
-| `GET /api/auth/csrf`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` | see code | Session authentication; `me` includes `mustChangePassword` |
-| `POST /api/auth/change-password` | signed in | `{"currentPassword","newPassword"}`; checks the rules, signs out the user's other sessions. The only call besides `me`, `csrf` and `logout` allowed while a password change is pending (everything else is 403 `PASSWORD_CHANGE_REQUIRED`) |
+| `GET /api/auth/csrf`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` | see code | Session authentication; `me` includes `passwordChangeRecommended` |
+| `POST /api/auth/change-password` | signed in | `{"currentPassword","newPassword"}`; checks the rules, signs out the user's other sessions. Optional: a temporary password never blocks any other call |
 | `GET /api/appraisals` | any reviewer or faculty | The appraisals you may open (own / department's submitted / Principal's) |
 | `POST /api/appraisals` | faculty | Start this year's appraisal (snapshots cadre marks, prefills Part A from the profile) |
 | `GET /api/appraisals/{id}` | owner, assigned HoD, Principal (after HoD approval) | Status, scores, declaration, review history |
@@ -116,6 +116,7 @@ The frontend keeps only presentation: page grouping, the form's headings and whi
 | `POST /api/hod/appraisals/export` (body `{"facultyIds": [..], "academicYearId": n, "format": "xlsx"\|"csv"}`, at most 2000) | HoD | The appraisal details of chosen faculty of the HoD's own departments as a download, one row each (15 columns); an id outside the departments makes the whole request 404; a draft or no appraisal is listed as "Not submitted" with no content; audited as `EXPORT_APPRAISALS` |
 | `GET /api/principal/console` (`?academicYearId=`) | Principal | Counts per department and in total, and the ten longest-waiting appraisals; nothing named before the HoD has approved |
 | `GET /api/admin/appraisals/roster?academicYearId=&departmentId=&cadreId=&status=` | admin | The faculty that can be chosen for the appraisal export, by year, department, cadre and status (`NOT_SUBMITTED` or an appraisal status) |
+| `POST /api/admin/lists/values/{id}/move` (body `{"direction": "UP"\|"DOWN"}`) | admin | Moves a dropdown value one place earlier or later among the active values of its list and parent choice; saved at once, audited as `REFERENCE_VALUE_MOVED`; the sequence of a list is unique (database constraint). The free-typed `sortOrder` on `PUT .../values/{id}` is no longer accepted |
 | `POST /api/admin/appraisals/export` (same body as the HoD's) | admin | The same download for any faculty; audited as `EXPORT_APPRAISALS` with the year, departments, count and format |
 | `POST /api/admin/users/export` (body `{"ids": [..], "format": "xlsx"\|"csv"}`) | admin | The chosen users as a download; never a hash, token or session field; audited as `EXPORT_USERS` |
 | `POST /api/admin/users/send-reset-links` (body `{"ids": [..]}`, at most 200; 12 requests per administrator per 10 minutes) | admin | Sends each active user a one-time 30 minute reset link by e-mail (never a password). Answers `{requested, sent, skipped, failed, mailReady, skippedUsers[], failedUsers[]}`; skips yourself, disabled users and anyone sent 3 links in 10 minutes; audited per link and once for the batch |

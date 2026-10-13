@@ -52,10 +52,14 @@ class ReferenceDataTest {
 
     FamsUserPrincipal admin, faculty;
     long id;
+    /** The seeded sequence of every value, put back after a test that moved some. */
+    Map<Long, Integer> seededOrder;
 
     @BeforeEach
     void setUp() {
         db.reset();
+        seededOrder = new java.util.LinkedHashMap<>();
+        jdbc.sql("SELECT id, sort_order FROM reference_values").query((rs, n) -> seededOrder.put(rs.getLong(1), rs.getInt(2))).list();
         admin = db.user("admin@test.edu", Role.ADMIN);
         faculty = db.faculty("f1@test.edu", "E001", "CSE", "ASST_PROF");
         id = appraisals.create(faculty);
@@ -65,7 +69,9 @@ class ReferenceDataTest {
     void putTheListsBack() {
         db.reset();
         jdbc.sql("UPDATE reference_values SET label = 'Course Coordinator', report_label = NULL WHERE list_code = 'COURSE_ROLE' AND code = 'COORDINATOR'").update();
-        jdbc.sql("UPDATE reference_values SET sort_order = 20 WHERE list_code = 'COURSE_TYPE' AND code = 'LAB'").update();
+        jdbc.sql("UPDATE reference_values SET sort_order = -id").update();   // the numbers are unique: go through free ones
+        seededOrder.forEach((valueId, order) ->
+                jdbc.sql("UPDATE reference_values SET sort_order = ? WHERE id = ?").params(order, valueId).update());
         reference.refresh();
     }
 
@@ -264,10 +270,135 @@ class ReferenceDataTest {
         assertEquals(1, jdbc.sql("SELECT COUNT(*) FROM audit_logs WHERE action = 'REFERENCE_VALUE_UPDATED'").query(Integer.class).single());
     }
 
+    // ---- the sequence, moved one place at a time ----
+
+    private ResultActions move(FamsUserPrincipal who, long valueId, String direction) throws Exception {
+        return send(who, "POST", "/api/admin/lists/values/" + valueId + "/move", Map.of("direction", direction));
+    }
+
+    private List<String> sequence(String list) {
+        return jdbc.sql("SELECT code FROM reference_values WHERE list_code = ? AND parent_code = '' ORDER BY sort_order").param(list)
+                .query(String.class).list();
+    }
+
+    private List<String> offeredOnTheForm(String field) throws Exception {
+        for (JsonNode s : body(send(faculty, "GET", "/api/sections/meta", null))) {
+            if (s.get("key").asText().equals("teaching-courses")) {
+                List<String> out = new java.util.ArrayList<>();
+                for (JsonNode a : field(s, field).get("allowed")) out.add(a.asText());
+                return out;
+            }
+        }
+        throw new AssertionError("no teaching-courses section");
+    }
+
     @Test
     void theOrderOfAListIsTheOrderItsValuesAreOffered() throws Exception {
-        send(admin, "PUT", "/api/admin/lists/values/" + valueId("COURSE_TYPE", "LAB"), Map.of("sortOrder", 5)).andExpect(status().isOk());
+        assertEquals(List.of("THEORY", "LAB"), reference.active("COURSE_TYPE"));
+        move(admin, valueId("COURSE_TYPE", "LAB"), "UP").andExpect(status().isOk()).andExpect(jsonPath("$.code").value("LAB"));
         assertEquals(List.of("LAB", "THEORY"), reference.active("COURSE_TYPE"));
+        assertEquals(List.of("LAB", "THEORY"), List.copyOf(reference.labels("COURSE_TYPE").keySet()));
+        assertEquals(List.of("LAB", "THEORY"), offeredOnTheForm("courseType"));
+    }
+
+    @Test
+    void movingTheFirstMiddleAndLastValuesOfAListSavesAtOnceAndIsOfferedEverywhere() throws Exception {
+        List<String> start = sequence("SECTION");
+        assertEquals(List.of("A", "B", "C", "D", "E"), start);
+
+        move(admin, valueId("SECTION", "C"), "UP").andExpect(status().isOk());                    // a middle value
+        assertEquals(List.of("A", "C", "B", "D", "E"), sequence("SECTION"));
+        move(admin, valueId("SECTION", "E"), "UP").andExpect(status().isOk());                    // the last value
+        assertEquals(List.of("A", "C", "B", "E", "D"), sequence("SECTION"));
+        move(admin, valueId("SECTION", "A"), "DOWN").andExpect(status().isOk());                  // the first value
+        assertEquals(List.of("C", "A", "B", "E", "D"), sequence("SECTION"));
+
+        // past either end changes nothing and is not an error
+        move(admin, valueId("SECTION", "C"), "UP").andExpect(status().isOk());
+        move(admin, valueId("SECTION", "D"), "DOWN").andExpect(status().isOk());
+        assertEquals(List.of("C", "A", "B", "E", "D"), sequence("SECTION"));
+
+        // persisted: re-read from the database, the forms, the administration page and the label map all agree
+        reference.refresh();
+        assertEquals(List.of("C", "A", "B", "E", "D"), reference.active("SECTION"));
+        assertEquals(List.of("C", "A", "B", "E", "D"), offeredOnTheForm("section"));
+        JsonNode lists = body(send(admin, "GET", "/api/admin/lists", null));
+        for (JsonNode l : lists) {
+            if (!l.get("code").asText().equals("SECTION")) continue;
+            List<String> shown = new java.util.ArrayList<>();
+            java.util.Set<Integer> numbers = new java.util.HashSet<>();
+            for (JsonNode v : l.get("values")) {
+                shown.add(v.get("code").asText());
+                assertTrue(numbers.add(v.get("sortOrder").asInt()), "the sequence is unique");
+            }
+            assertEquals(List.of("C", "A", "B", "E", "D"), shown);
+        }
+        // everything but the place of each value is untouched
+        assertEquals("C", jdbc.sql("SELECT label FROM reference_values WHERE list_code = 'SECTION' AND code = 'C'").query(String.class).single());
+        assertEquals(5, reference.active("SECTION").size());
+        // each real move is audited; a move that changed nothing is not
+        assertEquals(3, jdbc.sql("SELECT COUNT(*) FROM audit_logs WHERE action = 'REFERENCE_VALUE_MOVED'").query(Integer.class).single());
+    }
+
+    @Test
+    void theSequenceOfEveryListIsAlwaysUniqueAndAFreshValueGoesLast() throws Exception {
+        move(admin, valueId("SECTION", "B"), "DOWN").andExpect(status().isOk());
+        send(admin, "POST", "/api/admin/lists/SECTION/values", Map.of("code", "F", "label", "F")).andExpect(status().isCreated());
+        assertEquals(List.of("A", "C", "B", "D", "E", "F"), sequence("SECTION"));
+        assertEquals(0, jdbc.sql("""
+                SELECT COUNT(*) FROM (SELECT list_code, sort_order FROM reference_values GROUP BY list_code, sort_order HAVING COUNT(*) > 1) d""")
+                .query(Integer.class).single());
+        // the database refuses a duplicate place outright
+        try {
+            jdbc.sql("UPDATE reference_values SET sort_order = (SELECT s FROM (SELECT sort_order s FROM reference_values "
+                    + "WHERE list_code = 'SECTION' AND code = 'A') x) WHERE list_code = 'SECTION' AND code = 'B'").update();
+            throw new AssertionError("a duplicate sequence number was accepted");
+        } catch (org.springframework.dao.DataIntegrityViolationException expected) {
+            // good
+        }
+    }
+
+    @Test
+    void aSwitchedOffValueKeepsItsPlaceIsSteppedOverAndCannotBeMoved() throws Exception {
+        send(admin, "PUT", "/api/admin/lists/values/" + valueId("SECTION", "B"), Map.of("active", false)).andExpect(status().isOk());
+        // C moves up past the switched-off B (which keeps its place) and swaps with A
+        move(admin, valueId("SECTION", "C"), "UP").andExpect(status().isOk());
+        assertEquals(List.of("C", "B", "A", "D", "E"), sequence("SECTION"));
+        assertEquals(List.of("C", "A", "D", "E"), reference.active("SECTION"));
+        move(admin, valueId("SECTION", "B"), "UP").andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors.direction").exists());
+    }
+
+    @Test
+    void aValueOfADependentListMovesOnlyAmongItsOwnParentsChoices() throws Exception {
+        List<String> mTechBefore = reference.activeUnder("BRANCH", "M_TECH");
+        assertEquals(List.of("CSE", "AIML", "CAI", "AIM", "CSDS", "ECE", "EEE", "ME", "CE", "BSH"), reference.activeUnder("BRANCH", "B_TECH"));
+        long ece = jdbc.sql("SELECT id FROM reference_values WHERE list_code = 'BRANCH' AND code = 'ECE' AND parent_code = 'B_TECH'")
+                .query(Long.class).single();
+        move(admin, ece, "UP").andExpect(status().isOk());
+        assertEquals(List.of("CSE", "AIML", "CAI", "AIM", "ECE", "CSDS", "EEE", "ME", "CE", "BSH"), reference.activeUnder("BRANCH", "B_TECH"));
+        assertEquals(mTechBefore, reference.activeUnder("BRANCH", "M_TECH"), "another program's branches are not disturbed");
+        move(admin, valueId("BRANCH", "CSE"), "UP");                       // the first CSE found: whichever parent, moving up the first one is a no-op
+        assertEquals(0, jdbc.sql("""
+                SELECT COUNT(*) FROM (SELECT list_code, sort_order FROM reference_values GROUP BY list_code, sort_order HAVING COUNT(*) > 1) d""")
+                .query(Integer.class).single());
+    }
+
+    @Test
+    void theMoveIsAdministratorsOnlyAndChecksItsInput() throws Exception {
+        long c = valueId("SECTION", "C");
+        move(faculty, c, "UP").andExpect(status().isForbidden());
+        move(db.hod("hod@test.edu", "CSE"), c, "UP").andExpect(status().isForbidden());
+        mvc.perform(post("/api/admin/lists/values/" + c + "/move").with(csrf().asHeader()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"direction\":\"UP\"}")).andExpect(status().isUnauthorized());
+        assertEquals(List.of("A", "B", "C", "D", "E"), sequence("SECTION"));        // nothing moved
+
+        move(admin, c, "SIDEWAYS").andExpect(status().isBadRequest()).andExpect(jsonPath("$.fieldErrors.direction").exists());
+        send(admin, "POST", "/api/admin/lists/values/" + c + "/move", Map.of()).andExpect(status().isBadRequest());
+        move(admin, 999999, "UP").andExpect(status().isNotFound());
+        // the old free-typed number is no longer accepted
+        send(admin, "PUT", "/api/admin/lists/values/" + c, Map.of("sortOrder", 5)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.sortOrder").exists());
+        assertEquals(List.of("A", "B", "C", "D", "E"), sequence("SECTION"));
     }
 
     @Test

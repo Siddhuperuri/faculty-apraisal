@@ -45,7 +45,7 @@ departments ──< faculty_profiles >── cadres
 | `password_hash` | BCrypt. Nullable for a future externally-managed identity |
 | `role` | `FACULTY`, `HOD`, `PRINCIPAL`, `DIRECTOR` (the Director Technical, at the Principal's level), `ADMIN`. `DEAN` and `VICE_PRINCIPAL` are allowed **only on a `DISABLED` account** (the withdrawn roles, kept for the record) |
 | `status` | `ACTIVE` or `DISABLED` |
-| `must_change_password` | Set on creation and reset; the user can do nothing but change it |
+| `must_change_password` | Set on creation and reset; only makes the interface recommend a password change (`passwordChangeRecommended` in `me`), never blocks anything. Cleared by a voluntary change or a reset link |
 | `session_version` | Bumped on password change or reset; older sessions end |
 | `password_changed_at`, `last_login_at` | Informational |
 | `created_at`, `updated_at` | Timestamps |
@@ -134,6 +134,11 @@ entered earlier and required whenever a course is saved. `fdps` and `certificati
 columns stay, nullable, holding what was entered before); a certification has `duration_weeks` (whole weeks, backfilled from the
 old free-text duration only where that was a plain number of weeks) and `platform_other` (required, and kept, only when the platform
 is OTHER). The old `duration_weeks_hours` column is kept for history and no longer written.
+
+**Sequence of dropdown values (V36).** `reference_values.sort_order` is now unique within a list (`UNIQUE (list_code, sort_order)`):
+the migration numbered each list 10, 20, 30, ... in its existing order, and the administration page changes it only with
+Up / Down (`ReferenceData.move`, which renumbers the list in one transaction under a lock on the list row). Values of a dependent
+list (branches) share one numbering and move among those with the same `parent_code`. No code, wording or record changes.
 
 **Dropdown and reference lists (V34).** The choices offered on the form are rows, not code: `reference_lists` names a list and
 `reference_values` holds its values (`code`, `label`, optional `report_label`, `sort_order`, `active`, `locked`, and a

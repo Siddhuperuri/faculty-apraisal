@@ -60,7 +60,7 @@ Create the volumes with `railway volume -s <service id> add -m <path>` before th
 ## First administrator
 
 `FAMS_BOOTSTRAP_ADMIN_EMAIL` / `FAMS_BOOTSTRAP_ADMIN_PASSWORD` on `fams-backend` create the first administrator once, while none exists.
-Read the password in the Railway dashboard (service, Variables), sign in, choose a new password when asked, then **delete both variables**.
+Read the password in the Railway dashboard (service, Variables), sign in, change the password under Account, then **delete both variables**.
 
 ## Setting every password back at once
 
@@ -68,7 +68,7 @@ The administrator console can do this (Accounts, "Reset the passwords of these N
 new token on `fams-backend` (`railway variables --set "FAMS_RESET_ALL_PASSWORDS=<anything not used before>" -s fams-backend`): the
 backend resets every account to the standard password once as it starts, and records the token in `startup_actions` so a restart does not
 repeat it. Check the log for "the passwords of N accounts were set back", then **delete the variable**. Everyone, administrators included,
-must then choose a new password at their next sign-in.
+are then reminded to choose a new password; nothing is blocked until they do.
 
 ## Backups and what is not covered
 

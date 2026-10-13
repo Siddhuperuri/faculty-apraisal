@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, RuledHeading, Skeleton } from "@/components/ui/primitives";
 import { ApiError, get, post, put } from "@/lib/api";
+import { inSequence, moveLabel, moveState } from "@/lib/sequence";
 import type { ReferenceList, ReferenceValue } from "@/lib/types";
 
 const INPUT = "block w-full rounded-sm border border-line-strong bg-surface px-3 py-2 text-sm";
 
 /**
- * Administration of the dropdown lists. Values are added, renamed, put in order and switched off here; they are never
- * deleted, so a record that holds one keeps its wording. A value the application's own rules depend on is marked
+ * Administration of the dropdown lists. Values are added, renamed, put in order (one place at a time with the Up and Down
+ * arrows, saved at once) and switched off here; they are never deleted, so a record that holds one keeps its wording. A value the application's own rules depend on is marked
  * "used by rules": its wording can change, but it stays on.
  */
 export default function ListsPage() {
@@ -107,7 +108,7 @@ function ListEditor({ list, parents, onChanged }: { list: ReferenceList; parents
     }
   };
 
-  const values = [...list.values].sort((a, b) => a.parent.localeCompare(b.parent) || a.sortOrder - b.sortOrder || a.id - b.id);
+  const values = inSequence(list.values);
   const th = "px-3 py-2 text-[11px] font-bold uppercase tracking-wide";
 
   return (
@@ -124,13 +125,21 @@ function ListEditor({ list, parents, onChanged }: { list: ReferenceList; parents
               <th scope="col" className={th}>Code</th>
               <th scope="col" className={th}>Wording on the form</th>
               {list.kind !== "FREE" && <th scope="col" className={th}>Wording on the report</th>}
-              <th scope="col" className={`${th} w-24`}>Order</th>
+              <th scope="col" className={`${th} w-28`}>Sequence</th>
               <th scope="col" className={`${th} text-right`}>Status</th>
             </tr>
           </thead>
           <tbody>
             {values.map((v) => (
-              <ValueRow key={v.id} value={v} showParent={grouped} showReport={list.kind !== "FREE"} renamable={list.kind !== "FREE"} onChanged={onChanged} />
+              <ValueRow
+                key={v.id}
+                value={v}
+                movement={moveState(list.values, v)}
+                showParent={grouped}
+                showReport={list.kind !== "FREE"}
+                renamable={list.kind !== "FREE"}
+                onChanged={onChanged}
+              />
             ))}
           </tbody>
         </table>
@@ -180,8 +189,9 @@ function ListEditor({ list, parents, onChanged }: { list: ReferenceList; parents
   );
 }
 
-function ValueRow({ value, showParent, showReport, renamable, onChanged }: {
+function ValueRow({ value, movement, showParent, showReport, renamable, onChanged }: {
   value: ReferenceValue;
+  movement: { canUp: boolean; canDown: boolean };
   showParent: boolean;
   showReport: boolean;
   renamable: boolean;
@@ -189,11 +199,11 @@ function ValueRow({ value, showParent, showReport, renamable, onChanged }: {
 }) {
   const [label, setLabel] = useState(value.label);
   const [report, setReport] = useState(value.reportLabel ?? "");
-  const [order, setOrder] = useState(String(value.sortOrder));
   const [busy, setBusy] = useState(false);
+  const [moving, setMoving] = useState<"UP" | "DOWN" | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
 
-  const dirty = label !== value.label || report !== (value.reportLabel ?? "") || order !== String(value.sortOrder);
+  const dirty = label !== value.label || report !== (value.reportLabel ?? "");
 
   const send = async (body: Record<string, unknown>) => {
     setBusy(true);
@@ -206,6 +216,21 @@ function ValueRow({ value, showParent, showReport, renamable, onChanged }: {
       setProblem(Object.values(apiErr.fieldErrors ?? {})[0] ?? apiErr.message);
     } finally {
       setBusy(false);
+    }
+  };
+
+  // Moves one place and saves at once; the list is then read again, so the page shows what the database holds.
+  const move = async (direction: "UP" | "DOWN") => {
+    setMoving(direction);
+    setProblem(null);
+    try {
+      await post(`/api/admin/lists/values/${value.id}/move`, { direction });
+      await onChanged();
+    } catch (err) {
+      const apiErr = err as ApiError;
+      setProblem(Object.values(apiErr.fieldErrors ?? {})[0] ?? apiErr.message);
+    } finally {
+      setMoving(null);
     }
   };
 
@@ -227,15 +252,34 @@ function ValueRow({ value, showParent, showReport, renamable, onChanged }: {
           <input aria-label={`Report wording of ${value.code}`} className={small} value={report} placeholder={value.label} onChange={(e) => setReport(e.target.value)} />
         </td>
       )}
-      <td className="px-3 py-2">
-        <input aria-label={`Order of ${value.code}`} className={small} inputMode="numeric" value={order} onChange={(e) => setOrder(e.target.value)} />
+      <td className="whitespace-nowrap px-3 py-2">
+        <span className="inline-flex gap-1">
+          {(["UP", "DOWN"] as const).map((direction) => {
+            const label = moveLabel(value, direction);
+            const allowed = direction === "UP" ? movement.canUp : movement.canDown;
+            return (
+              <Button
+                key={direction}
+                size="sm"
+                variant="secondary"
+                aria-label={label}
+                title={label}
+                disabled={!allowed || moving !== null || busy}
+                loading={moving === direction}
+                onClick={() => void move(direction)}
+              >
+                <span aria-hidden>{direction === "UP" ? "↑" : "↓"}</span>
+              </Button>
+            );
+          })}
+        </span>
       </td>
       <td className="whitespace-nowrap px-3 py-2 text-right">
         {dirty && (
           <Button
             size="sm"
             loading={busy}
-            onClick={() => send({ label: renamable ? label : undefined, reportLabel: report || null, sortOrder: Number(order) })}
+            onClick={() => send({ label: renamable ? label : undefined, reportLabel: report || null })}
           >
             Save
           </Button>

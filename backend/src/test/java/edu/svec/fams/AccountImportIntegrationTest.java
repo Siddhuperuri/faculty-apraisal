@@ -121,7 +121,7 @@ class AccountImportIntegrationTest {
         // everyone signs in with the standard password and is held at the password change
         for (String email : new String[] {"asha.rao@svec.edu", "ravi.menon@svec.edu", "hari.kumar@svec.edu", "principal@svec.edu", "admin2@svec.edu"}) {
             MockHttpSession s = http.login(email, STANDARD);
-            http.get(s, "/api/auth/me").andExpect(jsonPath("$.mustChangePassword").value(true));
+            http.get(s, "/api/auth/me").andExpect(jsonPath("$.passwordChangeRecommended").value(true));
         }
         assertEquals(5, jdbc.sql("SELECT COUNT(*) FROM users WHERE must_change_password = TRUE AND email <> 'admin@test.edu'").query(Integer.class).single());
 
@@ -275,7 +275,7 @@ class AccountImportIntegrationTest {
         JsonNode reset = http.read(http.post(admin, "/api/admin/users/" + f.id() + "/reset-password", null).andExpect(status().isOk()));
         assertEquals(STANDARD, reset.get("temporaryPassword").asText());
         MockHttpSession s = http.login("someone@svec.edu", STANDARD);
-        http.get(s, "/api/auth/me").andExpect(jsonPath("$.mustChangePassword").value(true));
+        http.get(s, "/api/auth/me").andExpect(jsonPath("$.passwordChangeRecommended").value(true));
     }
 
     @Test

@@ -138,41 +138,36 @@ class AccountSecurityTest {
         assertFalse(http.get(s, "/api/auth/me").andReturn().getResponse().getContentAsString().toLowerCase().contains("hash"));
     }
 
-    // ---- the forced change ----
+    // ---- a temporary password is a recommendation, never a lock ----
 
     @Test
-    void whileAPasswordChangeIsPendingEverythingElseIsRefused() throws Exception {
+    void aPendingChangeNeverBlocksAnything() throws Exception {
         jdbc.sql("UPDATE users SET must_change_password = TRUE WHERE email = 'faculty@test.edu'").update();
         MockHttpSession s = http.login("faculty@test.edu");
 
-        http.get(s, "/api/auth/me").andExpect(status().isOk()).andExpect(jsonPath("$.mustChangePassword").value(true));
-        http.get(s, "/api/auth/csrf").andExpect(status().isOk());
-        for (String path : new String[] {"/api/appraisals", "/api/sections/meta"}) {
-            http.get(s, path).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
-        }
-        http.post(s, "/api/appraisals", null).andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
+        http.get(s, "/api/auth/me").andExpect(status().isOk()).andExpect(jsonPath("$.passwordChangeRecommended").value(true));
+        http.get(s, "/api/appraisals").andExpect(status().isOk());
+        http.get(s, "/api/sections/meta").andExpect(status().isOk());
+        http.post(s, "/api/appraisals", null).andExpect(status().isCreated());
 
         http.post(s, "/api/auth/change-password", change(TestDb.PASSWORD, NEW_PASSWORD)).andExpect(status().isNoContent());
-
-        http.get(s, "/api/auth/me").andExpect(jsonPath("$.mustChangePassword").value(false));
+        http.get(s, "/api/auth/me").andExpect(jsonPath("$.passwordChangeRecommended").value(false));
         http.get(s, "/api/appraisals").andExpect(status().isOk());
-        http.post(s, "/api/appraisals", null).andExpect(status().isCreated());
     }
 
     @Test
-    void aPendingChangeAlsoBlocksTheAdminArea() throws Exception {
+    void aPendingChangeDoesNotBlockTheAdminArea() throws Exception {
         jdbc.sql("UPDATE users SET must_change_password = TRUE WHERE email = 'admin@test.edu'").update();
         MockHttpSession s = http.login("admin@test.edu");
-        http.get(s, "/api/admin/users").andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
+        http.get(s, "/api/admin/users").andExpect(status().isOk());
     }
 
     @Test
-    void aUserWithAPendingChangeCanStillSignOut() throws Exception {
+    void anOptionalChangeStillFollowsThePasswordRules() throws Exception {
         jdbc.sql("UPDATE users SET must_change_password = TRUE WHERE email = 'faculty@test.edu'").update();
         MockHttpSession s = http.login("faculty@test.edu");
-        http.post(s, "/api/auth/logout", null).andExpect(status().isNoContent());
-        http.get(s, "/api/auth/me").andExpect(status().isUnauthorized());
+        http.post(s, "/api/auth/change-password", change(TestDb.PASSWORD, "short")).andExpect(status().isBadRequest());
+        http.get(s, "/api/auth/me").andExpect(jsonPath("$.passwordChangeRecommended").value(true));
     }
 
     // ---- the server ending sessions ----

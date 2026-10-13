@@ -48,7 +48,7 @@ public class SecurityConfig {
                 .csrfTokenRepository(csrfTokens)
                 .csrfTokenRequestHandler(new HeaderOnlyCsrfTokenHandler()))
             // After the session is loaded and before authorization: ends sessions of disabled / re-roled /
-            // password-changed accounts and holds users with a pending password change.
+            // password-changed accounts.
             .addFilterBefore(new SessionGuardFilter(jdbc), AuthorizationFilter.class)
             .httpBasic(AbstractHttpConfigurer::disable)
             .formLogin(AbstractHttpConfigurer::disable)
