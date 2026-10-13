@@ -38,3 +38,18 @@ describe("buildRequirements", () => {
     expect(buildRequirements({ blockers: [], general: { meta, record: null } })).toEqual([]);
   });
 });
+
+describe("buildRequirements: the action plan", () => {
+  it("sends the person to section 12 with a link to the text", () => {
+    const [r] = buildRequirements({
+      blockers: ["Action Plan for the Next 2 Years: write your plan (at most 2,000 words)"],
+      general: { meta, record: null },
+    });
+    expect(r).toMatchObject({
+      page: "action-plan",
+      heading: "Action Plan for the Next 2 Years",
+      summary: "write your plan (at most 2,000 words)",
+      links: [{ label: "Open the page", focus: "plan" }],
+    });
+  });
+});

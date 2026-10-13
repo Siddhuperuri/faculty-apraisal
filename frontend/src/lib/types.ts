@@ -94,6 +94,15 @@ export interface AppraisalView {
   /** The first and last day of the academic year this appraisal is for (YYYY-MM-DD). */
   academicYearStart: string;
   academicYearEnd: string;
+  /** What the cadre teaches (courses a year and a semester, marks a course, workload maximum); null under the older rule. */
+  courseLoad?: CourseLoad | null;
+}
+
+export interface CourseLoad {
+  perYear: number;
+  perSemester: number;
+  marksPerCourse: number;
+  workloadMax: number;
 }
 
 export type FieldType = "TEXT" | "INT" | "DECIMAL" | "ENUM" | "DATE" | "MONTH_YEAR";
@@ -125,6 +134,10 @@ export interface FieldMeta {
   labels?: Record<string, string> | null;
   /** Words offered while typing, by the value of the section's scope ("" when there is none). Free text is still allowed. */
   suggestions?: Record<string, string[]> | null;
+  /** The most words a text may have (counted live on the page); null when the text is limited by characters. */
+  maxWords?: number | null;
+  /** The wording that is shown and reported, worked out by the server from a choice and its "Other" text; not typed. */
+  effective?: boolean;
 }
 
 /** One value of a database-managed dropdown list (Admin > Lists). */

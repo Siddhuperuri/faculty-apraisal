@@ -3,7 +3,6 @@
 import { FieldInput, rangeHint } from "@/components/ui/FieldInput";
 import { formatDate } from "@/lib/format";
 import { choicesFor, isAsked } from "@/lib/validate";
-import { CoursePicker } from "./CoursePicker";
 import { useAppraisal } from "./AppraisalProvider";
 import type { SectionMeta } from "@/lib/types";
 import type { FieldErrors, FormValues } from "@/lib/validate";
@@ -21,7 +20,6 @@ export function RecordFields({
   radios = [],
   fieldHints,
   scopeValue,
-  courseFields,
   autoFocusFirst = false,
 }: {
   meta: SectionMeta;
@@ -38,31 +36,15 @@ export function RecordFields({
   fieldHints?: Record<string, string>;
   /** The value of the view's scope (institute or department level), which picks the suggestions offered for a field. */
   scopeValue?: string;
-  /** The code and name fields that are chosen from ECAP together (a picker) instead of being typed. */
-  courseFields?: { code: string; name: string };
   autoFocusFirst?: boolean;
 }) {
   const { appraisal } = useAppraisal();
-  const year = appraisal ? { start: appraisal.academicYearStart, end: appraisal.academicYearEnd } : undefined;
-  const shown = meta.fields.filter((f) => !hidden.includes(f.name) && isAsked(f, values) && f.name !== courseFields?.name);
+  const year = appraisal ? { start: appraisal.academicYearStart, end: appraisal.academicYearEnd, name: appraisal.academicYear } : undefined;
+  // The wording a standard role resolves to (or the typed one) is worked out by the server, so it is not a control here.
+  const shown = meta.fields.filter((f) => !hidden.includes(f.name) && !f.effective && isAsked(f, values));
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {shown.map((f, i) => {
-        if (courseFields && f.name === courseFields.code) {
-          return (
-            <CoursePicker
-              key={f.name}
-              code={values[courseFields.code] ?? ""}
-              name={values[courseFields.name] ?? ""}
-              error={errors[courseFields.code] ?? errors[courseFields.name]}
-              disabled={disabled}
-              onPick={(c) => {
-                onChange(courseFields.code, c?.code ?? "");
-                onChange(courseFields.name, c?.name ?? "");
-              }}
-            />
-          );
-        }
         // A dependent choice offers only what suits the value chosen above it; a derived field is worked out, not typed.
         const parent = f.dependsOn ? meta.fields.find((x) => x.name === f.dependsOn) : undefined;
         const waiting = parent !== undefined && !(values[parent.name] ?? "");
@@ -78,7 +60,7 @@ export function RecordFields({
                 : `Within the academic year ${formatDate(year.start)} to ${formatDate(year.end)}`
               : (fieldHints?.[f.name] ?? rangeHint(f));
         return (
-          <div key={f.name} className={f.type === "TEXT" && (f.maxLength ?? 0) > 120 ? "md:col-span-2" : undefined}>
+          <div key={f.name} className={f.type === "TEXT" && ((f.maxLength ?? 0) > 120 || f.maxWords != null) ? "md:col-span-2" : undefined}>
             <FieldInput
               meta={offered}
               value={values[f.name] ?? ""}

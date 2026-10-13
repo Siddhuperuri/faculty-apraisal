@@ -75,9 +75,15 @@ public class ScoreService {
                 .param(appraisalId).query((rs, n) -> new Stored(rs.getString("criterion"), rs.getInt("max_marks"))).list();
 
         int courses = jdbc.sql("SELECT COUNT(*) FROM teaching_courses WHERE appraisal_id = ?").param(appraisalId).query(Integer.class).single();
+        int instructed = jdbc.sql("SELECT COUNT(*) FROM teaching_courses WHERE appraisal_id = ? AND course_role = 'INSTRUCTOR'")
+                .param(appraisalId).query(Integer.class).single();
+        Integer coursesPerYear = jdbc.sql("""
+                SELECT p.courses_per_year FROM appraisals a JOIN scoring_policies p ON p.id = a.scoring_policy_id WHERE a.id = ?""")
+                .param(appraisalId).query((rs, n) -> (Integer) rs.getObject(1)).optional().orElse(null);
         for (Stored s : stored) {
             if (s.criterion().equals("TEACHING_LEARNING")) {
-                teaching(s.maxMarks(), courses, components, breakdowns);
+                if (coursesPerYear != null) teachingByCadre(s.maxMarks(), courses, courses > 0 && instructed == courses, coursesPerYear, components, breakdowns);
+                else teaching(s.maxMarks(), courses, components, breakdowns);
                 breakdowns.get("TEACHING_LEARNING").addAll(roleLines(appraisalId));
             }
         }
@@ -117,6 +123,51 @@ public class ScoreService {
                     BigDecimal marks = BigDecimal.valueOf(rs.getInt(2));
                     return new Line("Institutional role: " + rs.getString(1), marks, 1, marks);
                 }).list();
+    }
+
+    /** The course-file / assessment-quality part is worth this much (at most) to someone who is only ever a course instructor. */
+    static final int INSTRUCTOR_ONLY_COURSE_FILE_MAX = 4;
+
+    /**
+     * B1 under the cadre workload rule (policy version 5 onwards). The workload part earns its maximum divided by the
+     * courses the cadre teaches in a year for each course (Lecturer, Assistant Professor and Senior Assistant Professor 8
+     * courses, 2.5 marks each; Associate Professor 4, 5 marks; Professor 2, 10 marks), never more than the part's maximum, so
+     * a faculty member is never made to enter more courses than the cadre needs. The course-file / assessment-quality part
+     * is worth its whole maximum (10) when the faculty member coordinates at least one course they entered, and 4 when
+     * every course entered is, explicitly, as a course instructor (a course saved before roles were asked for has no role and
+     * is given the benefit of the doubt); it earns nothing until a course is entered. The other parts earn an
+     * eighth of their maximum for each course, as before.
+     */
+    private static void teachingByCadre(int maxMarks, int courses, boolean instructorOnly, int coursesPerYear,
+                                        Map<String, List<Component>> components, Map<String, List<Line>> breakdowns) {
+        BigDecimal eighth = BigDecimal.valueOf(Sections.MAX_COURSES);
+        List<Component> parts = components.get("TEACHING_LEARNING");
+        List<Line> lines = new ArrayList<>();
+        if (parts == null || parts.isEmpty()) {
+            lines.add(ScoringRules.cappedMax("Course handled", BigDecimal.valueOf(maxMarks).divide(eighth, 4, RoundingMode.HALF_UP), courses, maxMarks));
+        } else {
+            for (int i = 0; i < parts.size(); i++) {
+                Component c = parts.get(i);
+                String name = c.description().toLowerCase(Locale.ROOT);
+                Line line;
+                int shownMax = c.maxMarks();
+                if (name.startsWith("workload")) {
+                    BigDecimal perCourse = BigDecimal.valueOf(c.maxMarks()).divide(BigDecimal.valueOf(coursesPerYear), 4, RoundingMode.HALF_UP);
+                    line = ScoringRules.cappedMax(c.description(), perCourse, courses, c.maxMarks());
+                } else if (name.contains("course-file")) {
+                    shownMax = instructorOnly ? Math.min(INSTRUCTOR_ONLY_COURSE_FILE_MAX, c.maxMarks()) : c.maxMarks();
+                    BigDecimal awarded = courses > 0 ? BigDecimal.valueOf(shownMax) : BigDecimal.ZERO;
+                    line = new Line(c.description() + " (" + ScoringRules.maxMarks(shownMax) + ")", BigDecimal.valueOf(shownMax),
+                            courses > 0 ? 1 : 0, awarded, shownMax);
+                } else {
+                    BigDecimal perCourse = BigDecimal.valueOf(c.maxMarks()).divide(eighth, 4, RoundingMode.HALF_UP);
+                    line = ScoringRules.cappedMax(c.description(), perCourse, courses, c.maxMarks());
+                }
+                lines.add(line);
+                parts.set(i, new Component(c.description(), shownMax, line.marks().setScale(2, RoundingMode.HALF_UP).stripTrailingZeros()));
+            }
+        }
+        breakdowns.put("TEACHING_LEARNING", lines);
     }
 
     /**

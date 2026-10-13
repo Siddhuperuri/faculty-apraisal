@@ -11,7 +11,7 @@ import { useAutosave } from "./useAutosave";
 /**
  * A section with one record (Part A, total students mentored, own Ph.D. progress, other contributions).
  * It saves by itself shortly after the last keystroke, and only when the values are valid, so a half-typed
- * number is never sent. Errors appear once you leave a field. Clearing every field removes the record.
+ * number is never sent. Errors appear as you type or leave a field. Clearing every field removes the record.
  */
 export function SingleSection({ ui }: { ui: SectionUi }) {
   const { section, loadSection, metas, appraisal, saveSection, setDirty } = useAppraisal();
@@ -72,7 +72,10 @@ export function SingleSection({ ui }: { ui: SectionUi }) {
         errors={shown}
         disabled={!editable}
         suggestions={ui.suggestions}
-        onChange={(name, v) => setEdits({ ...values, [name]: v })}
+        onChange={(name, v) => {
+          setTouched((t) => ({ ...t, [name]: true }));
+          setEdits({ ...values, [name]: v });
+        }}
         onBlur={(name) => setTouched((t) => ({ ...t, [name]: true }))}
       />
       {editable && edits !== null && !canSave && (

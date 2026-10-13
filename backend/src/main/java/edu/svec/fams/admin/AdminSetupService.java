@@ -254,8 +254,12 @@ public class AdminSetupService {
     }
 
     private long insertPolicy(long yearId, long cadreId, int version) {
-        return GeneratedKeys.insert(jdbc.sql("INSERT INTO scoring_policies (academic_year_id, cadre_id, version) VALUES (?,?,?)")
-                .params(yearId, cadreId, version));
+        // A new policy always uses the cadre workload rule: the courses a year that earn the whole workload part are 8, or 4
+        // for an Associate Professor and 2 for a Professor (the marks a course earns follow from the workload maximum).
+        return GeneratedKeys.insert(jdbc.sql("""
+                INSERT INTO scoring_policies (academic_year_id, cadre_id, version, courses_per_year)
+                SELECT ?, c.id, ?, CASE c.code WHEN 'ASSOC_PROF' THEN 4 WHEN 'PROFESSOR' THEN 2 ELSE 8 END FROM cadres c WHERE c.id = ?""")
+                .params(yearId, version, cadreId));
     }
 
     /**

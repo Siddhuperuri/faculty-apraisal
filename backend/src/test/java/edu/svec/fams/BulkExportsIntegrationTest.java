@@ -106,6 +106,7 @@ class BulkExportsIntegrationTest {
                 INSERT INTO review_actions (appraisal_id, actor_id, actor_role, action, from_status, to_status, comment)
                 VALUES (?, ?, 'HOD', 'HOD_START_REVIEW', 'SUBMITTED', 'HOD_REVIEW', 'Please add the lab results.')""")
                 .params(a, hodCse.id()).update();
+        jdbc.sql("INSERT INTO action_plan (appraisal_id, plan_text) VALUES (?, 'Grow the lab and publish more.')").param(a).update();
 
         appraisals.create(draft);                       // a draft, with a course in it that must not leave the author's hands
         jdbc.sql("""
@@ -193,7 +194,7 @@ class BulkExportsIntegrationTest {
     private static final List<String> HEADERS = List.of("S.No.", "Faculty Name", "Employee ID", "Department", "Cadre",
             "Date of Joining", "Academics", "Certifications", "FDPs Attended",
             "FDPs/Guest Lectures/Workshops Organized", "Journals/Conferences/Patents",
-            "Contributions/Remarks", "Appraisal Status", "Submitted Date", "HoD Remarks");
+            "Contributions/Remarks", "Appraisal Status", "Submitted Date", "HoD Remarks", "Action Plan");
 
     /** The cells of the workbook's only worksheet, row by row: {@code rows.get(0)} is sheet row 1, columns A.. in order. */
     private static List<List<String>> sheetRows(byte[] xlsx) throws Exception {
@@ -252,6 +253,7 @@ class BulkExportsIntegrationTest {
         assertEquals("With HoD", w.get(12));
         assertEquals("15-Jan-2026", w.get(13));
         assertEquals("Please add the lab results.", w.get(14));
+        assertEquals("Grow the lab and publish more.", w.get(15));
         assertTrue(w.get(6).contains("CS301 - Data Structures"), w.get(6));
         assertTrue(w.get(6).contains("CS302 - Operating Systems"), w.get(6));
         assertTrue(w.get(6).startsWith("1. "), "several records become a numbered list in one cell");
@@ -273,7 +275,7 @@ class BulkExportsIntegrationTest {
         for (String id : List.of("E-DRAFT", "E-NONE")) {
             List<String> row = rowFor(t, id);
             assertEquals("Not submitted", row.get(12));
-            for (int c : new int[] {6, 7, 8, 9, 10, 11, 13, 14}) assertEquals("—", row.get(c), "column " + c);
+            for (int c : new int[] {6, 7, 8, 9, 10, 11, 13, 14, 15}) assertEquals("—", row.get(c), "column " + c);
         }
     }
 
@@ -393,7 +395,7 @@ class BulkExportsIntegrationTest {
 
         List<List<String>> t = csv(body);
         assertEquals(4, t.size());
-        for (List<String> row : t) assertEquals(15, row.size(), "every record has the 15 columns");
+        for (List<String> row : t) assertEquals(16, row.size(), "every record has the 16 columns");
         assertEquals(HEADERS, t.get(0));
 
         List<String> w = rowFor(t, "E-WITH");
@@ -421,9 +423,9 @@ class BulkExportsIntegrationTest {
         assertEquals(1, parts.keySet().stream().filter(n -> n.startsWith("xl/worksheets/sheet")).count());
         assertFalse(sheetXml.contains("<mergeCell"), "no merged ranges");
         assertEquals(1, count(sheetXml, "<autoFilter "), "the header row has a filter");
-        assertTrue(sheetXml.contains("<autoFilter ref=\"A2:O5\"/>"), sheetXml);
+        assertTrue(sheetXml.contains("<autoFilter ref=\"A2:P5\"/>"), sheetXml);
         assertTrue(sheetXml.contains("<pane ySplit=\"2\" topLeftCell=\"A3\""), "the title and header rows are frozen");
-        assertTrue(sheetXml.contains("<dimension ref=\"A1:O5\"/>"), "no phantom rows or columns");
+        assertTrue(sheetXml.contains("<dimension ref=\"A1:P5\"/>"), "no phantom rows or columns");
 
         List<List<String>> rows = sheetRows(bytes);
         assertEquals(5, rows.size(), "title + header + 3 faculty");
@@ -431,7 +433,7 @@ class BulkExportsIntegrationTest {
         assertEquals(HEADERS, rows.get(1), "the header row appears once");
         long headerRows = rows.stream().filter(row -> row.equals(HEADERS)).count();
         assertEquals(1, headerRows);
-        for (int i = 2; i < rows.size(); i++) assertEquals(15, rows.get(i).size(), "row " + (i + 1) + " has all 15 columns");
+        for (int i = 2; i < rows.size(); i++) assertEquals(16, rows.get(i).size(), "row " + (i + 1) + " has all 16 columns");
 
         // sorted by department then name; each value sits under its own heading
         List<String> w = rows.stream().skip(2).filter(row -> row.get(2).equals("E-WITH")).findFirst().orElseThrow();
@@ -452,7 +454,7 @@ class BulkExportsIntegrationTest {
         for (String id : List.of("E-DRAFT", "E-NONE")) {
             List<String> row = rows.stream().skip(2).filter(x -> x.get(2).equals(id)).findFirst().orElseThrow();
             assertEquals("Not submitted", row.get(12));
-            for (int c : new int[] {6, 7, 8, 9, 10, 11, 13, 14}) assertEquals("—", row.get(c), id + " column " + c);
+            for (int c : new int[] {6, 7, 8, 9, 10, 11, 13, 14, 15}) assertEquals("—", row.get(c), id + " column " + c);
         }
         // serial numbers 1, 2, 3 in the order shown
         for (int i = 2; i < 5; i++) assertEquals(String.valueOf(i - 1), rows.get(i).get(0));
@@ -486,10 +488,10 @@ class BulkExportsIntegrationTest {
         List<List<String>> rows = sheetRows(r.andReturn().getResponse().getContentAsByteArray());
         assertEquals(3, rows.size());
         List<String> row = rows.get(2);
-        assertEquals(15, row.size());
+        assertEquals(16, row.size());
         assertEquals("E-EMPTY", row.get(2));
         assertEquals("Submitted", row.get(12));
-        for (int c : new int[] {6, 7, 8, 9, 10, 11, 14}) assertEquals("—", row.get(c), "column " + c);
+        for (int c : new int[] {6, 7, 8, 9, 10, 11, 14, 15}) assertEquals("—", row.get(c), "column " + c);
     }
 
     @Test

@@ -45,6 +45,17 @@ export function buildRequirements({ blockers, general }: RequirementInput): Requ
       };
     }
 
+    if (text.startsWith("Action Plan")) {
+      const colon = text.indexOf(":");
+      return {
+        key: `plan-${i}`,
+        page: "action-plan",
+        heading: "Action Plan for the Next 2 Years",
+        summary: colon >= 0 ? text.slice(colon + 1).trim() : "Write your action plan",
+        links: [{ label: "Open the page", focus: "plan" }],
+      };
+    }
+
     return { key: `other-${i}`, page: null, heading: "Other", summary: text, links: [] };
   });
 }

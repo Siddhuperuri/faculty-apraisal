@@ -68,9 +68,10 @@ class SectionSchemaTest {
                 "days", 5));
         m.put("certifications", rec("platform", "NPTEL", "title", "Data Structures",
                 "durationWeeks", 12, "gradeScore", "Elite"));
-        m.put("administrative-roles", rec("scope", "DEPARTMENT", "role", "Timetable Coordinator",
+        m.put("administrative-roles", rec("scope", "DEPARTMENT", "roleCode", "TIMETABLE_INCHARGE",
                 "description", "Prepares the timetable", "fromDate", "2025-07-01", "toDate", "2026-05-31"));
-        m.put("events", rec("activityType", "Guest lecture", "role", "Organizer", "title", "Cloud workshop",
+        m.put("action-plan", rec("plan", "Over the next two years: complete the lab, publish two papers and mentor ten students."));
+        m.put("events", rec("activityCode", "GUEST_LECTURE", "roleCode", "CONVENER", "title", "Cloud workshop",
                 "startDate", "2026-02-01", "endDate", "2026-02-02", "beneficiaries", 120));
         m.put("journal-publications", rec("title", "A study of X", "authorPosition", "1", "journal", "J. of Y",
                 "volumeIssuePage", "12(3):45-60", "monthYear", "2026-05", "indexing", "SCOPUS", "doiIssn", "10.1000/xyz"));
@@ -104,8 +105,8 @@ class SectionSchemaTest {
 
     @Test
     void everyTablePartOfPartBHasADefinition() {
-        // The 20 Part A/B tables created in V3 (general_information and 19 Part B).
-        assertEquals(21, Sections.all().size());
+        // The 20 Part A/B tables created in V3 (general_information and 19 Part B), institutional roles, and the action plan.
+        assertEquals(22, Sections.all().size());
         assertEquals(Sections.all().keySet(), samples().keySet(), "every section needs a sample in this test");
     }
 

@@ -33,6 +33,7 @@ public final class FieldSpec {
     private List<String> allowed = List.of();
     private String listCode;
     private boolean isbn;
+    private int maxWords;
 
     private FieldSpec(String name, String column, String label, Type type, boolean required) {
         this.name = name;
@@ -46,6 +47,30 @@ public final class FieldSpec {
         FieldSpec f = new FieldSpec(name, column, label, Type.TEXT, required);
         f.maxLength = maxLength;
         return f;
+    }
+
+    /**
+     * Free text limited by its number of words (a word is a run of characters between spaces or line breaks), not by its
+     * characters; a generous character ceiling only stops absurd input. The limit is the one a person is told.
+     */
+    public static FieldSpec words(String name, String column, String label, int maxWords, boolean required) {
+        FieldSpec f = new FieldSpec(name, column, label, Type.TEXT, required);
+        f.maxWords = maxWords;
+        f.maxLength = maxWords * 40;
+        return f;
+    }
+
+    /** The number of words in a text: runs of characters separated by spaces, tabs or line breaks. */
+    public static int countWords(String text) {
+        if (text == null) return 0;
+        int n = 0;
+        boolean inWord = false;
+        for (int i = 0; i < text.length(); i++) {
+            boolean space = Character.isWhitespace(text.charAt(i));
+            if (!space && !inWord) n++;
+            inWord = !space;
+        }
+        return n;
     }
 
     /**
@@ -107,6 +132,8 @@ public final class FieldSpec {
     public int scale() { return scale; }
     public int maxLength() { return maxLength; }
     public boolean required() { return required; }
+    /** The most words allowed, or 0 when the field is limited by characters. */
+    public int maxWords() { return maxWords; }
     public boolean submitRequired() { return submitRequired; }
 
     /** Marks a field that may stay empty in a draft but must be filled before the appraisal is submitted. */
@@ -168,6 +195,12 @@ public final class FieldSpec {
     private Object text(Object raw, String path, Map<String, String> errors) {
         if (!(raw instanceof String s)) return fail(path, errors, label + " must be text.");
         String v = s.strip();
+        if (maxWords > 0) {
+            int words = countWords(v);
+            if (words > maxWords) {
+                return fail(path, errors, label + " must be at most " + String.format("%,d", maxWords) + " words (it has " + String.format("%,d", words) + ").");
+            }
+        }
         if (v.length() > maxLength) return fail(path, errors, label + " must be at most " + maxLength + " characters.");
         for (int i = 0; i < v.length(); i++) {
             char c = v.charAt(i);
@@ -207,8 +240,8 @@ public final class FieldSpec {
         }
         if (listCode != null) {
             if (!isOneOf(v, choices)) return fail(path, errors, notOnList(choices));
-            return v.intValueExact();
         }
+        // the range holds even for a value on the list (a semester is 1 to 8 whatever the list is made to hold)
         if (v.compareTo(min) < 0 || v.compareTo(max) > 0) {
             return fail(path, errors, label + " must be between " + min + " and " + max + ".");
         }

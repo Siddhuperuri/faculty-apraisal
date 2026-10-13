@@ -20,7 +20,10 @@ export function SectionNav() {
   const { user } = useAuth();
   const base = `/appraisals/${id}`;
   // The faculty member has no score page: the last entry is where the appraisal is submitted and its status is shown.
-  const lastTitle = user?.role === "FACULTY" ? "Submit" : "Score & Review";
+  const faculty = user?.role === "FACULTY";
+  const lastTitle = faculty ? "Declaration and Submit" : "Score & Review";
+  // Score & Review is a view-only page for the reviewers and takes no form-section number.
+  const lastNumber = faculty ? "13" : "★";
   const isSingleton = (k: string) => metas?.[k]?.singleton ?? false;
 
   const row = (active: boolean) =>
@@ -48,7 +51,7 @@ export function SectionNav() {
       })}
       <li className="mt-1 border-t border-line pt-1">
         <Link href={base} aria-current={pathname === base ? "page" : undefined} className={row(pathname === base)}>
-          <span className={num(pathname === base)}>12</span>
+          <span className={num(pathname === base)} aria-hidden={!faculty || undefined}>{lastNumber}</span>
           <span className="leading-snug">{lastTitle}</span>
           <span />
         </Link>
@@ -62,7 +65,7 @@ export function SectionNav() {
       {/* Phones and small tablets: a collapsible index. */}
       <details className="appraisal-index rounded-xl border border-line bg-surface shadow-[var(--shadow-paper)] xl:hidden">
         <summary className="cursor-pointer px-4 py-3.5 text-sm font-semibold">
-          Sections <span className="font-normal text-muted">· {current ? `${current.number} ${current.title}` : `12 ${lastTitle}`}</span>
+          Sections <span className="font-normal text-muted">· {current ? `${current.number} ${current.title}` : `${faculty ? "13 " : ""}${lastTitle}`}</span>
         </summary>
         <nav aria-label="Appraisal sections" className="border-t border-line p-2">
           {items}

@@ -22,6 +22,12 @@ public final class SectionSpec {
     /** {@code field} is required (and kept) only when {@code onField} holds {@code equals}; otherwise it is cleared. */
     public record ConditionalField(String field, String onField, String equals) {}
 
+    /**
+     * {@code field} holds the wording shown and reported: the label of the value chosen in {@code codeField} (a value of
+     * {@code list}), or, when that choice is "Other", the text typed in {@code otherField}. It is never taken from a request.
+     */
+    public record EffectiveText(String field, String codeField, String otherField, String list) {}
+
     private final String key;
     private final String table;
     private final boolean singleton;
@@ -34,6 +40,7 @@ public final class SectionSpec {
     private DependentChoice dependentChoice;
     private final List<Suggestions> suggestions = new ArrayList<>();
     private final List<ConditionalField> conditionalFields = new ArrayList<>();
+    private final List<EffectiveText> effectiveTexts = new ArrayList<>();
     private List<String> inAcademicYear = List.of();
     private Function<List<Map<String, Object>>, Map<String, Object>> summary;
 
@@ -97,6 +104,12 @@ public final class SectionSpec {
         return this;
     }
 
+    /** The wording of a role-like field comes from a dropdown that ends in "Other" with a typed text beside it. */
+    public SectionSpec effectiveText(String field, String codeField, String otherField, String list) {
+        effectiveTexts.add(new EffectiveText(field, codeField, otherField, list));
+        return this;
+    }
+
     /**
      * These fields (days, months or years) must fall in the academic year of the appraisal, 1 June to 31 May: only what
      * was achieved, done or received in that year is considered. A year alone must be one of the two calendar years it spans.
@@ -125,6 +138,7 @@ public final class SectionSpec {
     public DependentChoice dependentChoice() { return dependentChoice; }
     public List<ConditionalField> conditionalFields() { return conditionalFields; }
     public List<Suggestions> suggestions() { return suggestions; }
+    public List<EffectiveText> effectiveTexts() { return effectiveTexts; }
     public List<String> inAcademicYear() { return inAcademicYear; }
 
     public FieldSpec field(String name) {

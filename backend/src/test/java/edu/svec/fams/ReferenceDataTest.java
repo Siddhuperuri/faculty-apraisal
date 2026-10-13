@@ -115,7 +115,9 @@ class ReferenceDataTest {
             assertFalse(l.get("values").isEmpty(), l.get("code").asText() + " has no values");
             for (JsonNode v : l.get("values")) {
                 assertFalse(v.get("label").asText().isBlank(), v.get("code").asText());
-                assertTrue(v.get("active").asBoolean());
+                // everything is on, except the semesters beyond 8 that the migration switched off
+                boolean beyondEight = l.get("code").asText().equals("SEMESTER") && Integer.parseInt(v.get("code").asText()) > 8;
+                assertEquals(!beyondEight, v.get("active").asBoolean(), l.get("code").asText() + " " + v.get("code").asText());
             }
         }
         assertEquals(List.of("B_TECH", "M_TECH", "DIPLOMA", "MBA", "PHARMACY"), List.copyOf(reference.active("PROGRAM")));
@@ -151,8 +153,11 @@ class ReferenceDataTest {
         assertEquals("AI & ML", branch.get("labels").get("AIML").asText());
         assertEquals(1, field(courses, "hoursPerWeek").get("min").asInt());
         assertEquals(6, field(courses, "hoursPerWeek").get("max").asInt());
-        assertTrue(field(roles, "role").get("suggestions").get("INSTITUTE").toString().contains("IQAC"));
-        assertTrue(field(roles, "role").get("suggestions").get("DEPARTMENT").toString().contains("Class Coordinator"));
+        JsonNode roleCode = field(roles, "roleCode");
+        assertEquals("scope", roleCode.get("dependsOn").asText());
+        assertTrue(roleCode.get("allowedBy").get("INSTITUTE").toString().contains("IQAC"));
+        assertTrue(roleCode.get("allowedBy").get("DEPARTMENT").toString().contains("CLASS_COORDINATOR"));
+        assertEquals("OTHER", roleCode.get("allowedBy").get("INSTITUTE").get(roleCode.get("allowedBy").get("INSTITUTE").size() - 1).asText());
         assertTrue(field(bodies, "awardingBody").get("suggestions").get("").toString().contains("IEEE"));
     }
 
@@ -402,16 +407,33 @@ class ReferenceDataTest {
     }
 
     @Test
-    void suggestionsAreOfferedWordsNotARestrictionAndAreOnlyAddedOrSwitchedOff() throws Exception {
+    void aSuggestionListStillWorksAndAnAdministratorCanAddARoleThatGoesBeforeOther() throws Exception {
         send(admin, "POST", "/api/admin/lists/INSTITUTE_ROLE_SUGGESTION/values", Map.of("label", "Hostel Warden")).andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value("Hostel Warden"));
-        assertTrue(reference.active("INSTITUTE_ROLE_SUGGESTION").contains("Hostel Warden"));
         send(admin, "PUT", "/api/admin/lists/values/" + valueId("INSTITUTE_ROLE_SUGGESTION", "Hostel Warden"), Map.of("label", "Warden"))
                 .andExpect(status().isBadRequest());
-        // a role that is not a suggestion is still accepted on the form
+
+        // a new institute-level role is offered before "Other", which always stays last
+        send(admin, "POST", "/api/admin/lists/ADMIN_ROLE/values", Map.of("code", "WARDEN", "label", "Hostel Warden", "parent", "INSTITUTE"))
+                .andExpect(status().isCreated());
+        List<String> offered = reference.activeUnder("ADMIN_ROLE", "INSTITUTE");
+        assertEquals("WARDEN", offered.get(offered.size() - 2));
+        assertEquals("OTHER", offered.get(offered.size() - 1));
+        long other = jdbc.sql("SELECT id FROM reference_values WHERE list_code = 'ADMIN_ROLE' AND code = 'OTHER' AND parent_code = 'INSTITUTE'")
+                .query(Long.class).single();
+        send(admin, "POST", "/api/admin/lists/values/" + other + "/move", Map.of("direction", "UP")).andExpect(status().isBadRequest());
+        long warden = valueId("ADMIN_ROLE", "WARDEN");
+        send(admin, "POST", "/api/admin/lists/values/" + warden + "/move", Map.of("direction", "DOWN")).andExpect(status().isOk());
+        offered = reference.activeUnder("ADMIN_ROLE", "INSTITUTE");
+        assertEquals("OTHER", offered.get(offered.size() - 1));
+
+        // the standard role is accepted, and so is a typed one under Other
         send(faculty, "PUT", "/api/appraisals/" + id + "/sections/administrative-roles", Map.of("records", List.of(
-                rec("scope", "INSTITUTE", "role", "Something nobody suggested", "fromDate", "2025-07-01", "toDate", "2025-12-31"))))
-                .andExpect(status().isOk());
+                rec("scope", "INSTITUTE", "roleCode", "WARDEN", "fromDate", "2025-07-01", "toDate", "2025-12-31"),
+                rec("scope", "INSTITUTE", "roleCode", "OTHER", "roleOther", "Something nobody listed", "fromDate", "2025-07-01", "toDate", "2025-12-31"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.records[0].role").value("Hostel Warden"))
+                .andExpect(jsonPath("$.records[1].role").value("Something nobody listed"));
     }
 
     // ---- who may ----

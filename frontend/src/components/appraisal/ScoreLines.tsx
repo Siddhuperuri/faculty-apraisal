@@ -1,4 +1,5 @@
 import { formatNumber } from "@/lib/format";
+import { perEntryLabel } from "@/lib/score";
 import type { ScoreLine } from "@/lib/types";
 
 /**
@@ -14,7 +15,7 @@ export function ScoreLines({ lines, label, quiet = false }: { lines: ScoreLine[]
         return (
           <li key={l.description} className="flex justify-between gap-3 border-t border-dotted border-line pt-0.5">
             <span className={l.count === 0 ? undefined : "text-ink"}>
-              {l.description} <span className="text-muted">({formatNumber(l.perEntry)} each)</span>
+              {l.description} <span className="text-muted">({perEntryLabel(l.perEntry)})</span>
             </span>
             <span className="shrink-0 tabular-nums">
               {l.count} × {formatNumber(l.perEntry)}

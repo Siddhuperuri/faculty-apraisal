@@ -189,6 +189,7 @@ public class ReferenceData implements ChoiceSource {
                 .params(listCode, finalCode, finalParent, label, reportLabel, next, actorId).update();
         audit.recordDetails(actorId, "REFERENCE_VALUE_ADDED", "REFERENCE_LIST", null,
                 Map.of("list", listCode, "code", finalCode, "parent", finalParent, "label", label));
+        placeBeforeOther(listCode, finalCode, finalParent);
         Value created = load().values().get(listCode).stream()
                 .filter(v -> v.code().equals(finalCode) && v.parent().equals(finalParent)).findFirst().orElseThrow();
         return created;
@@ -235,7 +236,10 @@ public class ReferenceData implements ChoiceSource {
         return load().values().get(current.list()).stream().filter(v -> v.id() == id).findFirst().orElseThrow();
     }
 
-    private record Slot(long id, String parent, boolean active) {}
+    /** The value that stands for "something not on the list": it is always the last of its group, whatever is added or moved. */
+    static final String OTHER = "OTHER";
+
+    private record Slot(long id, String parent, boolean active, String code) {}
 
     /**
      * Moves a value one place earlier ({@code UP}) or later ({@code DOWN}) among the active values it shares a list and a
@@ -255,20 +259,23 @@ public class ReferenceData implements ChoiceSource {
         lockList(list);
 
         List<Slot> slots = new ArrayList<>(jdbc.sql(
-                "SELECT id, parent_code, active FROM reference_values WHERE list_code = ? ORDER BY sort_order, id")
-                .param(list).query((rs, n) -> new Slot(rs.getLong(1), rs.getString(2), rs.getBoolean(3))).list());
+                "SELECT id, parent_code, active, code FROM reference_values WHERE list_code = ? ORDER BY sort_order, id")
+                .param(list).query((rs, n) -> new Slot(rs.getLong(1), rs.getString(2), rs.getBoolean(3), rs.getString(4))).list());
         int at = -1;
         for (int i = 0; i < slots.size(); i++) {
             if (slots.get(i).id() == id) at = i;
         }
         Slot me = slots.get(at);
+        if (me.code().equals(OTHER)) {
+            throw new ValidationException(Map.of("direction", "\"Other\" always stays last in its list."));
+        }
         if (!me.active()) {
             throw new ValidationException(Map.of("direction", "A switched-off value cannot be moved. Switch it on first."));
         }
         int step = direction.equals("UP") ? -1 : 1;
         int other = -1;
         for (int i = at + step; i >= 0 && i < slots.size(); i += step) {
-            if (slots.get(i).active() && slots.get(i).parent().equals(me.parent())) {
+            if (slots.get(i).active() && slots.get(i).parent().equals(me.parent()) && !slots.get(i).code().equals(OTHER)) {
                 other = i;
                 break;
             }
@@ -280,6 +287,19 @@ public class ReferenceData implements ChoiceSource {
                     Map.of("list", list, "direction", direction, "position", other + 1));
         }
         return load().values().get(list).stream().filter(v -> v.id() == id).findFirst().orElseThrow();
+    }
+
+    /** A value added to a group that ends in "Other" goes before it, so "Other" stays the last choice. */
+    private void placeBeforeOther(String list, String code, String parent) {
+        List<Slot> slots = new ArrayList<>(jdbc.sql(
+                "SELECT id, parent_code, active, code FROM reference_values WHERE list_code = ? ORDER BY sort_order, id")
+                .param(list).query((rs, n) -> new Slot(rs.getLong(1), rs.getString(2), rs.getBoolean(3), rs.getString(4))).list());
+        Slot added = slots.stream().filter(s -> s.code().equals(code) && s.parent().equals(parent)).findFirst().orElse(null);
+        Slot other = slots.stream().filter(s -> s.code().equals(OTHER) && s.parent().equals(parent)).findFirst().orElse(null);
+        if (added == null || other == null || added == other) return;
+        slots.remove(added);
+        slots.add(slots.indexOf(other), added);
+        resequence(list, slots);
     }
 
     /** Numbers the list 10, 20, 30, ... in the given order, writing only what changed (through temporary negatives, as the numbers are unique). */

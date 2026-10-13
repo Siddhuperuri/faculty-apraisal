@@ -81,9 +81,9 @@ class WorkflowIntegrationTest {
         long id = createAppraisal(faculty);
         Integer total = jdbc.sql("SELECT SUM(max_marks) FROM appraisal_scores WHERE appraisal_id = ?")
                 .param(id).query(Integer.class).single();
-        // Assistant Professor: B1 40, B2 15, B3 15, B4 15, and the limits of the per-entry criteria (V35): funded projects 10,
-        // outreach 10, memberships 5; B5 and B7 have no limit
-        assertEquals(110, total);
+        // Assistant Professor: B1 40, B2 15, B3 15, B4 15, and the limits of the per-entry criteria: outreach 10, memberships 5;
+        // B5, B6 (funded projects, since V37) and B7 have no limit
+        assertEquals(100, total);
         call(faculty, "GET", "/api/appraisals/" + id, null)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DRAFT"))
@@ -97,10 +97,10 @@ class WorkflowIntegrationTest {
 
     @Test
     void teachingMarksDifferByCadreWhileB2B3AndB4DoNot() throws Exception {
-        long prof = createAppraisal(otherFaculty); // PROFESSOR: teaching 30; B2, B3 and B4 are 15 for every cadre
+        long prof = createAppraisal(otherFaculty); // PROFESSOR: teaching 35 (workload 20 for every cadre); B2, B3 and B4 are 15 for every cadre
         long asst = createAppraisal(faculty);      // ASST_PROF: teaching 40
         String sql = "SELECT max_marks FROM appraisal_scores WHERE appraisal_id = ? AND criterion = ?";
-        assertEquals(30, jdbc.sql(sql).params(prof, "TEACHING_LEARNING").query(Integer.class).single());
+        assertEquals(35, jdbc.sql(sql).params(prof, "TEACHING_LEARNING").query(Integer.class).single());
         assertEquals(40, jdbc.sql(sql).params(asst, "TEACHING_LEARNING").query(Integer.class).single());
         for (String criterion : List.of("STUDENT_MENTORING", "FDP_CERTIFICATIONS", "ADMINISTRATIVE")) {
             assertEquals(15, jdbc.sql(sql).params(prof, criterion).query(Integer.class).single(), criterion);
@@ -112,12 +112,12 @@ class WorkflowIntegrationTest {
     void newPolicyVersionAppliesToNewAppraisalsOnlyAndHistoryIsPreserved() throws Exception {
         long before = createAppraisal(faculty);
 
-        // Institution publishes a further policy version (4, after the document's 1, V24's 2 and the current policy's 3) for the Professor cadre with different marks.
+        // Institution publishes a further policy version (6, after the document's 1, V24's 2, V33's 3, V35's 4 and V37's 5) for the Professor cadre with different marks.
         long yearId = jdbc.sql("SELECT id FROM academic_years WHERE name = '2025-26'").query(Long.class).single();
         long cadreId = jdbc.sql("SELECT id FROM cadres WHERE code = 'PROFESSOR'").query(Long.class).single();
-        jdbc.sql("INSERT INTO scoring_policies (academic_year_id, cadre_id, version) VALUES (?,?,5)")
+        jdbc.sql("INSERT INTO scoring_policies (academic_year_id, cadre_id, version) VALUES (?,?,6)")
                 .params(yearId, cadreId).update();
-        long v2 = jdbc.sql("SELECT id FROM scoring_policies WHERE cadre_id = ? AND version = 5")
+        long v2 = jdbc.sql("SELECT id FROM scoring_policies WHERE cadre_id = ? AND version = 6")
                 .param(cadreId).query(Long.class).single();
         jdbc.sql("INSERT INTO scoring_policy_criteria (policy_id, criterion, max_marks) VALUES (?, 'TEACHING_LEARNING', 100)")
                 .param(v2).update();
@@ -302,15 +302,25 @@ class WorkflowIntegrationTest {
                 + "joining_date_institution = NULL, joining_date_designation = NULL WHERE appraisal_id = ?").param(id).update();
 
         // everything is missing, and the owner is told exactly what
-        call(faculty, "GET", base, null).andExpect(jsonPath("$.submitBlockers.length()").value(1))
-                .andExpect(jsonPath("$.submitBlockers[0]").value(org.hamcrest.Matchers.startsWith("General Information")));
+        call(faculty, "GET", base, null).andExpect(jsonPath("$.submitBlockers.length()").value(2))
+                .andExpect(jsonPath("$.submitBlockers[0]").value(org.hamcrest.Matchers.startsWith("General Information")))
+                .andExpect(jsonPath("$.submitBlockers[1]").value(org.hamcrest.Matchers.startsWith("Action Plan for the Next 2 Years")));
         call(faculty, "POST", base + "/submit", DECLARATION).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.startsWith("Not ready to submit. Still needed: General Information")));
         call(faculty, "GET", base, null).andExpect(jsonPath("$.status").value("DRAFT"));
 
-        // the details are filled in: nothing is missing (no number of courses and no typed score is required any more)
+        // the details are filled in: only the action plan is missing
         jdbc.sql("UPDATE general_information SET contact_no = '9000000000', qualification_specialization = 'M.Tech', "
                 + "joining_date_institution = '2015-06-01', joining_date_designation = '2020-06-01' WHERE appraisal_id = ?").param(id).update();
+        call(faculty, "GET", base, null).andExpect(jsonPath("$.submitBlockers.length()").value(1))
+                .andExpect(jsonPath("$.submitBlockers[0]").value(org.hamcrest.Matchers.startsWith("Action Plan")));
+        // a plan of blanks is no plan
+        jdbc.sql("INSERT INTO action_plan (appraisal_id, plan_text) VALUES (?, '   ')").param(id).update();
+        call(faculty, "POST", base + "/submit", DECLARATION).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Action Plan for the Next 2 Years")));
+
+        // the plan is written: nothing is missing (no number of courses and no typed score is required)
+        jdbc.sql("UPDATE action_plan SET plan_text = 'Publish, mentor and modernise the lab.' WHERE appraisal_id = ?").param(id).update();
         call(faculty, "GET", base, null).andExpect(jsonPath("$.submitBlockers.length()").value(0));
         call(faculty, "POST", base + "/submit", DECLARATION).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("SUBMITTED"));
         // once submitted nothing is listed

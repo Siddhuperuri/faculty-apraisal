@@ -302,15 +302,34 @@ function RecordDialog({
     saveDraft(storeKey, values);
   }, [values, storeKey]);
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
-  const hidden = ui.scope ? [ui.scope.field] : [];
+  const scopeField = ui.scope?.field;
+  const hidden = useMemo(() => (scopeField ? [scopeField] : []), [scopeField]);
+  const yearName = appraisal?.academicYear;
+  const yearStart = appraisal?.academicYearStart;
+  const yearEnd = appraisal?.academicYearEnd;
+  const year = useMemo(
+    () => (yearName && yearStart && yearEnd ? { name: yearName, start: yearStart, end: yearEnd } : undefined),
+    [yearName, yearStart, yearEnd],
+  );
+  // Checked as the person types or leaves a field, with the same limits and words as the server. A field is judged once it
+  // has been touched (or Save was pressed); nothing they typed is ever cleared.
+  const live = useMemo(() => validate(meta, values, hidden, year), [meta, values, hidden, year]);
+  const shownErrors: FieldErrors = { ...errors };
+  for (const f of meta.fields) {
+    if (touched[f.name] && live[f.name]) shownErrors[f.name] = live[f.name];
+    else if (touched[f.name] && errors[f.name] && !live[f.name]) delete shownErrors[f.name];
+  }
+  const blocked = meta.fields.some((f) => touched[f.name] && live[f.name]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const found = validate(meta, values, hidden, appraisal ? { name: appraisal.academicYear, start: appraisal.academicYearStart, end: appraisal.academicYearEnd } : undefined);
+    const found = validate(meta, values, hidden, year);
     setErrors(found);
+    setTouched(Object.fromEntries(meta.fields.map((f) => [f.name, true])));
     setFormError(null);
     if (Object.keys(found).length > 0) {
       // Move focus to the first field with a problem.
@@ -355,20 +374,23 @@ function RecordDialog({
         <RecordFields
           meta={meta}
           values={values}
-          errors={errors}
+          errors={shownErrors}
           hidden={hidden}
           suggestions={ui.suggestions}
           radios={ui.radios}
           fieldHints={ui.fieldHints}
           scopeValue={ui.scope?.value}
-          courseFields={ui.ecapCourse}
-          onChange={(name, v) => setValues((cur) => applyDependencies(meta, { ...cur, [name]: v }, name))}
+          onChange={(name, v) => {
+            setTouched((t) => ({ ...t, [name]: true }));
+            setValues((cur) => applyDependencies(meta, { ...cur, [name]: v }, name));
+          }}
+          onBlur={(name) => setTouched((t) => ({ ...t, [name]: true }))}
           autoFocusFirst
         />
         {formError && <p role="alert" className="text-sm font-medium text-bad">{formError}</p>}
         <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button type="button" variant="secondary" onClick={() => { if (storeKey) clearDraft(storeKey); onClose(); }}>Cancel</Button>
-          <Button type="submit" loading={saving}>{state.mode === "edit" ? "Save changes" : "Save record"}</Button>
+          <Button type="submit" loading={saving} disabled={blocked}>{state.mode === "edit" ? "Save changes" : "Save record"}</Button>
         </div>
       </form>
     </Dialog>

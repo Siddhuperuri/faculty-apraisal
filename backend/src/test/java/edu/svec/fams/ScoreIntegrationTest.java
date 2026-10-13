@@ -93,63 +93,116 @@ class ScoreIntegrationTest {
         sheet(faculty, id).andExpect(jsonPath("$.scores[7].score").value(0));
     }
 
-    // ---- B1: each component earns an eighth of its maximum for each course; workload is a whole number of marks ----
+    // ---- B1: the workload follows the cadre's courses a year; the course file follows the faculty member's role ----
 
-    @Test
-    void eachCourseEarnsAnEighthOfEachComponentAndTheWorkloadIsRoundedToAWholeMark() throws Exception {
-        // Assistant Professor: workload 20 (2.5 a course), course file 10 and innovative practices 10 (1.25 each)
-        for (int i = 1; i <= 8; i++) {
-            insertCourses(id, 1);   // C1 again and again: the code is not unique
-            double workload = Math.floor(2.5 * i + 0.5);   // half a mark rounds up: 3, 5, 8, 10, 13, 15, 18, 20
-            sheet(faculty, id)
-                    .andExpect(jsonPath("$.scores[0].components[0].awarded").value(workload))
-                    .andExpect(jsonPath("$.scores[0].components[1].awarded").value(1.25 * i))
-                    .andExpect(jsonPath("$.scores[0].components[2].awarded").value(1.25 * i))
-                    .andExpect(jsonPath("$.scores[0].score").value(workload + 2.5 * i))
-                    .andExpect(jsonPath("$.scores[0].breakdown[0].count").value(i));
-        }
-        sheet(faculty, id).andExpect(jsonPath("$.scores[0].score").value(40))     // 8 courses are the whole maximum
-                .andExpect(jsonPath("$.scores[0].components.length()").value(3));  // and there is no feedback component
+    private void insertCourse(long appraisal, String role) {
+        jdbc.sql("INSERT INTO teaching_courses (appraisal_id, course_code, course_name, course_type, program, branch, semester, hours_per_week, pass_percentage, course_role)"
+                + " VALUES (?, 'C', 'Intro', 'THEORY', 'B_TECH', 'CSE', 3, 4, 90, ?)").params(appraisal, role).update();
     }
 
     @Test
-    void aProfessorsWorkloadIsOnePointEightSevenFiveACourseRoundedToAWholeMark() throws Exception {
-        int[] expected = {2, 4, 6, 8, 9, 11, 13, 15};   // 1.875 x courses, to the nearest whole mark (half up)
-        for (int i = 1; i <= 8; i++) {
-            insertCourses(professorAppraisal, 1);
+    void aLecturerAssistantAndSeniorAssistantProfessorEarn2Point5MarksACourseUpTo20() throws Exception {
+        for (String cadre : new String[] {"LECTURER", "ASST_PROF", "SR_ASST_PROF"}) {
+            FamsUserPrincipal who = db.faculty(cadre.toLowerCase() + "@test.edu", "E-" + cadre, "CSE", cadre);
+            long appraisal = appraisals.create(who);
+            for (int i = 1; i <= 10; i++) {
+                insertCourse(appraisal, "COORDINATOR");
+                double expected = Math.min(20, 2.5 * i);
+                sheet(who, appraisal)
+                        .andExpect(jsonPath("$.courseLoad.perYear").value(8))
+                        .andExpect(jsonPath("$.courseLoad.perSemester").value(4))
+                        .andExpect(jsonPath("$.courseLoad.marksPerCourse").value(2.5))
+                        .andExpect(jsonPath("$.scores[0].components[0].awarded").value(expected));
+            }
+        }
+    }
+
+    @Test
+    void anAssociateProfessorNeedsFourCoursesAtFiveMarksEach() throws Exception {
+        FamsUserPrincipal assoc = db.faculty("assoc@test.edu", "E-ASSOC", "CSE", "ASSOC_PROF");
+        long appraisal = appraisals.create(assoc);
+        double[] expected = {5, 10, 15, 20, 20, 20};
+        for (int i = 1; i <= 6; i++) {
+            insertCourse(appraisal, "COORDINATOR");
+            sheet(assoc, appraisal)
+                    .andExpect(jsonPath("$.courseLoad.perYear").value(4))
+                    .andExpect(jsonPath("$.courseLoad.perSemester").value(2))
+                    .andExpect(jsonPath("$.courseLoad.marksPerCourse").value(5))
+                    .andExpect(jsonPath("$.scores[0].components[0].awarded").value(expected[i - 1]));
+        }
+    }
+
+    @Test
+    void aProfessorNeedsTwoCoursesAtTenMarksEach() throws Exception {
+        double[] expected = {10, 20, 20, 20};
+        for (int i = 1; i <= 4; i++) {
+            insertCourse(professorAppraisal, "COORDINATOR");
             sheet(professor, professorAppraisal)
-                    .andExpect(jsonPath("$.scores[0].components[0].description").value("Workload & course delivery"))
-                    .andExpect(jsonPath("$.scores[0].components[0].maxMarks").value(15))
+                    .andExpect(jsonPath("$.courseLoad.perYear").value(2))
+                    .andExpect(jsonPath("$.courseLoad.perSemester").value(1))
+                    .andExpect(jsonPath("$.courseLoad.marksPerCourse").value(10))
                     .andExpect(jsonPath("$.scores[0].components[0].awarded").value(expected[i - 1]))
                     .andExpect(jsonPath("$.scores[0].breakdown[0].marks").value(expected[i - 1]));
         }
-        // eight courses are exactly 15 for workload and 30 in all
-        sheet(professor, professorAppraisal)
-                .andExpect(jsonPath("$.scores[0].maxMarks").value(30))
-                .andExpect(jsonPath("$.scores[0].components[1].awarded").value(10))
-                .andExpect(jsonPath("$.scores[0].components[2].awarded").value(5))
-                .andExpect(jsonPath("$.scores[0].score").value(30));
     }
 
     @Test
-    void theTeachingMarksFollowTheCadresMaximum() throws Exception {
-        insertCourses(professorAppraisal, 4);
-        sheet(professor, professorAppraisal)
-                .andExpect(jsonPath("$.scores[0].maxMarks").value(30))
-                // workload 7.5 -> 8, course file 5, innovative practices 2.5: half the courses, a half mark over half of 30
-                .andExpect(jsonPath("$.scores[0].score").value(15.5));
+    void nobodyIsMadeToEnterMoreCoursesThanTheirCadreNeedsAndNothingIsRequired() throws Exception {
+        sheet(professor, professorAppraisal).andExpect(jsonPath("$.scores[0].score").value(0))
+                .andExpect(jsonPath("$.submitBlockers[0]").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("course"))));
+        insertCourse(professorAppraisal, "COORDINATOR");
+        insertCourse(professorAppraisal, "COORDINATOR");
+        // two courses already earn the whole workload part; the rest of the form is unaffected
+        sheet(professor, professorAppraisal).andExpect(jsonPath("$.scores[0].components[0].awarded").value(20));
     }
 
     @Test
-    void noCoursesAndNoMinimumOfEight() throws Exception {
-        sheet(professor, professorAppraisal).andExpect(jsonPath("$.scores[0].score").value(0));
-        insertCourses(professorAppraisal, 1);
-        sheet(professor, professorAppraisal).andExpect(jsonPath("$.scores[0].score").value(3.88));   // 2 + 1.25 + 0.625, to two decimals
+    void theCourseFileIsWorthTenWithACoordinatedCourseAndFourWhenEveryCourseIsAsAnInstructor() throws Exception {
+        sheet(faculty, id).andExpect(jsonPath("$.scores[0].components[1].maxMarks").value(10))
+                .andExpect(jsonPath("$.scores[0].components[1].awarded").value(0));          // nothing earned before a course exists
+
+        insertCourse(id, "INSTRUCTOR");
+        sheet(faculty, id).andExpect(jsonPath("$.scores[0].components[1].maxMarks").value(4))
+                .andExpect(jsonPath("$.scores[0].components[1].awarded").value(4));
+        insertCourse(id, "INSTRUCTOR");
+        sheet(faculty, id).andExpect(jsonPath("$.scores[0].components[1].maxMarks").value(4));
+
+        insertCourse(id, "COORDINATOR");                                                      // one coordinated course is enough
+        sheet(faculty, id).andExpect(jsonPath("$.scores[0].components[1].maxMarks").value(10))
+                .andExpect(jsonPath("$.scores[0].components[1].awarded").value(10));
+
+        jdbc.sql("DELETE FROM teaching_courses WHERE appraisal_id = ? AND course_role = 'COORDINATOR'").params(id).update();
+        sheet(faculty, id).andExpect(jsonPath("$.scores[0].components[1].maxMarks").value(4));
+        // the instructor-only rule is a rule of marks, not wording: the score follows it
+        sheet(faculty, id).andExpect(jsonPath("$.scores[0].score").value(2 * 2.5 + 4 + 2 * 1.25));
+    }
+
+    @Test
+    void aCourseSavedBeforeRolesWereAskedForGetsTheBenefitOfTheDoubt() throws Exception {
+        insertCourse(id, null);
+        insertCourse(id, "INSTRUCTOR");
+        sheet(faculty, id).andExpect(jsonPath("$.scores[0].components[1].maxMarks").value(10));
+    }
+
+    @Test
+    void anAppraisalBegunUnderTheOlderRuleKeepsItsMarksExactly() throws Exception {
+        // version 4 of the policy: an eighth of each part for a course, the workload rounded to a whole mark, no course-file rule
+        jdbc.sql("""
+                UPDATE appraisals SET scoring_policy_id = (SELECT p.id FROM scoring_policies p WHERE p.academic_year_id = appraisals.academic_year_id
+                    AND p.cadre_id = (SELECT cadre_id FROM faculty_profiles WHERE id = appraisals.faculty_id) AND p.version = 4)
+                WHERE id = ?""").params(professorAppraisal).update();
+        for (int i = 0; i < 3; i++) insertCourse(professorAppraisal, "INSTRUCTOR");
+        // Professor under version 4: workload 15 / 8 = 1.875 a course, 3 courses 5.625 -> 6; course file 3.75; innovative 1.875
+        sheet(professor, professorAppraisal)
+                .andExpect(jsonPath("$.courseLoad").doesNotExist())
+                .andExpect(jsonPath("$.scores[0].components[0].awarded").value(6))
+                .andExpect(jsonPath("$.scores[0].components[1].awarded").value(3.75))
+                .andExpect(jsonPath("$.scores[0].components[1].maxMarks").value(10));
     }
 
     @Test
     void marksNeverExceedTheMaximumEvenIfMoreCoursesGotInByAnOlderRoute() throws Exception {
-        insertCourses(id, 10);
+        for (int i = 0; i < 10; i++) insertCourse(id, "COORDINATOR");
         sheet(faculty, id).andExpect(jsonPath("$.scores[0].score").value(40));
     }
 
@@ -284,7 +337,7 @@ class ScoreIntegrationTest {
         }
         sheet(faculty, id)
                 .andExpect(jsonPath("$.scores[4].score").value(15.0))     // one SCI/SCIE paper; the "others" paper earns nothing
-                .andExpect(jsonPath("$.scores[5].score").value(10.0))     // one sanctioned (50) and two applied (5 each) = 60, limited to 10 a year
+                .andExpect(jsonPath("$.scores[5].score").value(60.0))     // one sanctioned (50) and two applied (5 each, 10 at most)
                 .andExpect(jsonPath("$.scores[6].score").value(25.0))     // a book (20) and a chapter (5)
                 .andExpect(jsonPath("$.scores[7].score").value(10.0))     // two outreach entries
                 .andExpect(jsonPath("$.scores[8].score").value(5.0))
@@ -299,7 +352,37 @@ class ScoreIntegrationTest {
         jdbc.sql(project).params(id, 2024).update();
         sheet(faculty, id).andExpect(jsonPath("$.scores[5].score").value(0));
         jdbc.sql(project).params(id, 2026).update();   // the appraised year is 2025-26: 2025 and 2026 count
-        sheet(faculty, id).andExpect(jsonPath("$.scores[5].score").value(10));   // 50 for a sanctioned project, limited to 10
+        sheet(faculty, id).andExpect(jsonPath("$.scores[5].score").value(50));   // 50 for a sanctioned project
+    }
+
+    @Test
+    void appliedProjectsEarnFiveEachUpToTenAYearAndSanctionedOnesFiftyEachWithoutALimit() throws Exception {
+        String project = "INSERT INTO funded_projects (appraisal_id, title, role, type, funding_agency_client, amount, start_date, end_date, status, year)"
+                + " VALUES (?, 'P', 'PI', 'RESEARCH', 'AICTE', 100000, '2025-06-01', '2025-12-31', ?, 2025)";
+        int[] applied = {5, 10, 10, 10, 10};
+        for (int n = 1; n <= 5; n++) {
+            jdbc.sql(project).params(id, "APPLIED").update();
+            sheet(faculty, id)
+                    .andExpect(jsonPath("$.scores[5].breakdown[1].count").value(n))      // every applied project is recorded
+                    .andExpect(jsonPath("$.scores[5].breakdown[1].marks").value(applied[n - 1]))
+                    .andExpect(jsonPath("$.scores[5].score").value(applied[n - 1]));
+        }
+        for (int n = 1; n <= 3; n++) {
+            jdbc.sql(project).params(id, "SANCTIONED").update();
+            sheet(faculty, id).andExpect(jsonPath("$.scores[5].breakdown[0].marks").value(50 * n))
+                    .andExpect(jsonPath("$.scores[5].score").value(10 + 50 * n));
+        }
+        // the criterion itself has no limit any more, and the wording of each rate is the same style
+        sheet(faculty, id).andExpect(jsonPath("$.scores[5].maxMarks").isEmpty())
+                .andExpect(jsonPath("$.scores[5].breakdown[1].description").value("Project applied for (not yet sanctioned) (Max marks: 10)"));
+    }
+
+    @Test
+    void thePerEntryRateIsWordedAsMarksForEachAndNeverAsNumberEach() throws Exception {
+        String all = sheet(faculty, id).andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertFalse(all.contains("(50 each)") || all.contains("50 each"), all);
+        assertEquals("50m for each", edu.svec.fams.scoring.ScoringRules.perEntry(new java.math.BigDecimal("50")));
+        assertEquals("2.5m for each", edu.svec.fams.scoring.ScoringRules.perEntry(new java.math.BigDecimal("2.50")));
     }
 
     // ---- who sees it ----

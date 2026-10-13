@@ -39,7 +39,7 @@ class ScoringComponentsTest {
     /** The component rows of one policy version of V33 (and of V35, which copies it): per cadre, three B1 parts and 4 + 2 + 4. */
     static final int V33_COMPONENT_ROWS = 65;
 
-    /** B1 of the current policy (V33), by cadre: "student feedback" is gone and the parts are divided afresh. */
+    /** B1 of the current policy (V37, which copies V33's parts but makes the workload 20 for every cadre), by cadre. */
     static final Map<String, List<String>> B1_V33 = new LinkedHashMap<>();
 
     static {
@@ -49,7 +49,7 @@ class ScoringComponentsTest {
         B1_V33.put("ASST_PROF", lecturerOrAsst);
         B1_V33.put("SR_ASST_PROF", List.of("Workload & course delivery = 20", "course-file/assessment quality = 10",
                 "innovative/remedial/advanced-learning practices = 5"));
-        List<String> senior = List.of("Workload & course delivery = 15", "course-file/assessment quality = 10",
+        List<String> senior = List.of("Workload & course delivery = 20", "course-file/assessment quality = 10",
                 "innovative/remedial/advanced-learning practices = 5");
         B1_V33.put("ASSOC_PROF", senior);
         B1_V33.put("PROFESSOR", senior);
@@ -143,11 +143,11 @@ class ScoringComponentsTest {
                   GROUP BY k.policy_id, k.criterion, k.max_marks HAVING SUM(pc.max_marks) <> k.max_marks) x""").query(Integer.class).single();
         assertEquals(0, mismatches);
         // B1 to B4 of every cadre are broken down; the criteria marked per entry are not
-        // (three versions of each cadre's policy: the document's, V24's and the current one of V33)
-        assertEquals(80, jdbc.sql("SELECT COUNT(DISTINCT policy_id, criterion) FROM scoring_policy_components").query(Integer.class).single());
+        // (five versions of each cadre's policy: the document's, V24's, V33's, V35's and the current one of V37)
+        assertEquals(100, jdbc.sql("SELECT COUNT(DISTINCT policy_id, criterion) FROM scoring_policy_components").query(Integer.class).single());
         assertEquals(0, jdbc.sql("SELECT COUNT(*) FROM scoring_policy_components WHERE criterion NOT IN "
                 + "('TEACHING_LEARNING','STUDENT_MENTORING','FDP_CERTIFICATIONS','ADMINISTRATIVE')").query(Integer.class).single());
-        assertEquals(COMPONENT_ROWS + CURRENT_COMPONENT_ROWS + 2 * V33_COMPONENT_ROWS,
+        assertEquals(COMPONENT_ROWS + CURRENT_COMPONENT_ROWS + 3 * V33_COMPONENT_ROWS,
                 jdbc.sql("SELECT COUNT(*) FROM scoring_policy_components").query(Integer.class).single());
     }
 
@@ -173,7 +173,10 @@ class ScoringComponentsTest {
     void theCurrentPolicyHasNoStudentFeedbackAndTheNewB1PartsOfEveryCadre() {
         for (var e : SOURCE.entrySet()) {
             String cadre = e.getKey();
-            assertEquals(B1_V33.get(cadre), v3Components(cadre, "TEACHING_LEARNING"), cadre);
+            // version 3 (V33): the workload was 15 for an Associate Professor and a Professor; version 5 made it 20 for all
+            List<String> expected = new java.util.ArrayList<>(B1_V33.get(cadre));
+            if (cadre.equals("ASSOC_PROF") || cadre.equals("PROFESSOR")) expected.set(0, "Workload & course delivery = 15");
+            assertEquals(expected, v3Components(cadre, "TEACHING_LEARNING"), cadre);
             // the maximum of B1 is what it was, and the parts add up to it
             int max = jdbc.sql("""
                     SELECT k.max_marks FROM scoring_policy_criteria k JOIN scoring_policies p ON p.id = k.policy_id
@@ -244,7 +247,7 @@ class ScoringComponentsTest {
                 components("ASST_PROF", "STUDENT_MENTORING"));
         assertEquals(List.of("Department responsibilities = 4", "institute roles = 3", "curriculum/BoS = 3", "quality/accreditation = 3",
                 "measurable institutional contribution = 2"), components("ASST_PROF", "ADMINISTRATIVE"));
-        assertEquals(4, jdbc.sql("SELECT COUNT(*) FROM scoring_policies WHERE cadre_id = (SELECT id FROM cadres WHERE code = 'PROFESSOR')")
+        assertEquals(5, jdbc.sql("SELECT COUNT(*) FROM scoring_policies WHERE cadre_id = (SELECT id FROM cadres WHERE code = 'PROFESSOR')")
                 .query(Integer.class).single());
     }
 
@@ -254,7 +257,11 @@ class ScoringComponentsTest {
         for (String cadre : SOURCE.keySet()) {
             JsonNode sheet = startAppraisal("c" + n + "@test.edu", "EC" + n, cadre).get("scores");
             n++;
-            int b1 = SOURCE.get(cadre)[0];
+            // B1 under the current policy: workload 20 for every cadre, so 40 / 40 / 35 / 35 / 35
+            int b1 = switch (cadre) {
+                case "LECTURER", "ASST_PROF" -> 40;
+                default -> 35;
+            };
             assertEquals(b1, sheet.get(0).get("maxMarks").asInt());
             int b1ToB4 = 0;
             for (int c = 1; c <= 3; c++) {
@@ -298,7 +305,7 @@ class ScoringComponentsTest {
         assertEquals("B1", lecturer.get(0).get("reference").asText());
         assertEquals(40, lecturer.get(0).get("maxMarks").asInt());
         assertEquals(B1_V33.get("LECTURER"), componentsOf(lecturer.get(0)));
-        assertEquals(30, professor.get(0).get("maxMarks").asInt());
+        assertEquals(35, professor.get(0).get("maxMarks").asInt());
         assertEquals(B1_V33.get("PROFESSOR"), componentsOf(professor.get(0)));
         // B2 has the same four parts for every cadre now
         assertEquals(4, professor.get(1).get("components").size());
@@ -334,7 +341,7 @@ class ScoringComponentsTest {
 
         JsonNode v2 = http.read(http.post(http.login("admin@test.edu"), "/api/admin/policies",
                 Map.of("academicYearId", year, "cadreId", cadre, "marks", marks)).andExpect(status().isCreated()));
-        assertEquals(5, v2.get("version").asInt());          // after the document's version 1 and versions 2, 3 and 4
+        assertEquals(6, v2.get("version").asInt());          // after the document's version 1 and versions 2, 3, 4 and 5
         // unchanged maxima keep their components; a changed maximum is published without a breakdown that no longer adds up
         assertEquals(4, v2.get("components").get("STUDENT_MENTORING").size());
         assertEquals(4, v2.get("components").get("ADMINISTRATIVE").size());

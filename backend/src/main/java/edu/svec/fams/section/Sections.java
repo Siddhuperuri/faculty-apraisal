@@ -26,8 +26,8 @@ public final class Sections {
     /** A faculty member teaches 4 courses in each of the year's 2 semesters; no more can be added. */
     public static final int MAX_COURSES = 8;
 
-    /** A faculty member can record at most 2 funded projects or consultancies in an academic year (and they earn at most 10 marks). */
-    public static final int MAX_FUNDED_PROJECTS = 2;
+    /** The action plan may be at most this many words. */
+    public static final int MAX_ACTION_PLAN_WORDS = 2000;
 
     private static void add(SectionSpec s) { ALL.put(s.key(), s); }
 
@@ -48,13 +48,13 @@ public final class Sections {
 
         // Part B, 1. Teaching & Learning
         add(SectionSpec.list("teaching-courses", "teaching_courses",
-                text("courseCode", "course_code", "Course code", 32, true),
+                text("courseCode", "course_code", "Course Code", 32, true),
                 listed("courseRole", "course_role", "Role in the course", true, "COURSE_ROLE"),
-                text("courseName", "course_name", "Course name", 160, true),
+                text("courseName", "course_name", "Course", 160, true),
                 listed("courseType", "course_type", "Course type", true, "COURSE_TYPE"),
                 listed("program", "program", "Program", true, "PROGRAM"),
                 listed("branch", "branch", "Branch", true, "BRANCH"),
-                integer("semester", "semester", "Semester", 1, 12, true).fromList("SEMESTER"),
+                integer("semester", "semester", "Semester", 1, 8, true).fromList("SEMESTER"),
                 listed("section", "class_section", "Section", true, "SECTION"),
                 decimal("hoursPerWeek", "hours_per_week", "Hours per week", 1, 6, 0, true).fromList("HOURS_PER_WEEK"),
                 decimal("passPercentage", "pass_percentage", "Pass percentage", 0, 100, 2, true),
@@ -103,20 +103,32 @@ public final class Sections {
         // 4. Administrative responsibilities
         add(SectionSpec.list("administrative-roles", "administrative_roles",
                 choice("scope", "scope", "Level", true, "INSTITUTE", "DEPARTMENT"),
-                text("role", "role", "Role", 160, true),
+                listed("roleCode", "role_code", "Role", true, "ADMIN_ROLE"),
+                text("roleOther", "role_other", "Other role", 160, false),
                 text("description", "description", "Responsibility or description", 1000, false),
                 date("fromDate", "from_date", "From date", true),
-                date("toDate", "to_date", "To date", true))
+                date("toDate", "to_date", "To date", true),
+                text("role", "role", "Role (as reported)", 160, false))
                 .dateRange("fromDate", "toDate")
-                .suggestions("role", "scope", Map.of("INSTITUTE", "INSTITUTE_ROLE_SUGGESTION", "DEPARTMENT", "DEPARTMENT_ROLE_SUGGESTION")));
+                .dependentChoice("roleCode", "scope", "ADMIN_ROLE")
+                .conditionalField("roleOther", "roleCode", "OTHER")
+                .effectiveText("role", "roleCode", "roleOther", "ADMIN_ROLE"));
         add(SectionSpec.list("events", "events",
-                text("activityType", "activity_type", "Type of activity", 80, true),
-                text("role", "role", "Role", 80, true),
+                listed("activityCode", "activity_code", "Type of activity", true, "EVENT_ACTIVITY"),
+                text("activityOther", "activity_other", "Other type of activity", 80, false),
+                listed("roleCode", "role_code", "Role", true, "EVENT_ROLE"),
+                text("roleOther", "role_other", "Other role", 80, false),
                 text("title", "title", "Title or details of the event", 300, true),
                 date("startDate", "start_date", "Start date", true),
                 date("endDate", "end_date", "End date", true),
-                integer("beneficiaries", "beneficiaries", "Number of beneficiaries", 0, 100000, true))
-                .dateRange("startDate", "endDate"));
+                integer("beneficiaries", "beneficiaries", "Number of beneficiaries", 0, 100000, true),
+                text("activityType", "activity_type", "Type of activity (as reported)", 80, false),
+                text("role", "role", "Role (as reported)", 80, false))
+                .dateRange("startDate", "endDate")
+                .conditionalField("activityOther", "activityCode", "OTHER")
+                .conditionalField("roleOther", "roleCode", "OTHER")
+                .effectiveText("activityType", "activityCode", "activityOther", "EVENT_ACTIVITY")
+                .effectiveText("role", "roleCode", "roleOther", "EVENT_ROLE"));
 
         // 5. Research & publications
         add(SectionSpec.list("journal-publications", "journal_publications",
@@ -168,7 +180,6 @@ public final class Sections {
                 listed("status", "status", "Status", true, "FUNDED_STATUS"),
                 year("year", "year", "Year", true))
                 .dateRange("startDate", "endDate")
-                .maxRecords(MAX_FUNDED_PROJECTS, "funded projects")
                 .summary(Summaries::fundedProjects));
 
         // 7. Patents, books & IPR
@@ -209,6 +220,10 @@ public final class Sections {
         add(SectionSpec.single("other-contributions", "other_contributions",
                 text("departmentContribution", "department_contribution", "Contribution at department level", 5000, false),
                 text("instituteContribution", "institute_contribution", "Contribution at institute level", 5000, false)));
+
+        // 11. Action plan for the next 2 years: one text of at most 2,000 words, required before the appraisal is submitted
+        add(SectionSpec.single("action-plan", "action_plan",
+                FieldSpec.words("plan", "plan_text", "Action plan", MAX_ACTION_PLAN_WORDS, false).forSubmission()));
     }
 
     /**

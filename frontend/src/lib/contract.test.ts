@@ -90,13 +90,13 @@ describe("form structure vs server definitions", () => {
     expect(f.get("section")!.allowed).toEqual(["A", "B", "C", "D", "E"]);
     expect(f.get("hoursPerWeek")!.allowed).toEqual(["1", "2", "3", "4", "5", "6"]);
     expect([f.get("hoursPerWeek")!.min, f.get("hoursPerWeek")!.max]).toEqual([1, 6]);
-    expect(f.get("semester")!.allowed).toHaveLength(12);
+    expect(f.get("semester")!.allowed).toHaveLength(8);   // semesters 1 to 8 for every department
   });
 
-  it("the administrative role fields say the role can be selected or entered", () => {
+  it("the administrative role fields say the role is chosen, and Other lets it be typed", () => {
     const roles = PAGES.flatMap((p) => p.sections).filter((s) => s.key === "administrative-roles");
     expect(roles).toHaveLength(2);
-    for (const ui of roles) expect(ui.fieldHints?.role).toBe("Select or enter your role");
+    for (const ui of roles) expect(ui.fieldHints?.roleCode).toBe("Choose a role; pick Other to type your own");
   });
 
   it("FDPs have a duration in days and no dates; certifications have weeks and a platform name for Other", () => {
@@ -121,12 +121,39 @@ describe("form structure vs server definitions", () => {
     expect(titles).not.toContain("Conference papers presented");
   });
 
-  it("the course is chosen from ECAP: its code and name are real fields and not typed", () => {
+  it("courses are typed: Course and Course Code are two ordinary fields, semester is 1 to 8, and ECAP is not involved", () => {
     const ui = PAGES.flatMap((p) => p.sections).find((x) => x.key === "teaching-courses")!;
-    expect(ui.ecapCourse).toEqual({ code: "courseCode", name: "courseName" });
-    const fields = new Set(byKey.get("teaching-courses")!.fields.map((f) => f.name));
-    expect(fields.has(ui.ecapCourse!.code)).toBe(true);
-    expect(fields.has(ui.ecapCourse!.name)).toBe(true);
+    expect("ecapCourse" in ui).toBe(false);
+    const fields = byKey.get("teaching-courses")!.fields;
+    expect(fields.find((f) => f.name === "courseName")).toMatchObject({ label: "Course", required: true });
+    expect(fields.find((f) => f.name === "courseCode")).toMatchObject({ label: "Course Code", required: true });
+    const semester = fields.find((f) => f.name === "semester")!;
+    expect(semester.allowed).toEqual(["1", "2", "3", "4", "5", "6", "7", "8"]);
+    expect(semester).toMatchObject({ min: 1, max: 8 });
+  });
+
+  it("the action plan is section 12: one text of at most 2,000 words, needed to submit", () => {
+    const page = PAGES.find((p) => p.slug === "action-plan")!;
+    expect(page.number).toBe("12");
+    expect(page.title).toBe("Action Plan for the Next 2 Years");
+    const plan = byKey.get("action-plan")!;
+    expect(plan.singleton).toBe(true);
+    const field = plan.fields.find((f) => f.name === "plan")!;
+    expect(field).toMatchObject({ maxWords: 2000, submitRequired: true, required: false });
+    expect(PAGES.map((p) => p.number)).toEqual(["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]);
+  });
+
+  it("institute and department roles, and the type and role of an event, are dropdowns that end in Other", () => {
+    const roles = byKey.get("administrative-roles")!.fields;
+    const code = roles.find((f) => f.name === "roleCode")!;
+    expect(code.dependsOn).toBe("scope");
+    expect(code.allowedBy!.INSTITUTE.at(-1)).toBe("OTHER");
+    expect(code.allowedBy!.DEPARTMENT.at(-1)).toBe("OTHER");
+    expect(roles.find((f) => f.name === "roleOther")).toMatchObject({ onlyWhenField: "roleCode", onlyWhenEquals: "OTHER" });
+    expect(roles.find((f) => f.name === "role")!.effective).toBe(true);
+    const events = byKey.get("events")!.fields;
+    for (const f of ["activityCode", "roleCode"]) expect(events.find((x) => x.name === f)!.allowed!.at(-1)).toBe("OTHER");
+    expect(events.find((x) => x.name === "activityOther")).toMatchObject({ onlyWhenField: "activityCode" });
   });
 
   it("institutional roles are on the Teaching & Learning page, from a database list", () => {
@@ -137,9 +164,9 @@ describe("form structure vs server definitions", () => {
     expect(role.labels?.HOD).toBeTruthy();
   });
 
-  it("funded projects are limited to two, an ISBN is required, and institute roles come before department roles", () => {
+  it("funded projects are not limited in number, an ISBN is required, and institute roles come before department roles", () => {
     const funded = PAGES.flatMap((p) => p.sections).find((x) => x.key === "funded-projects")!;
-    expect(funded.maxRecords).toBe(2);
+    expect(funded.maxRecords).toBeUndefined();
     expect(byKey.get("books")!.fields.find((f) => f.name === "isbn")!.required).toBe(true);
     const roles = PAGES.find((p) => p.slug === "administration")!.sections.filter((x) => x.key === "administrative-roles");
     expect(roles.map((x) => x.scope?.value)).toEqual(["INSTITUTE", "DEPARTMENT"]);

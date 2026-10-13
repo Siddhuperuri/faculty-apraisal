@@ -1,8 +1,9 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import { enumLabel } from "@/lib/labels";
 import type { FieldMeta } from "@/lib/types";
+import { countWords, liveFieldError } from "@/lib/validate";
 
 const CONTROL =
   "block w-full rounded-sm border bg-surface px-3 py-2 text-[15px] text-ink shadow-[inset_0_1px_2px_rgb(20_30_54/0.06)] transition-shadow placeholder:text-muted focus:border-brand focus:shadow-[0_0_0_3px_rgb(0_112_192/0.15)] disabled:cursor-not-allowed disabled:bg-canvas disabled:text-muted disabled:shadow-none";
@@ -34,32 +35,43 @@ export function FieldInput({
   suggestions?: string[];
   autoFocus?: boolean;
   /** The first and last day (YYYY-MM-DD) a date or month input offers; the whole calendar when omitted. */
-  range?: { start: string; end: string };
+  range?: { start: string; end: string; name?: string };
   /** Show a choice with few options as radio buttons (one can be picked) instead of a drop-down. */
   radio?: boolean;
 }) {
   const uid = useId();
   const id = `f-${uid}`;
-  const describedBy = [error ? `${id}-err` : null, hint ? `${id}-hint` : null].filter(Boolean).join(" ") || undefined;
-  const border = error ? "border-bad" : "border-line-strong";
+  // Checked while the person types and when they leave the field, not only when they press Save. A message the page
+  // itself supplies (the whole form's check, or the server's) wins; this fills in where the page has none.
+  const [touched, setTouched] = useState(false);
+  const required = meta.required || meta.onlyWhenField != null;
+  const own = touched && !disabled ? liveFieldError(meta, value, required, range) : null;
+  const shownError = error ?? own ?? undefined;
+  const handleBlur = () => {
+    setTouched(true);
+    onBlur?.();
+  };
+  const handleChange = (v: string) => {
+    setTouched(true);
+    onChange(v);
+  };
+  const describedBy = [shownError ? `${id}-err` : null, hint ? `${id}-hint` : null].filter(Boolean).join(" ") || undefined;
+  const border = shownError ? "border-bad" : "border-line-strong";
   const common = {
     id,
     name: meta.name,
     value,
     disabled,
     autoFocus,
-    "aria-invalid": error ? true : undefined,
+    "aria-invalid": shownError ? true : undefined,
     "aria-describedby": describedBy,
-    "aria-required": meta.required || meta.onlyWhenField != null || undefined,
-    onBlur,
+    "aria-required": required || undefined,
+    onBlur: handleBlur,
   } as const;
-
-  // Asked for only under another choice (a platform name when the platform is Other): required while it is shown.
-  const required = meta.required || meta.onlyWhenField != null;
 
   if (radio && meta.type === "ENUM") {
     return (
-      <fieldset aria-describedby={describedBy} aria-invalid={error ? true : undefined}>
+      <fieldset aria-describedby={describedBy} aria-invalid={shownError ? true : undefined}>
         <legend className="mb-1 block text-[13px] font-semibold tracking-wide">
           {meta.label}
           <span aria-hidden className="ml-0.5 text-bad">
@@ -77,8 +89,8 @@ export function FieldInput({
                 checked={value === a}
                 disabled={disabled}
                 autoFocus={autoFocus && i === 0}
-                onChange={() => onChange(a)}
-                onBlur={onBlur}
+                onChange={() => handleChange(a)}
+                onBlur={handleBlur}
                 className="h-4 w-4 accent-[var(--color-brand,#0070c0)]"
               />
               {meta.labels?.[a] ?? enumLabel(a)}
@@ -90,9 +102,9 @@ export function FieldInput({
             {hint}
           </p>
         )}
-        {error && (
+        {shownError && (
           <p id={`${id}-err`} className="mt-1 text-sm font-medium text-bad">
-            {error}
+            {shownError}
           </p>
         )}
       </fieldset>
@@ -103,7 +115,7 @@ export function FieldInput({
   const numericChoice = (meta.type === "INT" || meta.type === "DECIMAL") && (meta.allowed?.length ?? 0) > 0;
   if (meta.type === "ENUM" || numericChoice) {
     control = (
-      <select {...common} onChange={(e) => onChange(e.target.value)} className={`${CONTROL} ${border}`}>
+      <select {...common} onChange={(e) => handleChange(e.target.value)} className={`${CONTROL} ${border}`}>
         <option value="">Select…</option>
         {meta.allowed?.map((a) => (
           <option key={a} value={a}>
@@ -115,10 +127,27 @@ export function FieldInput({
   } else if (meta.type === "TEXT" && (meta.maxLength ?? 0) > 300) {
     control = (
       <>
-        <textarea {...common} rows={5} maxLength={meta.maxLength ?? undefined} onChange={(e) => onChange(e.target.value)} className={`${CONTROL} ${border}`} />
-        <p className="mt-1 text-right text-xs text-muted" aria-hidden>
-          {value.length} / {meta.maxLength}
-        </p>
+        <textarea
+          {...common}
+          rows={meta.maxWords != null ? 14 : 5}
+          maxLength={meta.maxWords != null ? undefined : (meta.maxLength ?? undefined)}
+          onChange={(e) => handleChange(e.target.value)}
+          className={`${CONTROL} ${border}`}
+        />
+        {meta.maxWords != null ? (
+          <p
+            className={`mt-1 text-right text-xs tabular-nums ${countWords(value) > meta.maxWords ? "font-semibold text-bad" : "text-muted"}`}
+            role="status"
+            aria-live="polite"
+            data-word-count
+          >
+            {countWords(value).toLocaleString("en-US")} / {meta.maxWords.toLocaleString("en-US")} words
+          </p>
+        ) : (
+          <p className="mt-1 text-right text-xs text-muted" aria-hidden>
+            {value.length} / {meta.maxLength}
+          </p>
+        )}
       </>
     );
   } else if (meta.type === "DATE" || meta.type === "MONTH_YEAR") {
@@ -128,7 +157,7 @@ export function FieldInput({
         type={meta.type === "DATE" ? "date" : "month"}
         min={meta.type === "DATE" ? (range?.start ?? "1950-01-01") : range?.start.slice(0, 7)}
         max={meta.type === "DATE" ? (range?.end ?? "2100-12-31") : range?.end.slice(0, 7)}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => handleChange(e.target.value)}
         className={`${CONTROL} ${border}`}
       />
     );
@@ -144,7 +173,7 @@ export function FieldInput({
           inputMode={meta.type === "INT" ? "numeric" : meta.type === "DECIMAL" ? "decimal" : undefined}
           maxLength={meta.type === "TEXT" ? (meta.maxLength ?? undefined) : undefined}
           autoComplete="off"
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => handleChange(e.target.value)}
           className={`${CONTROL} ${border} ${numeric ? "tabular-nums" : ""}`}
         />
         {list && (
@@ -179,9 +208,9 @@ export function FieldInput({
           {hint}
         </p>
       )}
-      {error && (
+      {shownError && (
         <p id={`${id}-err`} className="mt-1 text-sm font-medium text-bad">
-          {error}
+          {shownError}
         </p>
       )}
     </div>
