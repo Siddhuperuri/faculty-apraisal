@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { SessionTimeout } from "@/components/auth/SessionTimeout";
+import { PasswordReminder } from "@/components/auth/PasswordReminder";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/primitives";
 import { ROLE_LABEL } from "@/lib/labels";
@@ -48,11 +49,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </span>
               </span>
               <ThemeToggle className="text-white/85 hover:bg-white/10 hover:text-white focus-visible:outline-white" />
-              {!user.mustChangePassword && (
-                <Link href="/account" className="rounded-full px-3 py-2 text-[13px] font-semibold text-white/85 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-white">
-                  Account
-                </Link>
-              )}
+              <Link href="/account" className="rounded-full px-3 py-2 text-[13px] font-semibold text-white/85 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-white">
+                Account
+              </Link>
               <Button variant="secondary" size="sm" onClick={() => void logout()}>
                 Sign out
               </Button>
@@ -61,6 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <div className="letterhead-rule" aria-hidden />
       </header>
+      {user?.passwordChangeRecommended && <PasswordReminder />}
       <main id="main" className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
         {children}
         <SessionTimeout />

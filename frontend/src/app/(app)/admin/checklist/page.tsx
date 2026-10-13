@@ -22,7 +22,7 @@ const BEFORE_GO_LIVE: Item[] = [
   { text: "A backup has been made, is scheduled to run every night, and a copy is kept away from the server.", link: { href: "/admin/health", label: "System health" } },
   { text: "A restore has been tried on a spare machine, and the test is recorded.", link: { href: "/admin/health", label: "System health" } },
   { text: "The Handover page is filled in: who manages the server, whom to call, where the backups are.", link: { href: "/admin/handover", label: "Handover" } },
-  { text: "Everyone has been told the old password, that they must choose their own at first sign-in, and has the user guide." },
+  { text: "Everyone has been told the old password, that they are advised to choose their own password under Account, and has the user guide." },
 ];
 
 const END_OF_YEAR: Item[] = [

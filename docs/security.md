@@ -60,8 +60,8 @@ against guessing, and the administrator and reviewer areas are still enforced on
 - **Dev accounts:** created only under the `dev` profile, with the old password (see the note on it below).
   Never enable that profile in production.
 - **Sessions follow the database:** `SessionGuardFilter` re-checks the account on every request. Disabling an account,
-  changing its role, deleting it, or changing/resetting its password ends the affected sessions at once (401). A user
-  whose password was issued by an administrator can do nothing but change it (403 `PASSWORD_CHANGE_REQUIRED`).
+  changing its role, deleting it, or changing/resetting its password ends the affected sessions at once (401). A temporary
+  or reset password does not limit access: the change is optional and only recommended (`passwordChangeRecommended` in `me`).
 - **Passwords people choose:** at least 10 characters, a letter and a number, at most 72 bytes, no leading or trailing
   space, at least five different characters, not containing the e-mail name, and not a common word or the college's
   name dressed up with digits and symbols (`Password@2026`, `Welcome#12345`, `Svec@123456`). Changing needs the current
@@ -70,8 +70,8 @@ against guessing, and the administrator and reviewer areas are still enforced on
 - **Administration:** `/api/admin/**` is ADMIN only twice over (URL rule and `@PreAuthorize`); tested against every
   other role and anonymous callers for every endpoint. Every new account, and every account an administrator resets, starts with the
   one standard password (`DefaultPassword`; `Srivasavi@123` unless `FAMS_DEFAULT_PASSWORD` is set), stored as BCrypt only
-  and never logged, audited or listed. The account is flagged `must_change_password`, so nothing but changing it works
-  until the person has, and the password rules refuse the standard password as a choice. An administrator cannot disable or reset
+  and never logged, audited or listed. The account is flagged `must_change_password`, which only makes the interface recommend a change (a banner);
+  it never limits what the person can do, and the password rules refuse the standard password as a choice. An administrator cannot disable or reset
   their own account, cannot change a role, and cannot read appraisal content or the file names in audit entries about
   appraisals. The audit trail is paged with a hard size cap.
 - **Document storage:** issued reports are kept in `FAMS_STORAGE_DIR`, which must be an absolute path

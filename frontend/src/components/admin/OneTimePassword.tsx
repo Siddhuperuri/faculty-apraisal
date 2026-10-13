@@ -62,8 +62,8 @@ function Body({ issued, reason }: { issued: IssuedPassword; reason: "created" | 
           {copied === "no" && <span className="text-bad">Could not copy; select the password above and copy it.</span>}
         </span>
       </div>
-      <Alert tone="warn" title="They must choose their own password">
-        Give it to the person privately. The first time they sign in they are asked to replace it with a password only they know.
+      <Alert tone="warn" title="They should choose their own password">
+        Give it to the person privately. They can start using the application at once and are reminded to replace it with a password only they know (Account → Change password).
       </Alert>
     </div>
   );

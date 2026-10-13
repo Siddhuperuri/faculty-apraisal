@@ -40,10 +40,17 @@ public class ReferenceController {
         return data.add(me.id(), list, body);
     }
 
-    /** Body: any of {@code label}, {@code reportLabel}, {@code sortOrder}, {@code active}. */
+    /** Body: any of {@code label}, {@code reportLabel}, {@code active}. The place of a value is changed with {@code move}. */
     @PutMapping("/values/{id}")
     public ReferenceData.Value update(@AuthenticationPrincipal FamsUserPrincipal me, @PathVariable long id,
                                       @RequestBody Map<String, Object> body) {
         return data.update(me.id(), id, body);
+    }
+
+    /** Body: {@code {"direction": "UP" | "DOWN"}}: one place earlier or later among the active values; saved at once. */
+    @PostMapping("/values/{id}/move")
+    public ReferenceData.Value move(@AuthenticationPrincipal FamsUserPrincipal me, @PathVariable long id,
+                                    @RequestBody Map<String, Object> body) {
+        return data.move(me.id(), id, body.get("direction"));
     }
 }

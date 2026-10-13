@@ -76,11 +76,11 @@ class AuthIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON).content(loginJson("faculty@test.edu", TestDb.PASSWORD)))
                 .andReturn();
         String body = login.getResponse().getContentAsString();
-        assertFalse(body.replace("mustChangePassword", "").toLowerCase().contains("password"), body);   // the flag's name is not a secret
+        assertFalse(body.replace("passwordChangeRecommended", "").toLowerCase().contains("password"), body);   // the flag's name is not a secret
         assertFalse(body.contains("$2a$"), body);
         String me = mvc.perform(get("/api/auth/me").session((MockHttpSession) login.getRequest().getSession(false)))
                 .andReturn().getResponse().getContentAsString();
-        assertFalse(me.replace("mustChangePassword", "").toLowerCase().contains("password"), me);
+        assertFalse(me.replace("passwordChangeRecommended", "").toLowerCase().contains("password"), me);
     }
 
     @Test

@@ -42,7 +42,7 @@ public class AuthController {
     public record LoginRequest(@NotBlank @Size(max = 190) String email,
                                @NotBlank @Size(max = 200) String password) {}
 
-    public record MeResponse(Long id, String email, Role role, boolean mustChangePassword) {}
+    public record MeResponse(Long id, String email, Role role, boolean passwordChangeRecommended) {}
 
     public record ChangePasswordRequest(@NotBlank @Size(max = 200) String currentPassword,
                                         @NotBlank @Size(max = 200) String newPassword) {}
@@ -156,6 +156,6 @@ public class AuthController {
     }
 
     private MeResponse toMe(FamsUserPrincipal p) {
-        return new MeResponse(p.id(), p.email(), p.role(), accounts.state(p.id()).mustChangePassword());
+        return new MeResponse(p.id(), p.email(), p.role(), accounts.state(p.id()).changeRecommended());
     }
 }

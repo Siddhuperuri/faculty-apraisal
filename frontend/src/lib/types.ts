@@ -12,8 +12,8 @@ export interface Me {
   id: number;
   email: string;
   role: Role;
-  /** An administrator issued a one-time password: nothing else is allowed until it is replaced. */
-  mustChangePassword: boolean;
+  /** A temporary or reset password is still in use: the interface recommends changing it, nothing is blocked. */
+  passwordChangeRecommended: boolean;
 }
 
 export interface ListItem {
@@ -215,6 +215,7 @@ export interface AdminUserRow {
   role: Role | WithdrawnRole;
   status: "ACTIVE" | "DISABLED";
   lastLoginAt: string | null;
+  /** The person has not yet chosen a password of their own (a temporary or reset one is in use). */
   mustChangePassword: boolean;
   name: string | null;
   employeeId: string | null;

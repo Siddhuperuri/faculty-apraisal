@@ -9,7 +9,6 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -47,16 +46,15 @@ public class AppraisalExportService {
 
     /** The columns, as the department review sheet names them. */
     static final List<String> HEADERS = List.of(
-            "S.No.", "Name of the Faculty", "Employee ID", "Department", "Designation / Cadre", "Date of Joining", "Academics",
-            "NPTEL and other Global Certifications", "FDPs Attended", "FDPs / Guest Lectures / Workshops Organized",
-            "Journals / Conferences / Other Patents", "Contributions to the College / Department and Other Remarks",
+            "S.No.", "Faculty Name", "Employee ID", "Department", "Cadre", "Date of Joining", "Academics",
+            "Certifications", "FDPs Attended", "FDPs/Guest Lectures/Workshops Organized",
+            "Journals/Conferences/Patents", "Contributions/Remarks",
             "Appraisal Status", "Submitted Date", "HoD Remarks");
 
     /** What a cell with nothing to show contains. */
     static final String NONE = "—";
 
     private static final ZoneId COLLEGE_ZONE = ZoneId.of("Asia/Kolkata");
-    private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm", Locale.ENGLISH);
 
     private record Faculty(long id, String name, String employeeId, long departmentId, String departmentCode, String department,
                            String cadre, LocalDate joined, Long appraisalId, String status, OffsetDateTime submittedAt) {
@@ -117,8 +115,9 @@ public class AppraisalExportService {
         for (Faculty f : faculty) {
             boolean visible = f.visible();
             Long a = f.appraisalId();
-            rows.add(List.of(
-                    ++serial, f.name(), f.employeeId(), f.department(), f.cadre(),
+            // null-tolerant list: a missing value is shown as NONE, never an exception
+            rows.add(java.util.Arrays.asList(
+                    ++serial, text(f.name()), text(f.employeeId()), text(f.department()), text(f.cadre()),
                     f.joined() == null ? NONE : f.joined(),
                     visible ? joined(content.academics.get(a)) : NONE,
                     visible ? joined(content.certifications.get(a)) : NONE,
@@ -139,9 +138,8 @@ public class AppraisalExportService {
         }
         String scope = names.size() == 1 ? names.first() : names.size() <= 4 ? String.join(", ", codes) : names.size() + " departments";
         String title = "Faculty appraisal details - " + yearName + " - " + scope;
-        String subtitle = faculty.size() + " faculty. Exported by " + (actor.role() == Role.ADMIN ? "the administrator" : "the Head of the Department")
-                + " on " + STAMP.format(java.time.ZonedDateTime.now(COLLEGE_ZONE)) + ".";
-        ExportTable table = new ExportTable("Appraisals", title, subtitle, HEADERS, rows);
+        // One title line and one header row: no subtitle, so the sheet is the title, the header and one row per faculty member.
+        ExportTable table = new ExportTable("Appraisals", title, null, HEADERS, rows);
         byte[] bytes = request.format().render(table);
 
         Map<String, Object> details = new LinkedHashMap<>();
@@ -155,8 +153,7 @@ public class AppraisalExportService {
         details.put("actorRole", actor.role().name());
         audit.recordDetails(actor.id(), "EXPORT_APPRAISALS", "APPRAISAL_EXPORT", null, details);
 
-        String fileName = "faculty-appraisals-" + slug(codes.size() <= 3 ? String.join("-", codes) : "departments") + "-" + slug(yearName)
-                + "." + request.format().extension();
+        String fileName = fileName(actor.role(), yearName, codes, request.format());
         return new ExportFile(fileName, request.format(), bytes, rows.size());
     }
 
@@ -188,9 +185,19 @@ public class AppraisalExportService {
         return sb.toString();
     }
 
-    private static String slug(String s) {
-        String v = s.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("^-+|-+$", "");
-        return v.isEmpty() ? "all" : v;
+    private static String text(String s) {
+        return s == null || s.isBlank() ? NONE : s;
+    }
+
+    /** {@code HOD_Appraisal_Export_2025-26_CSE.xlsx}: who, what, the year and the department code(s). */
+    static String fileName(Role role, String year, Set<String> departmentCodes, ExportFormat format) {
+        String scope = departmentCodes.isEmpty() || departmentCodes.size() > 3 ? "Departments" : String.join("-", departmentCodes);
+        return (role == Role.ADMIN ? "Admin" : "HOD") + "_Appraisal_Export_" + safe(year) + "_" + safe(scope) + "." + format.extension();
+    }
+
+    private static String safe(String s) {
+        String v = s.replaceAll("[^A-Za-z0-9-]+", "-").replaceAll("^-+|-+$", "");
+        return v.isEmpty() ? "All" : v;
     }
 
     // ------------------------------------------------------------------ the entries, a query per kind

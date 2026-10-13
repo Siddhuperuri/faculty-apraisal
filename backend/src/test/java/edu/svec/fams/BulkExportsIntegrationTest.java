@@ -190,10 +190,41 @@ class BulkExportsIntegrationTest {
         return out;
     }
 
-    private static final List<String> HEADERS = List.of("S.No.", "Name of the Faculty", "Employee ID", "Department", "Designation / Cadre",
-            "Date of Joining", "Academics", "NPTEL and other Global Certifications", "FDPs Attended",
-            "FDPs / Guest Lectures / Workshops Organized", "Journals / Conferences / Other Patents",
-            "Contributions to the College / Department and Other Remarks", "Appraisal Status", "Submitted Date", "HoD Remarks");
+    private static final List<String> HEADERS = List.of("S.No.", "Faculty Name", "Employee ID", "Department", "Cadre",
+            "Date of Joining", "Academics", "Certifications", "FDPs Attended",
+            "FDPs/Guest Lectures/Workshops Organized", "Journals/Conferences/Patents",
+            "Contributions/Remarks", "Appraisal Status", "Submitted Date", "HoD Remarks");
+
+    /** The cells of the workbook's only worksheet, row by row: {@code rows.get(0)} is sheet row 1, columns A.. in order. */
+    private static List<List<String>> sheetRows(byte[] xlsx) throws Exception {
+        Map<String, byte[]> parts = unzip(xlsx);
+        DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
+        f.setNamespaceAware(true);
+        f.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        org.w3c.dom.Document doc = f.newDocumentBuilder().parse(new ByteArrayInputStream(parts.get("xl/worksheets/sheet1.xml")));
+        org.w3c.dom.NodeList rows = doc.getElementsByTagNameNS("*", "row");
+        List<List<String>> out = new ArrayList<>();
+        for (int i = 0; i < rows.getLength(); i++) {
+            org.w3c.dom.Element row = (org.w3c.dom.Element) rows.item(i);
+            assertEquals(String.valueOf(i + 1), row.getAttribute("r"), "rows are numbered one after another, no gaps");
+            org.w3c.dom.NodeList cells = row.getElementsByTagNameNS("*", "c");
+            List<String> values = new ArrayList<>();
+            for (int c = 0; c < cells.getLength(); c++) {
+                org.w3c.dom.Element cell = (org.w3c.dom.Element) cells.item(c);
+                String column = String.valueOf((char) ('A' + c));
+                assertEquals(column + (i + 1), cell.getAttribute("r"), "cells run A, B, C... with no gaps");
+                values.add(cell.getTextContent());
+            }
+            out.add(values);
+        }
+        return out;
+    }
+
+    private static int count(String haystack, String needle) {
+        int n = 0;
+        for (int i = haystack.indexOf(needle); i >= 0; i = haystack.indexOf(needle, i + needle.length())) n++;
+        return n;
+    }
 
     private static List<String> rowFor(List<List<String>> table, String employeeId) {
         return table.stream().filter(r -> r.size() > 2 && r.get(2).equals(employeeId)).findFirst().orElseThrow();
@@ -208,7 +239,8 @@ class BulkExportsIntegrationTest {
         MockHttpServletResponse res = r.andReturn().getResponse();
         assertTrue(res.getContentType().startsWith("text/csv"));
         assertTrue(res.getHeader("Content-Disposition").contains("attachment"));
-        assertTrue(res.getHeader("Content-Disposition").contains(".csv"));
+        assertTrue(res.getHeader("Content-Disposition").contains("HOD_Appraisal_Export_2025-26_CSE.csv"), res.getHeader("Content-Disposition"));
+        assertEquals("text/csv; charset=utf-8", res.getHeader("Content-Type").toLowerCase());
 
         List<List<String>> t = csv(text(r));
         // the title and the subtitle come first in a workbook; a CSV file is the header row and the data
@@ -218,7 +250,7 @@ class BulkExportsIntegrationTest {
         assertEquals("Dr. E-WITH", w.get(1));
         assertEquals(DEPARTMENT_CSE, w.get(3));
         assertEquals("With HoD", w.get(12));
-        assertEquals("2026-01-15", w.get(13));
+        assertEquals("15-Jan-2026", w.get(13));
         assertEquals("Please add the lab results.", w.get(14));
         assertTrue(w.get(6).contains("CS301 - Data Structures"), w.get(6));
         assertTrue(w.get(6).contains("CS302 - Operating Systems"), w.get(6));
@@ -301,7 +333,7 @@ class BulkExportsIntegrationTest {
         r.andExpect(status().isOk());
         MockHttpServletResponse res = r.andReturn().getResponse();
         assertEquals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", res.getContentType());
-        assertTrue(res.getHeader("Content-Disposition").contains(".xlsx"));
+        assertTrue(res.getHeader("Content-Disposition").contains("HOD_Appraisal_Export_2025-26_CSE.xlsx"), res.getHeader("Content-Disposition"));
         assertEquals("no-store", res.getHeader("Cache-Control"));
 
         Map<String, byte[]> parts = unzip(res.getContentAsByteArray());
@@ -314,7 +346,7 @@ class BulkExportsIntegrationTest {
         String sheet = new String(parts.get("xl/worksheets/sheet1.xml"), StandardCharsets.UTF_8);
         assertTrue(sheet.contains("state=\"frozen\""), "the header row is frozen");
         assertTrue(sheet.contains(("Faculty appraisal details - 2025-26 - " + DEPARTMENT_CSE).replace("&", "&amp;")), "the title names year and department");
-        assertTrue(sheet.contains("Name of the Faculty") && sheet.contains("HoD Remarks"));
+        assertTrue(sheet.contains("Faculty Name") && sheet.contains("HoD Remarks"));
         assertTrue(sheet.contains("<cols>") && sheet.contains("customWidth=\"1\""), "the columns are sized");
         String styles = new String(parts.get("xl/styles.xml"), StandardCharsets.UTF_8);
         assertTrue(styles.contains("wrapText=\"1\""));
@@ -322,6 +354,142 @@ class BulkExportsIntegrationTest {
         // the submitted date is a real date (a number with the date style), not text
         assertTrue(sheet.matches("(?s).*<c r=\"N\\d+\" s=\"5\"><v>\\d+</v></c>.*"), "the submitted date is an Excel date");
         assertTrue(new String(parts.get("xl/workbook.xml"), StandardCharsets.UTF_8).contains("name=\"Appraisals\""));
+    }
+
+    // ------------------------------------------------------------------ the files themselves
+
+    /** Tricky content for the faculty member with content: commas, quotes, line breaks, long text and many records. */
+    private long awkwardContent() {
+        long a = jdbc.sql("SELECT id FROM appraisals WHERE faculty_id = ?").param(facultyId(withContent)).query(Long.class).single();
+        jdbc.sql("INSERT INTO certifications (appraisal_id, platform, title, duration_weeks) VALUES (?, 'COURSERA', 'Deep Learning, \"Part 1\"', 8)").param(a).update();
+        jdbc.sql("INSERT INTO certifications (appraisal_id, platform, title, duration_weeks) VALUES (?, 'NPTEL', 'Data Science', 12)").param(a).update();
+        jdbc.sql("INSERT INTO fdps (appraisal_id, title, mode, institution_venue, days) VALUES (?, 'Cloud computing, basics', 'OFFLINE', 'JNTU', 3)").param(a).update();
+        jdbc.sql("""
+                INSERT INTO journal_publications (appraisal_id, title, author_position, journal, month_year, indexing)
+                VALUES (?, 'Second paper: \"quoted\", with comma', 'SECOND', 'J. Data', '2025-08', 'SCOPUS')""").param(a).update();
+        jdbc.sql("""
+                INSERT INTO review_actions (appraisal_id, actor_id, actor_role, action, from_status, to_status, comment)
+                VALUES (?, ?, 'HOD', 'HOD_APPROVE', 'HOD_REVIEW', 'PRINCIPAL_REVIEW', ?)""")
+                .params(a, hodCse.id(), "Good work, \"very\" good.\r\nSecond line\n\nThird line =1+1").update();
+        return a;
+    }
+
+    @Test
+    void theCsvIsOneHeaderAndOneRecordPerFacultyWithEveryAwkwardValueEscaped() throws Exception {
+        awkwardContent();
+        ResultActions r = hodExport(List.of(facultyId(withContent), facultyId(draft), facultyId(notStarted)), "csv");
+        r.andExpect(status().isOk());
+        byte[] raw = r.andReturn().getResponse().getContentAsByteArray();
+        assertEquals((byte) 0xEF, raw[0]);
+        assertEquals((byte) 0xBB, raw[1]);
+        assertEquals((byte) 0xBF, raw[2]);                                    // UTF-8 byte-order mark, for Excel
+
+        String body = text(r);
+        // one physical line per record: a header and three faculty, each ended by CRLF, none by a lone LF
+        String[] lines = body.split("\r\n", -1);
+        assertEquals(5, lines.length, "header + 3 records + the empty piece after the last CRLF");
+        assertEquals("", lines[4]);
+        for (String line : lines) assertFalse(line.contains("\n") || line.contains("\r"), "no line break inside a record");
+
+        List<List<String>> t = csv(body);
+        assertEquals(4, t.size());
+        for (List<String> row : t) assertEquals(15, row.size(), "every record has the 15 columns");
+        assertEquals(HEADERS, t.get(0));
+
+        List<String> w = rowFor(t, "E-WITH");
+        assertTrue(w.get(7).contains("Deep Learning, \"Part 1\""), "commas and quotes survive a round trip: " + w.get(7));
+        assertTrue(w.get(8).contains("Cloud computing, basics"), w.get(8));
+        assertTrue(w.get(10).contains("Second paper: \"quoted\", with comma"), w.get(10));
+        assertTrue(w.get(10).startsWith("1. ") && w.get(10).contains("; 2. "), "records are joined by a visible separator: " + w.get(10));
+        assertEquals("Good work, \"very\" good.; Second line; Third line =1+1", w.get(14), "line breaks become '; '");
+        assertEquals("With HoD", w.get(12));
+        // the raw file has the quotes doubled and the comma-bearing fields quoted
+        assertTrue(body.contains("Deep Learning, \"\"Part 1\"\""), "a quote inside a quoted field is written as two quotes");
+    }
+
+    @Test
+    void theWorkbookHasOneSheetOneTitleOneHeaderAndOneAlignedRowPerFaculty() throws Exception {
+        awkwardContent();
+        ResultActions r = hodExport(List.of(facultyId(withContent), facultyId(draft), facultyId(notStarted)), "xlsx");
+        r.andExpect(status().isOk());
+        byte[] bytes = r.andReturn().getResponse().getContentAsByteArray();
+        Map<String, byte[]> parts = unzip(bytes);
+        String workbook = new String(parts.get("xl/workbook.xml"), StandardCharsets.UTF_8);
+        String sheetXml = new String(parts.get("xl/worksheets/sheet1.xml"), StandardCharsets.UTF_8);
+
+        assertEquals(1, count(workbook, "<sheet "), "one worksheet");
+        assertEquals(1, parts.keySet().stream().filter(n -> n.startsWith("xl/worksheets/sheet")).count());
+        assertFalse(sheetXml.contains("<mergeCell"), "no merged ranges");
+        assertEquals(1, count(sheetXml, "<autoFilter "), "the header row has a filter");
+        assertTrue(sheetXml.contains("<autoFilter ref=\"A2:O5\"/>"), sheetXml);
+        assertTrue(sheetXml.contains("<pane ySplit=\"2\" topLeftCell=\"A3\""), "the title and header rows are frozen");
+        assertTrue(sheetXml.contains("<dimension ref=\"A1:O5\"/>"), "no phantom rows or columns");
+
+        List<List<String>> rows = sheetRows(bytes);
+        assertEquals(5, rows.size(), "title + header + 3 faculty");
+        assertEquals(List.of("Faculty appraisal details - 2025-26 - " + DEPARTMENT_CSE), rows.get(0), "the title appears once, in A1");
+        assertEquals(HEADERS, rows.get(1), "the header row appears once");
+        long headerRows = rows.stream().filter(row -> row.equals(HEADERS)).count();
+        assertEquals(1, headerRows);
+        for (int i = 2; i < rows.size(); i++) assertEquals(15, rows.get(i).size(), "row " + (i + 1) + " has all 15 columns");
+
+        // sorted by department then name; each value sits under its own heading
+        List<String> w = rows.stream().skip(2).filter(row -> row.get(2).equals("E-WITH")).findFirst().orElseThrow();
+        assertEquals("Dr. E-WITH", w.get(1));
+        assertEquals(DEPARTMENT_CSE, w.get(3));
+        assertEquals(jdbc.sql("SELECT name FROM cadres WHERE code = 'ASST_PROF'").query(String.class).single(), w.get(4));
+        assertTrue(w.get(6).contains("CS301 - Data Structures") && w.get(6).contains("\n2. "), "a numbered list, one record per line");
+        assertTrue(w.get(7).contains("Deep Learning, \"Part 1\""));
+        assertTrue(w.get(8).contains("AI for teachers") && w.get(8).contains("Cloud computing, basics"));
+        assertTrue(w.get(9).contains("Python workshop"));
+        assertTrue(w.get(10).contains("A study of graphs") && w.get(10).contains("Second paper"));
+        assertTrue(w.get(11).contains("Timetable in-charge"));
+        assertEquals("With HoD", w.get(12));
+        assertEquals("46037", w.get(13), "15-Jan-2026 as an Excel date");
+        assertTrue(w.get(14).contains("Good work, \"very\" good."), w.get(14));
+        assertTrue(w.get(14).contains("\n") || w.get(14).contains("Second line"), "a remark with line breaks stays readable");
+
+        for (String id : List.of("E-DRAFT", "E-NONE")) {
+            List<String> row = rows.stream().skip(2).filter(x -> x.get(2).equals(id)).findFirst().orElseThrow();
+            assertEquals("Not submitted", row.get(12));
+            for (int c : new int[] {6, 7, 8, 9, 10, 11, 13, 14}) assertEquals("—", row.get(c), id + " column " + c);
+        }
+        // serial numbers 1, 2, 3 in the order shown
+        for (int i = 2; i < 5; i++) assertEquals(String.valueOf(i - 1), rows.get(i).get(0));
+    }
+
+    @Test
+    void aLongRemarkKeepsItsRowReadable() throws Exception {
+        long a = jdbc.sql("SELECT id FROM appraisals WHERE faculty_id = ?").param(facultyId(withContent)).query(Long.class).single();
+        String longText = ("A long remark about the department work, with detail. ").repeat(25);
+        jdbc.sql("""
+                INSERT INTO review_actions (appraisal_id, actor_id, actor_role, action, from_status, to_status, comment)
+                VALUES (?, ?, 'HOD', 'HOD_APPROVE', 'HOD_REVIEW', 'PRINCIPAL_REVIEW', ?)""").params(a, hodCse.id(), longText).update();
+        ResultActions xlsx = hodExport(List.of(facultyId(withContent)), "xlsx");
+        List<List<String>> rows = sheetRows(xlsx.andReturn().getResponse().getContentAsByteArray());
+        assertEquals(3, rows.size());
+        assertEquals(longText.strip(), rows.get(2).get(14));
+        String sheetXml = new String(unzip(xlsx.andReturn().getResponse().getContentAsByteArray()).get("xl/worksheets/sheet1.xml"), StandardCharsets.UTF_8);
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("<row r=\"3\" ht=\"([0-9.]+)\"").matcher(sheetXml);
+        assertTrue(m.find());
+        double height = Double.parseDouble(m.group(1));
+        assertTrue(height > 30 && height <= 409, "the row grows with its text but never beyond Excel's limit: " + height);
+        String csvBody = text(hodExport(List.of(facultyId(withContent)), "csv"));
+        assertEquals(2, csv(csvBody).size());
+    }
+
+    @Test
+    void anApprovalWithoutAnyRecordsStillGivesAlignedCells() throws Exception {
+        // a submitted appraisal with nothing entered at all: every content cell is "—", the other cells are where they should be
+        long none = submitted(db.faculty("empty@test.edu", "E-EMPTY", "CSE", "PROFESSOR"), "SUBMITTED");
+        ResultActions r = hodExport(List.of(jdbc.sql("SELECT faculty_id FROM appraisals WHERE id = ?").param(none).query(Long.class).single()), "xlsx");
+        List<List<String>> rows = sheetRows(r.andReturn().getResponse().getContentAsByteArray());
+        assertEquals(3, rows.size());
+        List<String> row = rows.get(2);
+        assertEquals(15, row.size());
+        assertEquals("E-EMPTY", row.get(2));
+        assertEquals("Submitted", row.get(12));
+        for (int c : new int[] {6, 7, 8, 9, 10, 11, 14}) assertEquals("—", row.get(c), "column " + c);
     }
 
     @Test

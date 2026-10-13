@@ -87,8 +87,8 @@ known limitation; embedding a Unicode font would lift it).
 **ADR-021: Account state is checked on every request, not only at sign-in.** The session stores the principal, but a
 filter (`SessionGuardFilter`) compares it with the user row on each request: a disabled account or a changed role ends
 the session at once (401), and so does a session older than the last password change or reset (`session_version`).
-While an administrator-issued password is pending (`must_change_password`) everything except changing it, `me`, `csrf`
-and sign-out is refused with 403 `PASSWORD_CHANGE_REQUIRED`. The cost is one primary-key lookup per request. This closes
+(The earlier rule that held an account with a pending password at the change screen, 403 `PASSWORD_CHANGE_REQUIRED`, was
+removed on 2026-10-13: ADR-040 makes the change optional.) The cost is one primary-key lookup per request. This closes
 the earlier gap where role and disable changes applied only at the next login.
 
 **ADR-022: Administration creates accounts; it never sees passwords or appraisal content.** There is no self-registration.
@@ -170,8 +170,8 @@ database and the directory as one unit and verify every file against the checksu
 **ADR-033: One old password for every new account, and accounts can be created from a CSV file.** To make creating accounts in bulk
 practical, every account an administrator creates, and every account whose password an administrator resets, starts with
 one standard password, `Srivasavi@123` (`DefaultPassword`; `FAMS_DEFAULT_PASSWORD` overrides it), instead of a random
-one-time password that had to be copied out and handed over one by one. The account still has `must_change_password`, so
-the person must replace it at first sign-in, and the password rules refuse the standard password as a choice. The cost
+one-time password that had to be copied out and handed over one by one. The account still has `must_change_password`, which now only
+recommends a change (ADR-040), and the password rules refuse the standard password as a choice. The cost
 is that until a person has signed in, their account can be opened by anyone who knows their e-mail address and the
 standard password (`docs/security.md`). The bootstrap administrator keeps the password the installer chose. Accounts
 are created from a CSV file with the columns Name, College e-mail address, Role, Employee ID, Contact number, Department
@@ -288,3 +288,25 @@ account is excluded. The start-up token `FAMS_RESET_ALL_PASSWORDS` remains for w
 new library: the workbook is written directly (Office Open XML), and CSV cells that start with `= + - @` get a leading apostrophe.
 (6) No migration: exports and links use existing tables, and the audit trail records `EXPORT_APPRAISALS`, `EXPORT_USERS`,
 `PASSWORD_RESET_LINK_SENT` and `PASSWORD_RESET_LINKS_BULK`.
+
+**ADR-040: Optional password change; a clean HoD export; dropdown values moved with arrows (2026-10-13).**
+Decided by the user in one request; where it conflicts with an older rule the new one wins. (1) **A temporary, default or reset
+password no longer blocks anything.** The rule of ADR on sessions that answered 403 `PASSWORD_CHANGE_REQUIRED` to every call but
+the change itself, and the frontend redirect to a "Choose a new password" page, are removed (`SessionGuardFilter` still ends
+sessions of disabled, re-roled or password-changed accounts). The column `must_change_password` is kept (no data lost) and means
+"still on a temporary password": `GET /api/auth/me` reports it as `passwordChangeRecommended`, and a banner on every page
+recommends a change and can be dismissed for the session; **Account → Change password** is always there, with the usual
+password rules. A reset link still sets a new password and no longer leads to another change screen. The standard password
+remains refused as a *chosen* password. The cost is that an account on the standard password stays usable by anyone who knows
+the e-mail address until its owner changes it; the college network and the banner are the mitigation the user accepted. (2) **The
+HoD and administrator appraisal exports were rewritten at the root**: a whole-width merged title and an extra subtitle row (which
+made one logical table into three blocks that Excel, Sheets and sorting treated differently) are gone; the workbook is one sheet
+with the title in A1, the header in row 2 with an auto-filter, and one row per faculty member; the 15 headings are fixed as
+`S.No., Faculty Name, Employee ID, Department, Cadre, Date of Joining, Academics, Certifications, FDPs Attended, FDPs/Guest
+Lectures/Workshops Organized, Journals/Conferences/Patents, Contributions/Remarks, Appraisal Status, Submitted Date, HoD Remarks`;
+dates are `dd-MMM-yyyy` (real dates in Excel, text of that form in CSV); the CSV is RFC 4180 (CRLF between records, quotes
+doubled, a line break inside a value written as "; ", BOM, `text/csv; charset=utf-8`); a missing name or cadre can no longer
+break a row. File names are `HOD_Appraisal_Export_<year>_<dept>.xlsx|csv` (`Admin_...` for administrators). (3) **Dropdown order
+is changed with Up / Down arrows only**; the free-typed Order number and the `sortOrder` field of the update call are removed.
+Each move is saved at once, audited, administrator-only, and the sequence is unique per list (V36 renumbers existing lists in
+their current order). Filters and grouped record lists follow the saved sequence instead of sorting alphabetically.

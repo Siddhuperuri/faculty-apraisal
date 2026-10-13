@@ -92,7 +92,7 @@ function Body({ reference, onClose, onImported }: { reference: AdminReference; o
     <div className="space-y-5">
       <p className="text-sm">
         Upload a CSV file (a spreadsheet saved as <span className="font-semibold">CSV</span>) with one row for each person. Every user starts with the
-        standard password, and each person must choose their own when they first sign in.
+        standard password, and each person is reminded to choose their own; nothing is blocked until they do.
       </p>
 
       <div className="space-y-2 rounded-lg border border-line bg-canvas/60 p-4 text-sm">

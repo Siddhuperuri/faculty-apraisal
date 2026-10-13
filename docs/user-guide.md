@@ -15,8 +15,8 @@ and sign in with your college e-mail address. After sign-in you land on the page
 
 ### Signing in
 - Your **e-mail address is your user name**. There is no self-registration: an administrator creates your account.
-- Your old password is the **standard password** the administrator gives you (the same for everyone). At first sign-in you are taken straight to
-  *Choose a new password* and can do nothing else until you have.
+- Your old password is the **standard password** the administrator gives you (the same for everyone). You can start working at once; a banner recommends
+  choosing your own password, and **Account → Change password** is available at any time. Nothing is blocked until you do.
 - **Password rules:** at least 10 characters, with a letter and a number; no leading or trailing space; at least five
   different characters; not containing your e-mail name; not a common password or the college's name with digits added
   (`Password@2026`, `Svec@123456`). The page shows hints as you type.
@@ -135,6 +135,12 @@ the faculty you want; a bar says how many are chosen and offers **Download Excel
 while you search, filter or sort. You can export only faculty of your own departments, the server checks it again, and every
 export is recorded in the audit trail. The columns are those of the administrator's export (see "Appraisal export").
 
+**What the files look like.** The Excel file is one worksheet: a title line (year and department), one header row with filter
+buttons, and one row per faculty member, each value under its own heading, with dates as `dd-MMM-yyyy`, long text wrapped and the
+header kept in view as you scroll. The CSV file is plain UTF-8 (it opens in Excel; a few older programs need "Import text"):
+one header row and one line per faculty member, with several records in one cell separated by "; ". File names are like
+`HOD_Appraisal_Export_2025-26_CSE.xlsx` and `.csv`. A dash "—" means there is nothing to show (not submitted, or nothing entered).
+
 **Revoke** takes an appraisal back at any stage before the Principal's or Director Technical's final approval, even one you have
 already forwarded. Use the *Revoke this appraisal* button under the review box and give the reason. A submitted appraisal (or one
 you are reviewing) goes back to the faculty member as a draft to correct and send again; one you forwarded comes back to you
@@ -199,11 +205,12 @@ single user's **Reset password** on their own row is unchanged.
 
 ### Appraisal export (`/admin/exports`)
 Choose the academic year, narrow by department, designation and appraisal status, tick the faculty and download **Excel (.xlsx)**
-or **CSV**. The file has one row per faculty member with: S.No., name, employee ID, department, designation, date of joining,
-Academics (courses, students mentored, projects, achievements), NPTEL and other certifications, FDPs attended, FDPs / guest
-lectures / workshops organised, journals / conferences / patents (also books, funded projects and research scholars),
-contributions (institutional and administrative roles, outreach, memberships and awards), appraisal status, submitted date and the
-HoD's remarks. Several records in one cell are a numbered list; an empty cell shows "—". A faculty member who has not submitted is
+or **CSV**. The file has one row per faculty member with these columns, in this order: S.No., Faculty Name, Employee ID, Department, Cadre,
+Date of Joining, Academics (courses, students mentored, projects, achievements), Certifications, FDPs Attended,
+FDPs/Guest Lectures/Workshops Organized, Journals/Conferences/Patents (also books, funded projects and research scholars),
+Contributions/Remarks (institutional and administrative roles, outreach, memberships and awards), Appraisal Status, Submitted Date
+and HoD Remarks. Several records in one Excel cell are a numbered list (one per line; in CSV they are joined by "; "); an empty
+cell shows "—". Names are `Admin_Appraisal_Export_<year>_<departments>.xlsx` / `.csv`. A faculty member who has not submitted is
 listed as "Not submitted" with "—" everywhere else: **a draft is private to its author and is never exported.**
 
 ### Console (`/admin`)
@@ -264,8 +271,10 @@ nothing is sent and you can still reset a password on the Users page.
 The choices offered on the appraisal form (program, branch, section, semester, hours a week, course role, platforms, levels,
 statuses, outreach roles, and the suggested words for roles and awarding bodies) are kept here, not in the program.
 - Pick a list on the left. **Add a value** (a branch asks which program it belongs to); it is offered to everyone at once.
-- **Rename** a value (the wording on the form, and optionally different wording on the printed report), change its **order**, and
-  **switch it off** when it should no longer be offered. Nothing is ever deleted: appraisals that already hold a switched-off
+- **Rename** a value (the wording on the form, and optionally different wording on the printed report), change its
+  **sequence** with the **↑ / ↓** arrows (one place earlier or later; it is saved at once and every form, filter, report and
+  export follows it; the first value cannot go up and the last cannot go down; a switched-off value keeps its place and is stepped
+  over), and **switch it off** when it should no longer be offered. Nothing is ever deleted: appraisals that already hold a switched-off
   value keep it and its wording, and can be saved again unchanged.
 - A value marked **used by rules** (for example SCI/SCIE and Scopus journals, sanctioned projects, granted patents) can be renamed
   but not switched off, because marks are worked out from it. A value you add to such a list is recorded but earns no marks.

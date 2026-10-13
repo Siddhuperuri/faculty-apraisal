@@ -23,6 +23,8 @@ public final class XlsxWriter {
 
     static final int MIN_WIDTH = 10;
     static final int MAX_WIDTH = 60;
+    /** The widest a column becomes because of its heading alone. */
+    private static final int HEADER_WIDTH = 24;
     /** Excel will not hold more characters than this in one cell. */
     static final int MAX_CELL_CHARACTERS = 32_000;
     private static final double LINE_HEIGHT = 15.0;
@@ -134,7 +136,7 @@ public final class XlsxWriter {
             sheet.append("</row>");
         }
 
-        sheet.append("<row r=\"").append(headerRow).append("\" ht=\"32\" customHeight=\"1\">");
+        sheet.append("<row r=\"").append(headerRow).append("\" ht=\"36\" customHeight=\"1\">");
         for (int c = 0; c < columns; c++) text(sheet, column(c + 1) + headerRow, S_HEADER, table.headers().get(c));
         sheet.append("</row>");
 
@@ -149,14 +151,18 @@ public final class XlsxWriter {
             sheet.append("</row>");
         }
         sheet.append("</sheetData>");
-        sheet.append("<mergeCells count=\"1\"><mergeCell ref=\"A1:").append(column(Math.max(columns, 1))).append("1\"/></mergeCells>");
+        // The header row's filter buttons; no merged cells anywhere, so sorting and filtering always see plain rows.
+        sheet.append("<autoFilter ref=\"A").append(headerRow).append(":").append(column(columns)).append(lastRow).append("\"/>");
         sheet.append("<pageMargins left=\"0.4\" right=\"0.4\" top=\"0.6\" bottom=\"0.6\" header=\"0.3\" footer=\"0.3\"/>");
         sheet.append("<pageSetup paperSize=\"9\" orientation=\"landscape\" fitToWidth=\"1\" fitToHeight=\"0\"/>");
         sheet.append("</worksheet>");
 
         String workbook = XML + "<workbook xmlns=\"" + NS + "\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">"
                 + "<sheets><sheet name=\"" + escape(sheetName) + "\" sheetId=\"1\" r:id=\"rId1\"/></sheets>"
-                + "<definedNames><definedName name=\"_xlnm.Print_Titles\" localSheetId=\"0\">'" + escape(sheetName) + "'!$" + headerRow
+                + "<definedNames>"
+                + "<definedName name=\"_xlnm._FilterDatabase\" localSheetId=\"0\" hidden=\"1\">'" + escape(sheetName) + "'!$A$" + headerRow
+                + ":$" + column(columns) + "$" + lastRow + "</definedName>"
+                + "<definedName name=\"_xlnm.Print_Titles\" localSheetId=\"0\">'" + escape(sheetName) + "'!$" + headerRow
                 + ":$" + headerRow + "</definedName></definedNames>"
                 + "</workbook>";
 
@@ -210,7 +216,8 @@ public final class XlsxWriter {
     private static int[] widths(ExportTable table) {
         int columns = table.headers().size();
         int[] w = new int[columns];
-        for (int c = 0; c < columns; c++) w[c] = longestLine(table.headers().get(c)) + 4;
+        // A long heading wraps over two lines in the header row instead of widening its column.
+        for (int c = 0; c < columns; c++) w[c] = Math.min(HEADER_WIDTH, longestLine(table.headers().get(c)) + 4);
         for (List<Object> row : table.rows()) {
             for (int c = 0; c < columns && c < row.size(); c++) {
                 w[c] = Math.max(w[c], longestLine(display(row.get(c))) + 2);
