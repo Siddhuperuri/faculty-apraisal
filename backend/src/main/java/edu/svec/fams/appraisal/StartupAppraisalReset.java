@@ -4,10 +4,10 @@ import edu.svec.fams.audit.AuditService;
 import edu.svec.fams.documents.DocumentStorage;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,25 +37,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class StartupAppraisalReset implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(StartupAppraisalReset.class);
-
-    /** Name and definition of each append-only trigger that blocks deleting, as V1, V5 and V21 create them. */
-    private static final Map<String, String> TRIGGERS = new LinkedHashMap<>();
-
-    static {
-        TRIGGERS.put("review_actions_no_delete",
-                "CREATE TRIGGER review_actions_no_delete BEFORE DELETE ON review_actions FOR EACH ROW "
-                        + "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'review_actions is append-only'");
-        TRIGGERS.put("appraisal_reports_no_delete",
-                "CREATE TRIGGER appraisal_reports_no_delete BEFORE DELETE ON appraisal_reports FOR EACH ROW "
-                        + "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'appraisal_reports is append-only'");
-        TRIGGERS.put("appraisal_message_versions_no_delete",
-                "CREATE TRIGGER appraisal_message_versions_no_delete BEFORE DELETE ON appraisal_message_versions FOR EACH ROW "
-                        + "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'appraisal_message_versions is append-only'");
-    }
-
-    /** Children of the appraisals table that do not delete with it, then the appraisals themselves, in a safe order. */
-    private static final List<String> DELETE_ORDER = List.of(
-            "appraisal_message_versions", "appraisal_messages", "review_actions", "appraisal_reports", "appraisal_scores", "appraisals");
 
     private final JdbcClient jdbc;
     private final AuditService audit;
@@ -113,39 +94,59 @@ public class StartupAppraisalReset implements ApplicationRunner {
 
     private void removeAll() throws SQLException {
         try (Connection c = DriverManager.getConnection(url, user, password)) {
-            List<String> dropped = new ArrayList<>();
             try {
                 c.setAutoCommit(true);
                 try (Statement s = c.createStatement()) {
-                    for (String name : TRIGGERS.keySet()) {
-                        s.execute("DROP TRIGGER IF EXISTS " + name);
-                        dropped.add(name);
-                    }
+                    s.execute("DROP TRIGGER IF EXISTS review_actions_no_delete");
+                    s.execute("DROP TRIGGER IF EXISTS appraisal_reports_no_delete");
+                    s.execute("DROP TRIGGER IF EXISTS appraisal_message_versions_no_delete");
                 }
                 c.setAutoCommit(false);
+                // children that do not delete with an appraisal first, then the appraisals (the rest cascades)
                 try (Statement s = c.createStatement()) {
-                    for (String table : DELETE_ORDER) s.executeUpdate("DELETE FROM " + table);
+                    s.executeUpdate("DELETE FROM appraisal_message_versions");
+                    s.executeUpdate("DELETE FROM appraisal_messages");
+                    s.executeUpdate("DELETE FROM review_actions");
+                    s.executeUpdate("DELETE FROM appraisal_reports");
+                    s.executeUpdate("DELETE FROM appraisal_scores");
+                    s.executeUpdate("DELETE FROM appraisals");
                     c.commit();
                 } catch (SQLException e) {
                     c.rollback();
                     throw e;
                 }
-                c.setAutoCommit(true);
             } finally {
-                restoreTriggers(c, dropped);
+                restoreTriggers(c);
             }
         }
     }
 
-    private static void restoreTriggers(Connection c, List<String> dropped) throws SQLException {
+    /** Creates each append-only trigger again, exactly as V1, V5 and V21 define it, unless it is already there. */
+    private static void restoreTriggers(Connection c) throws SQLException {
         c.setAutoCommit(true);
         try (Statement s = c.createStatement()) {
-            for (String name : dropped) {
-                try (ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() "
-                        + "AND TRIGGER_NAME = '" + name + "'")) {
-                    rs.next();
-                    if (rs.getInt(1) == 0) s.execute(TRIGGERS.get(name));
-                }
+            if (!exists(c, "review_actions_no_delete")) {
+                s.execute("CREATE TRIGGER review_actions_no_delete BEFORE DELETE ON review_actions FOR EACH ROW "
+                        + "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'review_actions is append-only'");
+            }
+            if (!exists(c, "appraisal_reports_no_delete")) {
+                s.execute("CREATE TRIGGER appraisal_reports_no_delete BEFORE DELETE ON appraisal_reports FOR EACH ROW "
+                        + "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'appraisal_reports is append-only'");
+            }
+            if (!exists(c, "appraisal_message_versions_no_delete")) {
+                s.execute("CREATE TRIGGER appraisal_message_versions_no_delete BEFORE DELETE ON appraisal_message_versions FOR EACH ROW "
+                        + "SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'appraisal_message_versions is append-only'");
+            }
+        }
+    }
+
+    private static boolean exists(Connection c, String trigger) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = ?")) {
+            ps.setString(1, trigger);
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt(1) > 0;
             }
         }
     }
