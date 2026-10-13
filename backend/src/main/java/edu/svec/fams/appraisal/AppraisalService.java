@@ -33,13 +33,20 @@ public class AppraisalService {
      */
     public record CourseLoad(int perYear, int perSemester, BigDecimal marksPerCourse, int workloadMax) {}
 
-    /** Part A identity as the form prints it: name, employee ID, department, designation (cadre), e-mail. */
+    /**
+     * Part A identity as the form prints it: name, employee ID, department, designation (cadre), e-mail.
+     *
+     * @param history the review history, for the reviewers and the administrator; {@code null}, and so absent from the
+     *                response, for the faculty member, who is never shown it
+     */
     public record AppraisalView(long id, String status, String academicYear, String facultyName,
                                 String employeeId, String email,
                                 String department, String cadre, boolean editable,
                                 OffsetDateTime submittedAt, OffsetDateTime finalApprovedAt,
                                 OffsetDateTime declaredAt,
-                                List<ScoreService.ScoreRow> scores, List<HistoryRow> history,
+                                List<ScoreService.ScoreRow> scores,
+                                @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+                                List<HistoryRow> history,
                                 List<String> submitBlockers, boolean queryRaised,
                                 LocalDate academicYearStart, LocalDate academicYearEnd, CourseLoad courseLoad) {}
 
@@ -155,6 +162,7 @@ public class AppraisalService {
                 + "a.submitted_at, a.updated_at, " + QUERY_RAISED_SQL + " " + """
                 FROM appraisals a
                 JOIN faculty_profiles fp ON fp.id = a.faculty_id
+                JOIN users fu ON fu.id = fp.user_id AND fu.deleted_at IS NULL
                 JOIN departments d ON d.id = fp.department_id
                 JOIN academic_years ay ON ay.id = a.academic_year_id
                 """ + " WHERE " + where + " ORDER BY a.updated_at DESC, a.id DESC LIMIT " + MAX_LIST)
@@ -191,11 +199,9 @@ public class AppraisalService {
 
         List<ScoreService.ScoreRow> scores = scoreService.rows(id);
 
-        // The reviewers' remarks are for the reviewers: the faculty member sees the steps taken, never what was written.
-        List<HistoryRow> history = reviewHistory(id);
-        if (user.role() == Role.FACULTY) {
-            history = history.stream().map(h -> new HistoryRow(h.action(), h.fromStatus(), h.toStatus(), h.actorRole(), null, h.at())).toList();
-        }
+        // The review history (the steps taken and what the reviewers wrote) is for the reviewers and the administrator. The
+        // faculty member is told where the appraisal stands and is sent the Head of the Department's messages, nothing more.
+        List<HistoryRow> history = user.role() == Role.FACULTY ? null : reviewHistory(id);
 
         boolean editable = user.role() == Role.FACULTY && core.editableByFaculty();
         List<String> blockers = editable ? submitBlockers(id) : List.of();
@@ -248,10 +254,18 @@ public class AppraisalService {
      */
     List<String> submitBlockers(long id) {
         List<String> missing = new ArrayList<>();
-        var part = jdbc.sql("SELECT contact_no, qualification_specialization, joining_date_institution FROM general_information WHERE appraisal_id = ?")
-                .param(id).query((rs, n) -> new Object[] {rs.getString(1), rs.getString(2), rs.getObject(3)}).optional().orElse(null);
-        if (part == null || part[0] == null || part[1] == null || part[2] == null) {
-            missing.add("General Information: contact number, qualification and specialization, and date of joining the institution");
+        var part = jdbc.sql("SELECT contact_no, qualification_specialization, joining_date_institution, teaching_experience_years FROM general_information WHERE appraisal_id = ?")
+                .param(id).query((rs, n) -> new Object[] {rs.getString(1), rs.getString(2), rs.getObject(3), rs.getObject(4)}).optional().orElse(null);
+        if (part == null || part[0] == null || part[1] == null || part[2] == null || part[3] == null) {
+            missing.add("General Information: contact number, qualification and specialization, date of joining the institution, and teaching experience");
+        }
+        // a journal paper entered before the DOI or ISSN became mandatory is named here, not left to be found at review
+        int unreachable = 0;
+        for (String doi : jdbc.sql("SELECT doi_issn FROM journal_publications WHERE appraisal_id = ?").param(id).query(String.class).list()) {
+            if (!FieldSpec.hasValidDoiOrIssn(doi)) unreachable++;
+        }
+        if (unreachable > 0) {
+            missing.add("Journal publications: give a valid DOI or ISSN for " + (unreachable == 1 ? "the paper" : "each of the " + unreachable + " papers") + " that lack one");
         }
         String plan = jdbc.sql("SELECT plan_text FROM action_plan WHERE appraisal_id = ?").param(id)
                 .query(String.class).optional().orElse(null);

@@ -143,9 +143,8 @@ class HierarchyIntegrationTest {
                 .param(id).query(String.class).list();
         assertEquals(List.of("FACULTY:SUBMIT", "HOD:START_HOD_REVIEW", "HOD:HOD_APPROVE",
                 "PRINCIPAL:START_PRINCIPAL_REVIEW", "PRINCIPAL:PRINCIPAL_APPROVE"), trail);
-        // the faculty member sees the steps, never the remarks; the Principal still sees them
-        call(faculty, "GET", base, null).andExpect(jsonPath("$.history[2].action").value("HOD_APPROVE"))
-                .andExpect(jsonPath("$.history[2].comment").value(org.hamcrest.Matchers.nullValue()));
+        // the faculty member is given no review history at all; the Principal sees the steps and the remarks
+        call(faculty, "GET", base, null).andExpect(jsonPath("$.history").doesNotExist());
         call(principal, "GET", base, null).andExpect(jsonPath("$.history[2].comment").value("Recommended for the year."));
         // the same on paper: the faculty member's copy leaves the remarks out, the official copy keeps them
         assertFalse(reportText(faculty, base).contains("Recommended for the year."));
@@ -212,10 +211,10 @@ class HierarchyIntegrationTest {
 
         assertEquals(List.of("FACULTY:SUBMIT", "HOD:START_HOD_REVIEW", "HOD:HOD_APPROVE",
                 "DIRECTOR:START_DIRECTOR_REVIEW", "DIRECTOR:DIRECTOR_APPROVE"), trail());
-        // the record says who it was, and the Director sees the whole history with its remarks; the faculty member only the steps
+        // the record says who it was, and the Director sees the whole history with its remarks; the faculty member none of it
         call(director, "GET", base, null).andExpect(jsonPath("$.history[4].actorRole").value("DIRECTOR"))
                 .andExpect(jsonPath("$.history[4].comment").value("Cleared by the Director."));
-        call(faculty, "GET", base, null).andExpect(jsonPath("$.history[4].comment").value(org.hamcrest.Matchers.nullValue()));
+        call(faculty, "GET", base, null).andExpect(jsonPath("$.history").doesNotExist());
 
         // final for everyone, the Principal included
         for (FamsUserPrincipal r : List.of(director, principal)) {

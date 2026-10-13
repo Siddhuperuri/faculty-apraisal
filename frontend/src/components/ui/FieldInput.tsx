@@ -44,7 +44,8 @@ export function FieldInput({
   // Checked while the person types and when they leave the field, not only when they press Save. A message the page
   // itself supplies (the whole form's check, or the server's) wins; this fills in where the page has none.
   const [touched, setTouched] = useState(false);
-  const required = meta.required || meta.onlyWhenField != null;
+  // A field that is asked for only under another choice is required while it is asked for, and not while it is greyed out.
+  const required = meta.required || (meta.onlyWhenField != null && !disabled);
   const own = touched && !disabled ? liveFieldError(meta, value, required, range) : null;
   const shownError = error ?? own ?? undefined;
   const handleBlur = () => {
@@ -143,11 +144,7 @@ export function FieldInput({
           >
             {countWords(value).toLocaleString("en-US")} / {meta.maxWords.toLocaleString("en-US")} words
           </p>
-        ) : (
-          <p className="mt-1 text-right text-xs text-muted" aria-hidden>
-            {value.length} / {meta.maxLength}
-          </p>
-        )}
+        ) : null}
       </>
     );
   } else if (meta.type === "DATE" || meta.type === "MONTH_YEAR") {
@@ -215,13 +212,6 @@ export function FieldInput({
       )}
     </div>
   );
-}
-
-export function rangeHint(meta: FieldMeta): string | undefined {
-  if ((meta.type === "INT" || meta.type === "DECIMAL") && meta.min != null && meta.max != null && meta.max <= 100000) {
-    return `Between ${meta.min} and ${meta.max}`;
-  }
-  return undefined;
 }
 
 /** A labelled drop-down whose options are not fixed codes (departments, cadres, academic years). */

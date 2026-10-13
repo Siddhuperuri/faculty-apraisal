@@ -79,7 +79,7 @@ and ignored. The per-entry marks are in code (`ScoringRules`), because they are 
 | B2 | students mentored: 6 marks if the total is more than 0, otherwise 0 | 6 once | 6 |
 | | student project guided | 2 | 4 |
 | | student achievement | 1 | 5 |
-| B3 | workshop, FDP, seminar or training of **5 days or more**: one qualifying program earns all 5 | 5 once | 5 |
+| B3 | workshop, FDP, seminar or training attended (any length): **2.5 each**, so two earn all 5 and more add nothing (2026-10-13) | 2.5 | 5 |
 | | certification (a duration in whole weeks is given): one valid certification earns all 10 | 10 once | 10 |
 | B4 | department-level role | 2 | 4 |
 | | institute-level role | 1.5 | 3 |
@@ -107,7 +107,7 @@ never `(50 each)`; a limit is still `(Max marks: N)`. A faculty member's own pag
   **policy data**, not code: the criterion's "maximum" in the scoring policy (0 means no limit), changed by publishing a new
   version under Departments, years & scoring ("Limits for criteria marked per entry"). Appraisals already started keep the limit
   they began with; drafts moved to version 4 with migration `V35`.
-- **Institutional roles** (Head of the Department, Associate Dean, Dean ...) are held in Teaching & Learning
+- **Institutional roles** (Head of the Department, Associate Dean, Dean ...) are held in Teaching & Learning (no longer shown as a box on the form since 2026-10-13: what was entered is kept and still scored)
   (`institutional-roles`, one entry per role). Each earns the marks set for it in the appraisal's scoring policy
   (`scoring_policy_role_marks`; version 4: HoD 5, Associate Dean 3, Dean 0) and they are added to the B1 marks inside B1's maximum.
   The roles are a dropdown list (Admin > Dropdown lists); their marks are set under Admin > Institutional roles. A role added by an

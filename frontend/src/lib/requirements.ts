@@ -34,7 +34,7 @@ export function buildRequirements({ blockers, general }: RequirementInput): Requ
   return blockers.map((text, i): Requirement => {
     if (text.startsWith("General Information")) {
       const missing = general.meta && general.record !== undefined
-        ? general.meta.fields.filter((f) => f.submitRequired && blank(general.record?.[f.name]))
+        ? general.meta.fields.filter((f) => (f.submitRequired || f.required) && !f.effective && blank(general.record?.[f.name]))
         : null;
       return {
         key: `general-${i}`,
@@ -53,6 +53,17 @@ export function buildRequirements({ blockers, general }: RequirementInput): Requ
         heading: "Action Plan for the Next 2 Years",
         summary: colon >= 0 ? text.slice(colon + 1).trim() : "Write your action plan",
         links: [{ label: "Open the page", focus: "plan" }],
+      };
+    }
+
+    if (text.startsWith("Journal publications")) {
+      const colon = text.indexOf(":");
+      return {
+        key: `journals-${i}`,
+        page: "research",
+        heading: "Journal publications",
+        summary: colon >= 0 ? text.slice(colon + 1).trim() : "Give a DOI or ISSN for each paper",
+        links: [{ label: "Open the page", focus: null }],
       };
     }
 

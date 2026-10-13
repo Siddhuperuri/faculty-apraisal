@@ -47,7 +47,7 @@ public class AccountHygieneService {
     public Hygiene hygiene() {
         int never = count("SELECT COUNT(*) FROM users WHERE status = 'ACTIVE' AND last_login_at IS NULL");
         int temporary = count("SELECT COUNT(*) FROM users WHERE status = 'ACTIVE' AND must_change_password = TRUE");
-        int disabled = count("SELECT COUNT(*) FROM users WHERE status <> 'ACTIVE'");
+        int disabled = count("SELECT COUNT(*) FROM users WHERE status <> 'ACTIVE' AND deleted_at IS NULL");
 
         // An account's employee ID and contact number are on the account and, for faculty, on the profile too: count each account once.
         Map<Long, Person> people = new LinkedHashMap<>();

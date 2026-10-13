@@ -114,6 +114,19 @@ against guessing, and the administrator and reviewer areas are still enforced on
 - **Checked on every build:** compiler warnings are errors, Checkstyle, SpotBugs with Find Security Bugs, 300+ tests
   against a real MySQL, ESLint and the TypeScript compiler (`scripts/verify.ps1`, `docs/architecture.md`).
 
+- **Permanent deletion of an account (2026-10-13):** `POST /api/admin/users/{id}/delete-permanently` is administrator-only (URL
+  rule and `@PreAuthorize`), needs the CSRF header and the account's own e-mail address in the body (compared on the server), and is
+  refused for the signed-in administrator's own account and for the only active administrator (the other active administrators are
+  row-locked, so two administrators removing each other cannot both succeed). One transaction removes the sign-in, profile,
+  assignments, reset links and never-submitted appraisals; where an append-only record points at the account it is kept as an
+  anonymous stub (`users.deleted_at`, no e-mail, name, password or employee ID). Every sign-in, session check, list, count, export and
+  appraisal-access query excludes a stub, so the account is out of every view and its session ends on its next request. The audit
+  entry carries the account number, role and counts, never its e-mail address or name. A test fails if a new table starts pointing at
+  `users` without the deletion being told what to do with it (`UserDeletionIntegrationTest`).
+- **The faculty member is sent no review history (2026-10-13):** `history` is left out of their view of an appraisal, so the steps
+  and the reviewers' remarks are not in any response they can obtain; a test asserts the key is absent and that the names an older
+  client might call answer 404 or 405.
+
 ## Known gaps
 
 - **An administrator can delete the audit trail** (one entry, every entry of one kind, or all; migration V11 removed the delete lock, and entries still cannot be edited). Each deletion leaves one `AUDIT_DELETED` entry naming the administrator and the number removed, but the deleted entries themselves are gone, so the trail proves less than before. Keep the number of administrators small, and rely on `scripts/backup.ps1` copies and the backend log (every sign-in and refusal is also logged) if a record that cannot be erased is needed.

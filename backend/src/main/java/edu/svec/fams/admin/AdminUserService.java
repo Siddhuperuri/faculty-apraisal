@@ -98,7 +98,7 @@ public class AdminUserService {
      */
     @Transactional(readOnly = true)
     public List<UserRow> list(String query, String role, String status, Long departmentId) {
-        StringBuilder where = new StringBuilder(" WHERE 1 = 1");
+        StringBuilder where = new StringBuilder(" WHERE u.deleted_at IS NULL");
         List<Object> params = new ArrayList<>();
         if (query != null && !query.isBlank()) {
             String like = "%" + query.strip().toLowerCase(Locale.ROOT).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
@@ -133,7 +133,7 @@ public class AdminUserService {
 
     @Transactional(readOnly = true)
     public UserDetail get(long id) {
-        UserRow row = jdbc.sql(ROW_SQL + " WHERE u.id = ?").param(id).query((rs, n) -> row(rs)).optional()
+        UserRow row = jdbc.sql(ROW_SQL + " WHERE u.id = ? AND u.deleted_at IS NULL").param(id).query((rs, n) -> row(rs)).optional()
                 .orElseThrow(ApiException::notFound);
         Long deptId = null, cadreId = null;
         Map<String, Object> profile = new LinkedHashMap<>();

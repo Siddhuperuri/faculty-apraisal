@@ -43,7 +43,7 @@ The form has eleven pages that follow the printed form. Open them from the secti
 | 01 General Information | Part A | Your identity block (read-only, from your profile) and the details you can correct |
 | 02 Teaching & Learning | Part B 1 | Courses handled (course code, your role in it, section, semester, hours a week from 1 to 6, pass %, feedback %); totals are computed |
 | 03 Mentoring & Projects | Part B 2 | Students mentored, student achievements, projects guided |
-| 04 FDPs & Certifications | Part B 3 | Workshops, FDPs, seminars, training (duration in days; 5 days or more earn the marks); certifications (duration in whole weeks; name the platform when it is Other) |
+| 04 FDPs & Certifications | Part B 3 | Workshops, FDPs, seminars, training (duration in days; each earns 2.5 marks and two earn the full 5); certifications (duration in whole weeks; name the platform when it is Other) |
 | 05 Administration | Part B 4 | Institute-level and department-level roles; events organised |
 | 06 Research & Publications | Part B 5 | Journals, conference papers, research metrics, scholars, Ph.D. progress |
 | 07 Funded Projects / Consultancy | Part B 6 | Sanctioned and applied projects |
@@ -317,3 +317,32 @@ sign in, change the password, create the real accounts, then remove both variabl
   type and role of an **event** work the same way.
 - **Action Plan for the Next 2 Years** (section 12) is new and needed before you can submit; the declaration is now section 13.
 - **Funded projects**: 50m for each sanctioned, 5m for each applied (at most 10m for the applied ones together).
+
+### Second set of changes on 2026-10-13
+
+- **Teaching & Learning** shows only your courses. The box with your course requirement and the "Institutional roles held" box are
+  gone from the form (what was entered earlier is still counted).
+- **Teaching experience (years)** in General Information is required and must be between 0 and 1000. Nothing is printed under a
+  field to say what range it takes; if you type something wrong the message appears in red at once.
+- **Journal publications**: the **DOI or ISSN** is required, and must include a valid DOI (for example `10.1000/xyz123`) or ISSN
+  (for example `0378-5955`). **Conference papers** no longer ask for the number of citations.
+- **Funded projects**: **Amount** is for a **Sanctioned** project, where it is required (0 or more, up to two decimals). Choosing
+  **Applied** greys it out and clears it.
+- **Books**: the type is **Book** or **Book Chapter**.
+- **Outreach**: "External Examiner" is now **Project External Examiner**. Choose **Other** to type your own role in the box that
+  appears (it is required only then).
+- **No review history for you.** Where your appraisal stands is shown on your page and on Declaration and Submit, and the Head of
+  the Department's messages are still shown to you; the list of steps and the reviewers' remarks are for the reviewers.
+- **FDPs**: each Workshop / FDP / Seminar / Training program earns **2.5 marks**, whatever its length. Two earn the full 5; more can
+  be recorded but add nothing.
+
+### Delete a user permanently (administrators)
+
+On **Users**, **Delete permanently** removes an account for good. You are shown the person's name, e-mail address and role, what
+will be removed (their sign-in, faculty record, head-of-department assignments, reset links and any appraisal never sent for
+review) and what is kept without the person (appraisals that went through review, and the history and messages that name the
+account, shown as "Deleted user"). You must **type the person's e-mail address** before the button works. You cannot delete the
+account you are signed in with, or the only active administrator. The person is signed out at once, disappears from every list,
+export and count, and their e-mail address and employee ID can be used again. It cannot be undone. If a Head of the Department's
+department is left with nobody, the warning says so: assign another before submitted appraisals there need review. The audit trail
+records who deleted which account (by number and role), without the address or name.

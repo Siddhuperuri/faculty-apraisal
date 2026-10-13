@@ -28,7 +28,7 @@ public class FamsUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) {
         String wanted = email.toLowerCase(Locale.ROOT);
-        return jdbc.sql("SELECT id, email, password_hash, role, status FROM users WHERE email = ?")
+        return jdbc.sql("SELECT id, email, password_hash, role, status FROM users WHERE email = ? AND deleted_at IS NULL")
                 .param(wanted)
                 .query((rs, n) -> new Row(rs.getLong("id"), rs.getString("email"), rs.getString("password_hash"),
                         rs.getString("role"), rs.getString("status")))

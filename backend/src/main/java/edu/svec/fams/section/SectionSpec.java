@@ -19,8 +19,13 @@ public final class SectionSpec {
     /** Words offered while typing {@code field}: the list for the value of {@code onField} ({@code ""} when there is no such field). */
     public record Suggestions(String field, String onField, Map<String, String> listByValue) {}
 
-    /** {@code field} is required (and kept) only when {@code onField} holds {@code equals}; otherwise it is cleared. */
-    public record ConditionalField(String field, String onField, String equals) {}
+    /**
+     * {@code field} is required (and kept) only when {@code onField} holds {@code equals}; otherwise it is cleared.
+     * {@code disabled}: the form still shows the field, greyed out and empty, when the condition does not hold (a project's
+     * amount while it is only applied for), and a value sent for it then is refused rather than quietly dropped. Without it
+     * the field is not shown at all.
+     */
+    public record ConditionalField(String field, String onField, String equals, boolean disabled) {}
 
     /**
      * {@code field} holds the wording shown and reported: the label of the value chosen in {@code codeField} (a value of
@@ -100,7 +105,16 @@ public final class SectionSpec {
 
     /** A field that is asked for, and required, only when another field has a given value (a platform named "Other"). */
     public SectionSpec conditionalField(String field, String onField, String equals) {
-        conditionalFields.add(new ConditionalField(field, onField, equals));
+        conditionalFields.add(new ConditionalField(field, onField, equals, false));
+        return this;
+    }
+
+    /**
+     * Like {@link #conditionalField}, but the field stays on the form, disabled and empty, while the condition does not hold,
+     * and a value sent for it then is refused (the amount of a project is for a sanctioned project only).
+     */
+    public SectionSpec disabledUnless(String field, String onField, String equals) {
+        conditionalFields.add(new ConditionalField(field, onField, equals, true));
         return this;
     }
 

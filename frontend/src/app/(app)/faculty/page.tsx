@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { HistoryTimeline } from "@/components/appraisal/HistoryTimeline";
 import { MessagesFromHod } from "@/components/appraisal/Messages";
 import { ReportDownload } from "@/components/appraisal/ReportDownload";
 import { StatTile } from "@/components/console/parts";
@@ -245,18 +244,9 @@ export default function FacultyDashboard() {
         </section>
       )}
 
-      {current && view && view.history.length > 0 && (
-        <section aria-labelledby="hist-h" className="rise space-y-3" style={delay(5)}>
-          <RuledHeading id="hist-h">What has happened</RuledHeading>
-          <Card className="p-4 sm:p-5">
-            <HistoryTimeline history={view.history} forFaculty />
-          </Card>
-        </section>
-      )}
-
       {items.length > 1 && (
-        <section aria-labelledby="history" className="rise" style={delay(2)}>
-          <h2 id="history" className="mb-2 border-b border-navy pb-1.5 font-display text-lg font-semibold text-navy">Earlier appraisals</h2>
+        <section aria-labelledby="earlier" className="rise" style={delay(2)}>
+          <h2 id="earlier" className="mb-2 border-b border-navy pb-1.5 font-display text-lg font-semibold text-navy">Earlier appraisals</h2>
           <ul className="divide-y divide-line rounded-lg border border-line bg-surface shadow-[var(--shadow-paper)]">
             {items.slice(1).map((a) => (
               <li key={a.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">

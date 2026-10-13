@@ -115,9 +115,10 @@ class ReferenceDataTest {
             assertFalse(l.get("values").isEmpty(), l.get("code").asText() + " has no values");
             for (JsonNode v : l.get("values")) {
                 assertFalse(v.get("label").asText().isBlank(), v.get("code").asText());
-                // everything is on, except the semesters beyond 8 that the migration switched off
+                // everything is on, except the semesters beyond 8 and the old closed "Others" of the outreach roles, which migrations switched off
                 boolean beyondEight = l.get("code").asText().equals("SEMESTER") && Integer.parseInt(v.get("code").asText()) > 8;
-                assertEquals(!beyondEight, v.get("active").asBoolean(), l.get("code").asText() + " " + v.get("code").asText());
+                boolean closedOthers = l.get("code").asText().equals("OUTREACH_ROLE") && v.get("code").asText().equals("OTHERS");   // V38 replaced it by "Other"
+                assertEquals(!beyondEight && !closedOthers, v.get("active").asBoolean(), l.get("code").asText() + " " + v.get("code").asText());
             }
         }
         assertEquals(List.of("B_TECH", "M_TECH", "DIPLOMA", "MBA", "PHARMACY"), List.copyOf(reference.active("PROGRAM")));

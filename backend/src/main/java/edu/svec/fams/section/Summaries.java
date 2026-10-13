@@ -36,6 +36,7 @@ final class Summaries {
         for (Map<String, Object> r : rows) {
             if (!"SANCTIONED".equals(r.get("status"))) continue;
             BigDecimal amount = (BigDecimal) r.get("amount");
+            if (amount == null) continue;
             if ("RESEARCH".equals(r.get("type"))) research = research.add(amount);
             if ("CONSULTANCY".equals(r.get("type"))) consultancy = consultancy.add(amount);
         }

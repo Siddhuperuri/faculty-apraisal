@@ -341,3 +341,40 @@ console (history tables are append-only and the database is not reachable from o
 reports (rows and files), once per token, in one transaction, using the migration user to drop and re-create the three
 "no delete" triggers; accounts, profiles, policies, lists and the audit trail are kept and one `APPRAISALS_RESET` entry records
 the counts. No appraisal content is written to the log or the audit trail.
+
+**ADR-043: Form clean-up, FDP rule and permanent deletion of an account (2026-10-13).**
+Decided by the user in one request; where it conflicts with an older rule the new one wins. (1) **Teaching & Learning shows the
+courses only**: the "Your course requirement" box and the "Institutional roles held" box are gone from the form. The data is
+untouched: the roles stay in the database, in the score (their marks are still added to B1) and on the reviewers' score sheet, and
+the section still exists on the server; only the display went. (2) **Teaching experience** is required and 0 to 1,000 (the column
+is widened to `DECIMAL(5,1)`), enforced at save and listed among the submit blockers, so a draft made earlier cannot be submitted
+without it. **No range or limit is printed under a field** any more (no "Between 0 and 1000", no "Within the academic year ...", no
+character counter); a wrong value is named in red as it is typed or when the field is left. The word counter of the Action Plan
+stays, because it counts, it does not explain. (3) **A journal paper needs a DOI or an ISSN**: at least one value in the field must
+be a valid DOI (`10.NNNN/...`, also written `doi:` or as a doi.org address) or a valid ISSN (the check digit is verified); papers
+entered earlier are named at submission and refused at the next save of the list. **A conference paper has no citation count**:
+the field is removed from the form, validation, display, PDF and export; the column and every value already entered stay in the
+database. (4) **A project's amount follows its status** (`conditionalField` with `disabled`): required and a valid non-negative
+amount (two decimal places) when sanctioned; greyed out, empty and stored as NULL when applied; an amount sent for an applied
+project is refused by the server, not dropped. An amount an applied project already held is left in the database (history is not
+rewritten) and is never shown or counted. (5) **Books**: the type reads "Book Chapter" (label change; the code stays `CHAPTER`).
+(6) **Outreach**: "External Examiner" is "Project External Examiner" (label; code kept); "Others" is replaced by a pinned "Other"
+with a typed role beside it, required only then; stored like the roles of Administration (`role_code`, `role_other`, and `role`
+as the wording reported). Older rows keep their wording. (7) **The faculty member is sent no review history**: `history` is not
+in their view of an appraisal, there is no panel for it and no reviewer remark reaches them; the history stays for the reviewers
+and the administrator (and for the report, whose remarks are still withheld from the faculty member's copy). The Head of the
+Department's messages are a different, deliberate channel and are unchanged. (8) **FDP**: each FDP earns 2.5 marks whatever its
+length, two earn the whole 5 and more add nothing; the 5-day minimum is gone. The duration is still recorded. B3's maximum is
+unchanged (15 = FDPs 5 + certification 10), so no policy version is published and no earlier appraisal changes its meaning: the
+marks are worked out on read, as every other mark is.
+(9) **Deleting an account** (Admin > Users > Delete permanently, `UserDeletionService`): the administrator sees the person's name,
+e-mail address and role and what will be removed and kept, and must type the e-mail address (checked by the server). Refused for
+the signed-in administrator's own account and for the only active administrator. Removed: sign-in, faculty record, head-of-department
+assignments, reset links and every appraisal never sent for review. What the append-only records depend on cannot go (review history,
+the Head of the Department's messages, issued reports, import/restore/hand-over records): the account row then stays as an
+anonymous stub (`users.deleted_at`; no e-mail, name, password or employee ID; shown as "Deleted user"), and appraisals that went
+through review stay without the person's name, employee ID or contact details. A stub is in no list, count, export, roster or
+sign-in, and its appraisals open for nobody; the person's e-mail address and employee ID can be used again. **Decision to review:**
+issued official PDF reports are stored files whose checksums are on record and are not rewritten, so they still carry the name as it
+was issued. The audit entry (`USER_DELETED`) names the account by number and role with counts, and holds neither e-mail nor name; the
+earlier `USER_CREATED` entry, being append-only, still holds the address it was created with.

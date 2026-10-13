@@ -378,7 +378,6 @@ function RecordDialog({
           hidden={hidden}
           suggestions={ui.suggestions}
           radios={ui.radios}
-          fieldHints={ui.fieldHints}
           scopeValue={ui.scope?.value}
           onChange={(name, v) => {
             setTouched((t) => ({ ...t, [name]: true }));

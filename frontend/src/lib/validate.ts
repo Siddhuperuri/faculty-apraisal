@@ -42,6 +42,51 @@ export function isAsked(f: FieldMeta, values: FormValues): boolean {
   return !f.onlyWhenField || (values[f.onlyWhenField] ?? "") === f.onlyWhenEquals;
 }
 
+const DOI = /^10\.\d{4,9}\/\S+$/;
+const ISSN = /^\d{4}-\d{3}[\dXx]$/;
+const LABEL_ONLY = /^(?:doi|issn|e-?issn|p-?issn|print|online)[:.]?$/i;
+const DOI_PREFIX = /^(?:https?:\/\/(?:dx\.)?doi\.org\/|doi\.org\/|doi:)/i;
+const ISSN_PREFIX = /^(?:e-?issn|p-?issn|issn):/i;
+
+/** NNNN-NNN and a check character: the digits weighted 8 down to 2 and the check must make the sum divide by 11. */
+function validIssn(issn: string): boolean {
+  const d = issn.replace("-", "").toUpperCase();
+  let sum = 0;
+  for (let i = 0; i < 7; i++) sum += (8 - i) * Number(d[i]);
+  const check = (11 - (sum % 11)) % 11;
+  return d[7] === (check === 10 ? "X" : String(check));
+}
+
+/**
+ * At least one value in the text is a valid DOI (10.NNNN/anything, or written doi:10... or as a doi.org address) or a
+ * valid ISSN (NNNN-NNNN with its check character), as the server counts it. Values are separated by spaces, commas or semicolons.
+ */
+export function hasValidDoiOrIssn(text: string): boolean {
+  for (const token of text.trim().split(/[\s,;]+/)) {
+    if (token === "" || LABEL_ONLY.test(token)) continue;
+    if (DOI.test(token.replace(DOI_PREFIX, ""))) return true;
+    const issn = token.replace(ISSN_PREFIX, "");
+    if (ISSN.test(issn) && validIssn(issn)) return true;
+  }
+  return false;
+}
+
+/** An ISBN-10 or ISBN-13, with or without hyphens and spaces, whose length, characters and check digit are right. */
+export function validIsbn(raw: string): boolean {
+  const d = raw.replace(/[-\s]/g, "").toUpperCase();
+  if (/^\d{9}[\dX]$/.test(d)) {
+    let sum = 0;
+    for (let i = 0; i < 10; i++) sum += (10 - i) * (d[i] === "X" ? 10 : Number(d[i]));
+    return sum % 11 === 0;
+  }
+  if (/^97[89]\d{10}$/.test(d)) {
+    let sum = 0;
+    for (let i = 0; i < 13; i++) sum += Number(d[i]) * (i % 2 === 0 ? 1 : 3);
+    return sum % 10 === 0;
+  }
+  return false;
+}
+
 const num = (s: string) => (s.trim() === "" || Number.isNaN(Number(s)) ? null : Number(s));
 
 /** The number of words in a text: runs of characters between spaces, tabs and line breaks (as the server counts them). */
@@ -67,7 +112,12 @@ function fieldError(f: FieldMeta, raw: string, allowed: string[] | null = f.allo
         const words = countWords(v);
         if (words > f.maxWords) return `${f.label} must be at most ${f.maxWords.toLocaleString("en-US")} words (it has ${words.toLocaleString("en-US")}).`;
       }
-      return f.maxLength != null && v.length > f.maxLength ? `${f.label} must be at most ${f.maxLength} characters.` : null;
+      if (f.maxLength != null && v.length > f.maxLength) return `${f.label} must be at most ${f.maxLength} characters.`;
+      if (f.format === "DOI_ISSN" && !hasValidDoiOrIssn(v)) {
+        return `${f.label} must include a valid DOI (such as 10.1000/xyz123) or ISSN (such as 1234-5678).`;
+      }
+      if (f.format === "ISBN" && !validIsbn(v)) return `${f.label} must be a valid ISBN-10 or ISBN-13 (for example 978-0-13-468599-1).`;
+      return null;
     }
     case "INT": {
       const n = num(v);
@@ -78,6 +128,13 @@ function fieldError(f: FieldMeta, raw: string, allowed: string[] | null = f.allo
     }
     case "DECIMAL": {
       const n = num(v);
+      if (f.format === "CURRENCY") {
+        const places = (v.split(".")[1] ?? "").replace(/0+$/, "").length;
+        if (n == null || n < 0 || places > 2 || /[a-z,]/i.test(v)) {
+          return `${f.label} must be a valid amount: 0 or more, with at most 2 decimal places.`;
+        }
+        return f.max != null && n > f.max ? `${f.label} must be at most ${Math.trunc(f.max)}.` : null;
+      }
       if (n == null) return `${f.label} must be a number.`;
       if (f.allowed?.length && !f.allowed.includes(String(n))) return `${f.label} must be one of: ${f.allowed.join(", ")}.`;
       const dp = (v.split(".")[1] ?? "").replace(/0+$/, "").length;
@@ -132,14 +189,21 @@ export function outsideYear(f: FieldMeta, v: string, year: YearBounds): string |
   return null;
 }
 
+/** "Role is Other", "Status is Sanctioned": the condition under which a conditional field is asked for, as the server words it. */
+export function requiredWhen(meta: SectionMeta, f: FieldMeta): string {
+  const parent = meta.fields.find((x) => x.name === f.onlyWhenField);
+  const value = f.onlyWhenEquals ?? "";
+  const wording = parent?.labels?.[value] ?? (value === "OTHER" ? "Other" : value);
+  return `${parent?.label ?? "the choice above"} is ${wording}`;
+}
+
 /** Errors keyed by field name. Empty object means the values can be saved. */
 export function validate(meta: SectionMeta, values: FormValues, hidden: string[] = [], year?: YearBounds): FieldErrors {
   const errors: FieldErrors = {};
   for (const f of meta.fields) {
     if (hidden.includes(f.name) || f.derived || f.effective || !isAsked(f, values)) continue;   // worked out, not typed
     if (f.onlyWhenField && (values[f.name] ?? "").trim() === "") {
-      const parent = meta.fields.find((x) => x.name === f.onlyWhenField);
-      errors[f.name] = `${f.label} is required when ${parent?.label ?? "the choice above"} is Other.`;
+      errors[f.name] = `${f.label} is required when ${requiredWhen(meta, f)}.`;
       continue;
     }
     const e = fieldError(f, values[f.name] ?? "", f.dependsOn ? (f.allowedBy?.[values[f.dependsOn] ?? ""] ?? []) : f.allowed);

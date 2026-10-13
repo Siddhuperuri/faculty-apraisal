@@ -21,7 +21,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "qualificationSpecialization",
     "label" : "Highest qualification and specialization",
@@ -42,7 +44,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "phdStatus",
     "label" : "Ph.D. status",
@@ -67,7 +71,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "joiningDateInstitution",
     "label" : "Date of joining (institution)",
@@ -88,7 +94,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "joiningDateDesignation",
     "label" : "Date of promotion",
@@ -109,16 +117,18 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "teachingExperienceYears",
     "label" : "Teaching experience (years)",
     "type" : "DECIMAL",
-    "required" : false,
+    "required" : true,
     "submitRequired" : false,
     "maxLength" : null,
     "min" : 0.0,
-    "max" : 80.0,
+    "max" : 1000.0,
     "scale" : 1,
     "allowed" : null,
     "dependsOn" : null,
@@ -130,7 +140,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "industryExperienceYears",
     "label" : "Industry experience (years)",
@@ -151,7 +163,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "researchExperienceYears",
     "label" : "Research experience (years)",
@@ -172,7 +186,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "researchIds",
     "label" : "ORCID / Scopus / Google Scholar / Vidwan ID",
@@ -193,7 +209,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -220,7 +238,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "courseRole",
     "label" : "Role in the course",
@@ -244,7 +264,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "courseName",
     "label" : "Course",
@@ -265,7 +287,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "courseType",
     "label" : "Course type",
@@ -289,7 +313,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "program",
     "label" : "Program",
@@ -316,7 +342,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "branch",
     "label" : "Branch",
@@ -360,7 +388,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "semester",
     "label" : "Semester",
@@ -394,7 +424,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "section",
     "label" : "Section",
@@ -421,7 +453,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "hoursPerWeek",
     "label" : "Hours per week",
@@ -449,7 +483,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "passPercentage",
     "label" : "Pass percentage",
@@ -470,7 +506,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "phase1Feedback",
     "label" : "Phase-1 feedback percentage",
@@ -491,7 +529,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "phase2Feedback",
     "label" : "Phase-2 feedback percentage",
@@ -512,7 +552,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -543,7 +585,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "remarks",
     "label" : "Remarks",
@@ -564,7 +608,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : "role"
@@ -591,7 +637,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -618,7 +666,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "rollNo",
     "label" : "Roll number",
@@ -639,7 +689,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "achievement",
     "label" : "Achievement",
@@ -660,7 +712,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "level",
     "label" : "Level",
@@ -686,7 +740,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "monthYear",
     "label" : "Month and year",
@@ -707,7 +763,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -738,7 +796,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "title",
     "label" : "Project title",
@@ -759,7 +819,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "studentCount",
     "label" : "Number of students",
@@ -780,7 +842,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "outcome",
     "label" : "Outcome",
@@ -807,7 +871,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -834,7 +900,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "mode",
     "label" : "Mode",
@@ -859,7 +927,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "institutionVenue",
     "label" : "Organizing institution or venue",
@@ -880,7 +950,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "days",
     "label" : "Duration (in days)",
@@ -901,7 +973,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -933,7 +1007,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "platformOther",
     "label" : "Name of the platform",
@@ -954,7 +1030,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "title",
     "label" : "Course title",
@@ -975,7 +1053,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "durationWeeks",
     "label" : "Duration (in weeks)",
@@ -996,7 +1076,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "gradeScore",
     "label" : "Grade or score",
@@ -1017,7 +1099,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -1044,7 +1128,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "roleCode",
     "label" : "Role",
@@ -1080,7 +1166,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "roleOther",
     "label" : "Other role",
@@ -1101,7 +1189,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "description",
     "label" : "Responsibility or description",
@@ -1122,7 +1212,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "fromDate",
     "label" : "From date",
@@ -1143,7 +1235,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "toDate",
     "label" : "To date",
@@ -1164,7 +1258,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "role",
     "label" : "Role (as reported)",
@@ -1185,7 +1281,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : true
+    "effective" : true,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ {
     "startField" : "fromDate",
@@ -1224,7 +1322,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "activityOther",
     "label" : "Other type of activity",
@@ -1245,7 +1345,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "roleCode",
     "label" : "Role",
@@ -1273,7 +1375,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "roleOther",
     "label" : "Other role",
@@ -1294,7 +1398,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "title",
     "label" : "Title or details of the event",
@@ -1315,7 +1421,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "startDate",
     "label" : "Start date",
@@ -1336,7 +1444,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "endDate",
     "label" : "End date",
@@ -1357,7 +1467,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "beneficiaries",
     "label" : "Number of beneficiaries",
@@ -1378,7 +1490,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "activityType",
     "label" : "Type of activity (as reported)",
@@ -1399,7 +1513,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : true
+    "effective" : true,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "role",
     "label" : "Role (as reported)",
@@ -1420,7 +1536,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : true
+    "effective" : true,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ {
     "startField" : "startDate",
@@ -1450,7 +1568,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "authorPosition",
     "label" : "Author position",
@@ -1480,7 +1600,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "journal",
     "label" : "Journal",
@@ -1501,7 +1623,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "volumeIssuePage",
     "label" : "Volume, issue and page numbers",
@@ -1522,7 +1646,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "monthYear",
     "label" : "Month and year",
@@ -1543,7 +1669,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "indexing",
     "label" : "Indexing",
@@ -1569,12 +1697,14 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "doiIssn",
     "label" : "DOI or ISSN",
     "type" : "TEXT",
-    "required" : false,
+    "required" : true,
     "submitRequired" : false,
     "maxLength" : 80,
     "min" : null,
@@ -1590,7 +1720,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : "DOI_ISSN",
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -1617,7 +1749,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "conference",
     "label" : "Conference",
@@ -1638,7 +1772,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "level",
     "label" : "Level",
@@ -1662,7 +1798,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "monthYear",
     "label" : "Month and year",
@@ -1683,7 +1821,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "venue",
     "label" : "Venue",
@@ -1704,7 +1844,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "doiIndexedIn",
     "label" : "DOI or indexed in",
@@ -1725,28 +1867,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
-  }, {
-    "name" : "citations",
-    "label" : "Number of citations",
-    "type" : "INT",
-    "required" : true,
-    "submitRequired" : false,
-    "maxLength" : null,
-    "min" : 0,
-    "max" : 1000000,
-    "scale" : null,
-    "allowed" : null,
-    "dependsOn" : null,
-    "allowedBy" : null,
-    "derived" : false,
-    "inAcademicYear" : false,
-    "onlyWhenField" : null,
-    "onlyWhenEquals" : null,
-    "labels" : null,
-    "suggestions" : null,
-    "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -1777,7 +1900,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "totalPublications",
     "label" : "Total publications",
@@ -1798,7 +1923,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "totalCitations",
     "label" : "Total citations",
@@ -1819,7 +1946,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "hIndex",
     "label" : "h-index",
@@ -1840,7 +1969,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "i10Index",
     "label" : "i10-index",
@@ -1861,7 +1992,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : "platform"
@@ -1888,7 +2021,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "degree",
     "label" : "Degree",
@@ -1913,7 +2048,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "universityRegNo",
     "label" : "University and registration number",
@@ -1934,7 +2071,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "status",
     "label" : "Status",
@@ -1959,7 +2098,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "year",
     "label" : "Year",
@@ -1980,7 +2121,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -2007,7 +2150,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "registrationYear",
     "label" : "Year of registration",
@@ -2028,7 +2173,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "stage",
     "label" : "Current stage",
@@ -2055,7 +2202,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "progress",
     "label" : "Progress during the year",
@@ -2076,7 +2225,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -2103,7 +2254,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "role",
     "label" : "Role",
@@ -2127,7 +2280,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "team",
     "label" : "Team",
@@ -2148,7 +2303,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "type",
     "label" : "Type",
@@ -2172,7 +2329,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "fundingAgencyClient",
     "label" : "Funding agency or client",
@@ -2193,15 +2352,17 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "amount",
     "label" : "Amount (Rs.)",
     "type" : "DECIMAL",
-    "required" : true,
+    "required" : false,
     "submitRequired" : false,
     "maxLength" : null,
-    "min" : 0.0,
+    "min" : 0,
     "max" : 1.0E11,
     "scale" : 2,
     "allowed" : null,
@@ -2209,12 +2370,14 @@
     "allowedBy" : null,
     "derived" : false,
     "inAcademicYear" : false,
-    "onlyWhenField" : null,
-    "onlyWhenEquals" : null,
+    "onlyWhenField" : "status",
+    "onlyWhenEquals" : "SANCTIONED",
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : "CURRENCY",
+    "onlyWhenDisabled" : true
   }, {
     "name" : "startDate",
     "label" : "Start date",
@@ -2235,7 +2398,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "endDate",
     "label" : "End date",
@@ -2256,7 +2421,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "status",
     "label" : "Status",
@@ -2280,7 +2447,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "year",
     "label" : "Year",
@@ -2301,7 +2470,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ {
     "startField" : "startDate",
@@ -2331,7 +2502,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "title",
     "label" : "Title",
@@ -2352,7 +2525,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "applicationPatentNo",
     "label" : "Application or patent number",
@@ -2373,7 +2548,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "type",
     "label" : "Type",
@@ -2398,7 +2575,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "status",
     "label" : "Status",
@@ -2423,7 +2602,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "recordDate",
     "label" : "Date",
@@ -2444,7 +2625,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -2471,7 +2654,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "title",
     "label" : "Title of book or chapter",
@@ -2492,7 +2677,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "publisher",
     "label" : "Publisher",
@@ -2513,7 +2700,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "isbn",
     "label" : "ISBN",
@@ -2534,7 +2723,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : "ISBN",
+    "onlyWhenDisabled" : false
   }, {
     "name" : "monthYear",
     "label" : "Month and year",
@@ -2555,7 +2746,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "type",
     "label" : "Type",
@@ -2575,11 +2768,13 @@
     "onlyWhenEquals" : null,
     "labels" : {
       "BOOK" : "Book",
-      "CHAPTER" : "Chapter"
+      "CHAPTER" : "Book Chapter"
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -2587,7 +2782,7 @@
   "key" : "outreach",
   "singleton" : false,
   "fields" : [ {
-    "name" : "role",
+    "name" : "roleCode",
     "label" : "Role",
     "type" : "ENUM",
     "required" : true,
@@ -2596,7 +2791,7 @@
     "min" : null,
     "max" : null,
     "scale" : null,
-    "allowed" : [ "CONFERENCE_SESSION_CHAIR", "EXPERT_LECTURE_DELIVERED", "RESOURCE_PERSON", "EDITORIAL_BOARD_MEMBER", "JOURNAL_REVIEWER", "EXTERNAL_EXAMINER", "EXTERNAL_THESIS_EVALUATED", "VISITING_RESEARCHER", "INDUSTRY_INTERACTION_MOU", "INTERNATIONAL_CONFERENCE_ATTENDED", "OTHERS" ],
+    "allowed" : [ "CONFERENCE_SESSION_CHAIR", "EXPERT_LECTURE_DELIVERED", "RESOURCE_PERSON", "EDITORIAL_BOARD_MEMBER", "JOURNAL_REVIEWER", "EXTERNAL_EXAMINER", "EXTERNAL_THESIS_EVALUATED", "VISITING_RESEARCHER", "INDUSTRY_INTERACTION_MOU", "INTERNATIONAL_CONFERENCE_ATTENDED", "OTHER" ],
     "dependsOn" : null,
     "allowedBy" : null,
     "derived" : false,
@@ -2609,16 +2804,42 @@
       "RESOURCE_PERSON" : "Resource Person",
       "EDITORIAL_BOARD_MEMBER" : "Editorial Board Member",
       "JOURNAL_REVIEWER" : "Reviewer for Journals",
-      "EXTERNAL_EXAMINER" : "External Examiner",
+      "EXTERNAL_EXAMINER" : "Project External Examiner",
       "EXTERNAL_THESIS_EVALUATED" : "External Thesis Evaluated",
       "VISITING_RESEARCHER" : "Visiting Researcher",
       "INDUSTRY_INTERACTION_MOU" : "Industry Interaction or MoU",
       "INTERNATIONAL_CONFERENCE_ATTENDED" : "International Conferences Attended",
-      "OTHERS" : "Others"
+      "OTHERS" : "Others",
+      "OTHER" : "Other"
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
+  }, {
+    "name" : "roleOther",
+    "label" : "Other role",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 80,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false,
+    "onlyWhenField" : "roleCode",
+    "onlyWhenEquals" : "OTHER",
+    "labels" : null,
+    "suggestions" : null,
+    "maxWords" : null,
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "eventActivity",
     "label" : "Event or activity",
@@ -2639,7 +2860,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "organization",
     "label" : "Name of organization or institution",
@@ -2660,7 +2883,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "venue",
     "label" : "Venue",
@@ -2681,7 +2906,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "eventDate",
     "label" : "Date",
@@ -2702,7 +2929,32 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
+  }, {
+    "name" : "role",
+    "label" : "Role (as reported)",
+    "type" : "TEXT",
+    "required" : false,
+    "submitRequired" : false,
+    "maxLength" : 100,
+    "min" : null,
+    "max" : null,
+    "scale" : null,
+    "allowed" : null,
+    "dependsOn" : null,
+    "allowedBy" : null,
+    "derived" : false,
+    "inAcademicYear" : false,
+    "onlyWhenField" : null,
+    "onlyWhenEquals" : null,
+    "labels" : null,
+    "suggestions" : null,
+    "maxWords" : null,
+    "effective" : true,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -2729,7 +2981,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "awardingBody",
     "label" : "Professional or awarding body",
@@ -2752,7 +3006,9 @@
       "" : [ "IEEE", "CSI", "ISTE", "IE(I)" ]
     },
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "level",
     "label" : "Level",
@@ -2778,7 +3034,9 @@
     },
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "year",
     "label" : "Year",
@@ -2799,7 +3057,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -2826,7 +3086,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   }, {
     "name" : "instituteContribution",
     "label" : "Contribution at institute level",
@@ -2847,7 +3109,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : null,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null
@@ -2874,7 +3138,9 @@
     "labels" : null,
     "suggestions" : null,
     "maxWords" : 2000,
-    "effective" : false
+    "effective" : false,
+    "format" : null,
+    "onlyWhenDisabled" : false
   } ],
   "dateRanges" : [ ],
   "uniqueField" : null

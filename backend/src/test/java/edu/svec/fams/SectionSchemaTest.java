@@ -76,7 +76,7 @@ class SectionSchemaTest {
         m.put("journal-publications", rec("title", "A study of X", "authorPosition", "1", "journal", "J. of Y",
                 "volumeIssuePage", "12(3):45-60", "monthYear", "2026-05", "indexing", "SCOPUS", "doiIssn", "10.1000/xyz"));
         m.put("conference-papers", rec("title", "Paper Z", "conference", "ICML", "level", "INTL",
-                "monthYear", "2026-03", "venue", "Vienna", "doiIndexedIn", "IEEE Xplore", "citations", 2));
+                "monthYear", "2026-03", "venue", "Vienna", "doiIndexedIn", "IEEE Xplore"));
         m.put("research-metrics", rec("platform", "SCOPUS", "totalPublications", 10, "totalCitations", 100,
                 "hIndex", 5, "i10Index", 3));
         m.put("research-scholars", rec("name", "R. Scholar", "degree", "PHD", "universityRegNo", "JNTU/123",
@@ -90,7 +90,7 @@ class SectionSchemaTest {
                 "type", "UTILITY", "status", "FILED", "recordDate", "2026-02-15"));
         m.put("books", rec("authors", "A, B", "title", "Algorithms", "publisher", "Pearson", "isbn", "9780000000002",
                 "monthYear", "2026-04", "type", "BOOK"));
-        m.put("outreach", rec("role", "RESOURCE_PERSON", "eventActivity", "FDP on ML", "organization", "ABC College",
+        m.put("outreach", rec("roleCode", "RESOURCE_PERSON", "eventActivity", "FDP on ML", "organization", "ABC College",
                 "venue", "Hyderabad", "eventDate", "2026-03-09"));
         m.put("memberships-awards", rec("item", "IEEE Member", "awardingBody", "IEEE", "level", "INTL", "year", 2026));
         m.put("other-contributions", rec("departmentContribution", "Lab setup", "instituteContribution", "NAAC data"));
@@ -112,7 +112,8 @@ class SectionSchemaTest {
 
     private static final Map<String, Set<String>> LEGACY_COLUMNS = Map.of(
             "fdps", Set.of("start_date", "end_date"),
-            "certifications", Set.of("start_date", "end_date", "duration_weeks_hours"));
+            "certifications", Set.of("start_date", "end_date", "duration_weeks_hours"),
+            "conference_papers", Set.of("citations"));   // no longer asked for (V38); the counts already entered are kept
 
     @Test
     void definedColumnsMatchTheDatabaseExactly() {
@@ -183,7 +184,11 @@ class SectionSchemaTest {
                         variant.put(dep.field(), choices.activeUnder(dep.list(), value).get(0));
                     }
                     for (SectionSpec.ConditionalField c : spec.conditionalFields()) {   // a platform named Other needs its name
-                        if (f.name().equals(c.onField()) && value.equals(c.equals())) variant.put(c.field(), "Some other platform");
+                        if (f.name().equals(c.onField()) && value.equals(c.equals())) {
+                            variant.put(c.field(), spec.field(c.field()).type() == FieldSpec.Type.DECIMAL ? 1000 : "Some other platform");
+                        } else if (f.name().equals(c.onField()) && c.disabled()) {
+                            variant.remove(c.field());   // an applied project has no amount
+                        }
                     }
                     SectionService.SectionView v = sections.save(appraisalId, key, faculty, List.of(variant));
                     assertEquals(value, v.records().get(0).get(f.name()), key + "." + f.name());
@@ -205,7 +210,8 @@ class SectionSchemaTest {
                 assertTrue(f.maxLength() <= declared,
                         spec.table() + "." + f.column() + ": limit " + f.maxLength() + " > column " + declared);
                 Map<String, Object> sample = new LinkedHashMap<>(samples().get(spec.key()));
-                sample.put(f.name(), "x".repeat(f.maxLength()));
+                // a DOI or ISSN field needs a value that is one; the rest of its length is filler
+                sample.put(f.name(), "DOI_ISSN".equals(f.format()) ? "10.1000/" + "x".repeat(f.maxLength() - 8) : "x".repeat(f.maxLength()));
                 for (SectionSpec.ConditionalField c : spec.conditionalFields()) {   // asked for only under another choice
                     if (f.name().equals(c.field())) sample.put(c.onField(), c.equals());
                 }

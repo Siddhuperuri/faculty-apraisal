@@ -173,7 +173,7 @@ function DepartmentForm({ department, onClose, onSaved }: { department?: Departm
     <form onSubmit={submit} noValidate className="space-y-4">
       {message && <Alert tone="error" title="Not saved">{message}</Alert>}
       {!department && (
-        <FieldInput meta={meta("code", "Code", "TEXT", 16)} value={code} onChange={setCode} error={errors.code} hint="2 to 16 capital letters or digits, such as ISE. It cannot be changed later." autoFocus />
+        <FieldInput meta={meta("code", "Code", "TEXT", 16)} value={code} onChange={setCode} error={errors.code} autoFocus />
       )}
       <FieldInput meta={meta("name", "Name", "TEXT", 120)} value={name} onChange={setName} error={errors.name} autoFocus={!!department} />
       <div className="flex justify-end gap-2 border-t border-line pt-4">
@@ -312,7 +312,7 @@ function YearForm({ onClose, onSaved }: { onClose: () => void; onSaved: (message
   return (
     <form onSubmit={submit} noValidate className="space-y-4">
       {message && <Alert tone="error" title="Not saved">{message}</Alert>}
-      <FieldInput meta={meta("name", "Name", "TEXT", 16)} value={name} onChange={setName} error={errors.name} hint="Like 2027-28: the second part is the following year." autoFocus />
+      <FieldInput meta={meta("name", "Name", "TEXT", 16)} value={name} onChange={setName} error={errors.name} autoFocus />
       <div className="grid gap-4 sm:grid-cols-2">
         <FieldInput meta={meta("startDate", "Starts on", "DATE")} value={start} onChange={setStart} error={errors.startDate} />
         <FieldInput meta={meta("endDate", "Ends on", "DATE")} value={end} onChange={setEnd} error={errors.endDate} />

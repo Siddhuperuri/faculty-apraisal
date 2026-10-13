@@ -19,7 +19,8 @@ public class SectionMetaController {
                             BigDecimal min, BigDecimal max, Integer scale, List<String> allowed,
                             String dependsOn, Map<String, List<String>> allowedBy, boolean derived, boolean inAcademicYear,
                             String onlyWhenField, String onlyWhenEquals,
-                            Map<String, String> labels, Map<String, List<String>> suggestions, Integer maxWords, boolean effective) {}
+                            Map<String, String> labels, Map<String, List<String>> suggestions, Integer maxWords, boolean effective,
+                            String format, boolean onlyWhenDisabled) {}
 
     public record DateRangeMeta(String startField, String endField) {}
 
@@ -79,6 +80,8 @@ public class SectionMetaController {
                 list == null ? null : choices.labels(list),
                 suggestions,
                 f.maxWords() > 0 ? f.maxWords() : null,
-                s.effectiveTexts().stream().anyMatch(e -> e.field().equals(f.name())));
+                s.effectiveTexts().stream().anyMatch(e -> e.field().equals(f.name())),
+                f.format(),
+                cond != null && cond.disabled());
     }
 }

@@ -43,7 +43,8 @@ public class YearReadinessService {
         byState.put("NOT_STARTED", 0);
         for (AppraisalStatus s : AppraisalStatus.values()) byState.put(s.name(), 0);
         int[] started = {0};
-        jdbc.sql("SELECT status, COUNT(*) FROM appraisals WHERE academic_year_id = ? GROUP BY status").param(yearId).query((rs, n) -> {
+        jdbc.sql("SELECT a.status, COUNT(*) FROM appraisals a JOIN faculty_profiles fp ON fp.id = a.faculty_id "
+                + "JOIN users u ON u.id = fp.user_id AND u.deleted_at IS NULL WHERE a.academic_year_id = ? GROUP BY a.status").param(yearId).query((rs, n) -> {
             byState.merge(rs.getString(1), rs.getInt(2), Integer::sum);
             started[0] += rs.getInt(2);
             return null;
