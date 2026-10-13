@@ -73,5 +73,8 @@ fams:
   # Set back every account to the standard password once, at start-up, when this holds a token not used before (see
   # StartupPasswordReset). Unset it afterwards.
   reset-all-passwords: ${FAMS_RESET_ALL_PASSWORDS:}
+  # Remove every appraisal and its form data once, at start-up, when this holds a token not used before (see
+  # StartupAppraisalReset). Accounts, policies and lists stay. Unset it afterwards.
+  reset-appraisals: ${FAMS_RESET_APPRAISALS:}
   bootstrap-admin-email: ${FAMS_BOOTSTRAP_ADMIN_EMAIL:}
   bootstrap-admin-password: ${FAMS_BOOTSTRAP_ADMIN_PASSWORD:}
