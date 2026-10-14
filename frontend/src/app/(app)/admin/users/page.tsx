@@ -5,7 +5,6 @@ import { ChangeRoleDialog } from "@/components/admin/ChangeRoleDialog";
 import { DeleteUserDialog } from "@/components/admin/DeleteUserDialog";
 import { ImportAccountsDialog } from "@/components/admin/ImportAccountsDialog";
 import { OneTimePasswordDialog } from "@/components/admin/OneTimePassword";
-import { ResetLinksResultDialog } from "@/components/admin/ResetLinksResultDialog";
 import { UserFormDialog } from "@/components/admin/UserFormDialog";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Alert, Badge, Button, EmptyState, Skeleton } from "@/components/ui/primitives";
@@ -16,7 +15,7 @@ import { get, post, postDownload, put, saveFile } from "@/lib/api";
 import { NOTHING, checkState, hiddenCount, toggle, toggleShown, type Selection } from "@/lib/selection";
 import { formatDateTime } from "@/lib/format";
 import { ROLE_LABEL, isWithdrawnRole, roleLabel } from "@/lib/labels";
-import type { AdminReference, AdminUserRow, IssuedPassword, LinkResult, Role } from "@/lib/types";
+import type { AdminReference, AdminUserRow, IssuedPassword, Role } from "@/lib/types";
 
 type Pending = { kind: "disable" | "reset"; user: AdminUserRow } | null;
 
@@ -32,9 +31,6 @@ const SORTS: { value: Sort; label: string }[] = [
   { value: "role", label: "Role" },
 ];
 const ROLE_ORDER: Record<string, number> = { ADMIN: 0, PRINCIPAL: 1, DIRECTOR: 2, HOD: 3, FACULTY: 4 };
-
-/** The server sends this many e-mails in one request; a longer choice is sent in parts, one after another. */
-const LINKS_PER_REQUEST = 50;
 
 export default function UsersPage() {
   const { user: me } = useAuth();
@@ -60,10 +56,7 @@ export default function UsersPage() {
   const [working, setWorking] = useState(false);
   // The rows ticked for the bulk actions, kept by user id so a search or a filter never drops one.
   const [selected, setSelected] = useState<Selection>(NOTHING);
-  const [seen, setSeen] = useState<Map<number, AdminUserRow>>(new Map());
-  const [linksAsked, setLinksAsked] = useState(false);
-  const [linkResult, setLinkResult] = useState<LinkResult | null>(null);
-  const [bulkBusy, setBulkBusy] = useState<"links" | "xlsx" | "csv" | null>(null);
+  const [bulkBusy, setBulkBusy] = useState<"xlsx" | "csv" | null>(null);
 
   const [loadedAt, stamp] = useLoadedAt();
 
@@ -74,11 +67,6 @@ export default function UsersPage() {
     try {
       const list = await get<AdminUserRow[]>(`/api/admin/users?${params}`);
       setRows(list);
-      setSeen((prev) => {
-        const next = new Map(prev);
-        for (const u of list) next.set(u.id, u);
-        return next;
-      });
       setError(null);
       stamp();
     } catch (e) {
@@ -122,42 +110,6 @@ export default function UsersPage() {
         await load();
       }
     });
-
-  /** The chosen users the server will actually send a link to: active, not yourself, not closed. */
-  const linkable = useMemo(
-    () => [...selected].filter((id) => {
-      const u = seen.get(id);
-      return u === undefined || (u.id !== me?.id && u.status === "ACTIVE" && !isWithdrawnRole(u.role));
-    }).length,
-    [selected, seen, me?.id],
-  );
-
-  /** Sends each chosen user a one-time reset link (never a password), in parts, and adds the answers up. */
-  const sendLinks = async () => {
-    setLinksAsked(false);
-    setBulkBusy("links");
-    setNotice(null);
-    setError(null);
-    const ids = [...selected];
-    const total: LinkResult = { requested: 0, sent: 0, skipped: 0, failed: 0, mailReady: true, skippedUsers: [], failedUsers: [] };
-    try {
-      for (let i = 0; i < ids.length; i += LINKS_PER_REQUEST) {
-        const part = await post<LinkResult>("/api/admin/users/send-reset-links", { ids: ids.slice(i, i + LINKS_PER_REQUEST) });
-        total.requested += part.requested;
-        total.sent += part.sent;
-        total.skipped += part.skipped;
-        total.failed += part.failed;
-        total.mailReady = total.mailReady && part.mailReady;
-        total.skippedUsers.push(...part.skippedUsers);
-        total.failedUsers.push(...part.failedUsers);
-      }
-    } catch (e) {
-      setError(`${(e as Error).message}${total.requested > 0 ? ` ${total.sent} link${total.sent === 1 ? " was" : "s were"} sent before it stopped.` : ""}`);
-    } finally {
-      if (total.requested > 0) setLinkResult(total);
-      setBulkBusy(null);
-    }
-  };
 
   const downloadSelected = async (format: "xlsx" | "csv") => {
     setBulkBusy(format);
@@ -262,9 +214,6 @@ export default function UsersPage() {
       </div>
 
       <SelectionToolbar selection={selected} hidden={hidden} singular="user" plural="users" onClear={() => setSelected(NOTHING)}>
-        <Button size="sm" disabled={bulkBusy !== null || working} loading={bulkBusy === "links"} onClick={() => setLinksAsked(true)}>
-          Send password reset link
-        </Button>
         <Button variant="secondary" size="sm" disabled={bulkBusy !== null} loading={bulkBusy === "csv"} onClick={() => void downloadSelected("csv")}>
           Download selected users CSV
         </Button>
@@ -441,11 +390,6 @@ export default function UsersPage() {
         onDeleted={(message, id) => {
           setNotice(message);
           setSelected((cur) => (cur.has(id) ? toggle(cur, id) : cur));
-          setSeen((prev) => {
-            const next = new Map(prev);
-            next.delete(id);
-            return next;
-          });
           void load();
         }}
       />
@@ -460,26 +404,6 @@ export default function UsersPage() {
       />
       <ImportAccountsDialog open={importing} reference={reference} onClose={() => setImporting(false)} onImported={() => void load()} />
       <OneTimePasswordDialog issued={issued?.value ?? null} reason={issued?.reason ?? "created"} onClose={() => setIssued(null)} />
-      <ConfirmDialog
-        open={linksAsked}
-        title={`Send a reset link to ${selected.size} user${selected.size === 1 ? "" : "s"}?`}
-        confirmLabel={`Send ${linkable} link${linkable === 1 ? "" : "s"}`}
-        message={
-          <div className="space-y-2">
-            <p>
-              Each active user among the {selected.size} chosen ({linkable} will be sent one) gets an e-mail with their own link to choose a new
-              password. The link works once and expires in 30 minutes. No password is created, shown or e-mailed.
-            </p>
-            <p>
-              Your own account, disabled and closed users, and anyone who was sent several links a moment ago are skipped. You will see how many
-              were sent, skipped and failed.
-            </p>
-          </div>
-        }
-        onConfirm={() => void sendLinks()}
-        onCancel={() => setLinksAsked(false)}
-      />
-      <ResetLinksResultDialog result={linkResult} onClose={() => setLinkResult(null)} />
       <ConfirmDialog
         open={pending !== null}
         destructive={pending?.kind === "disable"}
