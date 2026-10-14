@@ -25,3 +25,6 @@ backups/
 !.env.docker.example
 deploy/tls/*
 !deploy/tls/README.md
+
+# Windows server release (scripts/make-windows-release.ps1): built files, never committed
+/release/
