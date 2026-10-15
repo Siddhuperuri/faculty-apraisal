@@ -267,20 +267,30 @@ class ScoreIntegrationTest {
     private static final String CERT = "INSERT INTO certifications (appraisal_id, platform, title, duration_weeks) VALUES (?, 'NPTEL', 'C', ?)";
 
     @Test
-    void eachFdpEarnsTwoAndAHalfWhateverItsLengthAndTwoEarnTheWholeFive() throws Exception {
+    void anFdpOfFiveDaysOrMoreEarnsTwoAndAHalfAndTwoEarnTheWholeFive() throws Exception {
         sheet(faculty, id).andExpect(jsonPath("$.scores[2].breakdown[0].marks").value(0));
-        jdbc.sql(FDP).params(id, 1).update();                                     // a single day counts: there is no minimum
+        jdbc.sql(FDP).params(id, 5).update();                                     // exactly five days counts
         sheet(faculty, id).andExpect(jsonPath("$.scores[2].breakdown[0].marks").value(2.5))
                 .andExpect(jsonPath("$.scores[2].breakdown[0].count").value(1))
                 .andExpect(jsonPath("$.scores[2].breakdown[0].perEntry").value(2.5));
         jdbc.sql(FDP).params(id, 30).update();                                    // the second earns the other half
         sheet(faculty, id).andExpect(jsonPath("$.scores[2].breakdown[0].marks").value(5))
                 .andExpect(jsonPath("$.scores[2].score").value(5));
-        for (int days : new int[] {2, 6, 40}) jdbc.sql(FDP).params(id, days).update();   // more are recorded, and add nothing
+        for (int days : new int[] {6, 40, 10}) jdbc.sql(FDP).params(id, days).update();   // more are recorded, and add nothing
         sheet(faculty, id).andExpect(jsonPath("$.scores[2].breakdown[0].marks").value(5))
                 .andExpect(jsonPath("$.scores[2].breakdown[0].count").value(5))
-                .andExpect(jsonPath("$.scores[2].breakdown[0].description").value("FDP / workshop / seminar / training attended (Max marks: 5)"))
+                .andExpect(jsonPath("$.scores[2].breakdown[0].description").value("FDP / workshop / seminar / training of 5 days or more (Max marks: 5)"))
                 .andExpect(jsonPath("$.scores[2].score").value(5));
+    }
+
+    @Test
+    void anFdpOfFewerThanFiveDaysEarnsNothingWhateverTheirNumber() throws Exception {
+        for (int days : new int[] {1, 2, 3, 4, 4}) jdbc.sql(FDP).params(id, days).update();
+        sheet(faculty, id).andExpect(jsonPath("$.scores[2].breakdown[0].marks").value(0))
+                .andExpect(jsonPath("$.scores[2].breakdown[0].count").value(0))
+                .andExpect(jsonPath("$.scores[2].score").value(0));
+        jdbc.sql(FDP).params(id, 5).update();                                     // one that qualifies earns, the short ones still do not
+        sheet(faculty, id).andExpect(jsonPath("$.scores[2].breakdown[0].marks").value(2.5));
     }
 
     @Test

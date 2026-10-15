@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChangeRoleDialog } from "@/components/admin/ChangeRoleDialog";
+import { BulkResetConfirm, BulkResetResultDialog } from "@/components/admin/BulkResetDialog";
 import { DeleteUserDialog } from "@/components/admin/DeleteUserDialog";
 import { ImportAccountsDialog } from "@/components/admin/ImportAccountsDialog";
 import { OneTimePasswordDialog } from "@/components/admin/OneTimePassword";
@@ -15,7 +16,7 @@ import { get, post, postDownload, put, saveFile } from "@/lib/api";
 import { NOTHING, checkState, hiddenCount, toggle, toggleShown, type Selection } from "@/lib/selection";
 import { formatDateTime } from "@/lib/format";
 import { ROLE_LABEL, isWithdrawnRole, roleLabel } from "@/lib/labels";
-import type { AdminReference, AdminUserRow, IssuedPassword, Role } from "@/lib/types";
+import type { AdminReference, AdminUserRow, BulkResetResult, IssuedPassword, Role } from "@/lib/types";
 
 type Pending = { kind: "disable" | "reset"; user: AdminUserRow } | null;
 
@@ -57,6 +58,9 @@ export default function UsersPage() {
   // The rows ticked for the bulk actions, kept by user id so a search or a filter never drops one.
   const [selected, setSelected] = useState<Selection>(NOTHING);
   const [bulkBusy, setBulkBusy] = useState<"xlsx" | "csv" | null>(null);
+  const [confirmBulkReset, setConfirmBulkReset] = useState(false);
+  const [bulkResetting, setBulkResetting] = useState(false);
+  const [bulkResult, setBulkResult] = useState<BulkResetResult | null>(null);
 
   const [loadedAt, stamp] = useLoadedAt();
 
@@ -123,6 +127,24 @@ export default function UsersPage() {
       setError((e as Error).message);
     } finally {
       setBulkBusy(null);
+    }
+  };
+
+  const resetSelected = async () => {
+    setBulkResetting(true);
+    setNotice(null);
+    setError(null);
+    try {
+      const result = await post<BulkResetResult>("/api/admin/users/reset-passwords", { ids: [...selected] });
+      setConfirmBulkReset(false);
+      setBulkResult(result);
+      setSelected(NOTHING);
+      await load();
+    } catch (e) {
+      setConfirmBulkReset(false);
+      setError((e as Error).message);
+    } finally {
+      setBulkResetting(false);
     }
   };
 
@@ -214,6 +236,9 @@ export default function UsersPage() {
       </div>
 
       <SelectionToolbar selection={selected} hidden={hidden} singular="user" plural="users" onClear={() => setSelected(NOTHING)}>
+        <Button size="sm" disabled={bulkBusy !== null || bulkResetting} onClick={() => setConfirmBulkReset(true)}>
+          Reset passwords
+        </Button>
         <Button variant="secondary" size="sm" disabled={bulkBusy !== null} loading={bulkBusy === "csv"} onClick={() => void downloadSelected("csv")}>
           Download selected users CSV
         </Button>
@@ -221,6 +246,15 @@ export default function UsersPage() {
           Download selected users Excel
         </Button>
       </SelectionToolbar>
+
+      <BulkResetConfirm
+        open={confirmBulkReset}
+        count={selected.size}
+        working={bulkResetting}
+        onCancel={() => setConfirmBulkReset(false)}
+        onConfirm={() => void resetSelected()}
+      />
+      <BulkResetResultDialog result={bulkResult} onClose={() => setBulkResult(null)} />
 
       {shown.length === 0 ? (
         <EmptyState>{query || role || narrowed ? "No users match your search." : "There are no users yet."}</EmptyState>

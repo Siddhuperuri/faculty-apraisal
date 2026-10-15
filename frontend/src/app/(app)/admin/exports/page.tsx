@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, EmptyState, Skeleton, StatusBadge } from "@/components/ui/primitives";
+import { usePdfZip } from "@/components/console/PdfZip";
 import { RefreshButton, useLoadedAt } from "@/components/ui/RefreshButton";
 import { RowCheckbox, SelectAllCheckbox, SelectionToolbar } from "@/components/ui/Selection";
 import { get, postDownload, saveFile } from "@/lib/api";
@@ -69,6 +70,7 @@ export default function AppraisalExportPage() {
   const headerState = checkState(selected, shownIds);
   const hidden = hiddenCount(selected, shownIds);
   const narrowed = department !== "" || cadre !== "" || status !== "" || query.trim() !== "";
+  const pdfs = usePdfZip("/api/admin/appraisals/pdfs", roster?.year?.id);
 
   const download = async (format: "xlsx" | "csv") => {
     setBusy(format);
@@ -141,7 +143,26 @@ export default function AppraisalExportPage() {
       <SelectionToolbar selection={selected} hidden={hidden} singular="faculty" plural="faculty" onClear={() => setSelected(NOTHING)}>
         <Button size="sm" loading={busy === "xlsx"} disabled={busy !== null} onClick={() => void download("xlsx")}>Download Excel (.xlsx)</Button>
         <Button variant="secondary" size="sm" loading={busy === "csv"} disabled={busy !== null} onClick={() => void download("csv")}>Download CSV</Button>
+        <Button variant="secondary" size="sm" loading={pdfs.busy === "selected"} disabled={pdfs.busy !== null}
+          onClick={() => void pdfs.download({ facultyIds: [...selected] })}>
+          Download PDFs (zip)
+        </Button>
       </SelectionToolbar>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button variant="secondary" size="sm" loading={pdfs.busy === "all"} disabled={pdfs.busy !== null}
+          onClick={() => void pdfs.download({ all: true })}>
+          Download all PDFs (zip)
+        </Button>
+        <p className="text-xs text-muted">
+          The printed form of every submitted appraisal of {year?.name ?? "the year"}, as one zip file (up to 300). Tick faculty to
+          download only theirs. Drafts are private and never included; the reviewers&apos; remarks are not printed.
+        </p>
+      </div>
+      {pdfs.notice && (
+        <Alert tone={pdfs.notice.tone === "ok" ? "ok" : "error"} title={pdfs.notice.tone === "ok" ? "Downloaded" : "Could not download"}>
+          {pdfs.notice.text}
+        </Alert>
+      )}
 
       {shown.length === 0 ? (
         <EmptyState>{narrowed ? "No faculty match these filters." : "There are no faculty yet."}</EmptyState>

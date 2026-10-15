@@ -72,6 +72,7 @@ export function SingleSection({ ui }: { ui: SectionUi }) {
         errors={shown}
         disabled={!editable}
         suggestions={ui.suggestions}
+        hidden={ui.hiddenFields}
         onChange={(name, v) => {
           setTouched((t) => ({ ...t, [name]: true }));
           setEdits({ ...values, [name]: v });

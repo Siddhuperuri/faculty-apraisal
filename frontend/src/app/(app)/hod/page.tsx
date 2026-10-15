@@ -2,17 +2,44 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ConsoleHeader, STAGE_COLOUR, StageBar, StatTile, YearPicker } from "@/components/console/parts";
 import { RefreshButton, useLoadedAt } from "@/components/ui/RefreshButton";
 import { Alert, Badge, Button, Card, EmptyState, RuledHeading, Skeleton, StatusBadge, linkButton } from "@/components/ui/primitives";
 import { RowCheckbox, SelectAllCheckbox, SelectionToolbar } from "@/components/ui/Selection";
+import { Dialog } from "@/components/ui/Dialog";
+import { RevocationTrailCard } from "@/components/appraisal/RevocationNotices";
+import { usePdfZip } from "@/components/console/PdfZip";
 import { get, postDownload, saveFile } from "@/lib/api";
 import { NOTHING, checkState, hiddenCount, keepOnly, toggle, toggleShown, type Selection } from "@/lib/selection";
 import { formatDateTime } from "@/lib/format";
 import { STAGE_LABEL } from "@/lib/labels";
 import { scrollToId } from "@/lib/focus";
 import { SORT_LABEL, VIEW_LABEL, VIEW_ORDER, filterRoster, viewOf, type RosterSort, type RosterView } from "@/lib/roster";
-import type { HodConsole, Stage } from "@/lib/types";
+import type { HodConsole, RosterRow, Stage } from "@/lib/types";
+
+/** The HoD's wording for a roster row's status: an appraisal they approved has been submitted to the Principal or Director Technical. */
+function RosterStatus({ r }: { r: RosterRow }) {
+  if (r.status === "HOD_APPROVED" || r.status === "PRINCIPAL_REVIEW") {
+    return <Badge tone="info">Submitted to Principal / Technical Director</Badge>;
+  }
+  if (r.status) return <StatusBadge status={r.status} queryRaised={r.queryRaised} />;
+  if (r.revoked) return <Badge tone="warn">Revoked, with the faculty member</Badge>;
+  return <span className="text-muted">Not yet submitted</span>;
+}
+
+/** How often it has been revoked and sent again, with the way into the whole trail. */
+function TrailSummary({ r, onOpen }: { r: RosterRow; onOpen: () => void }) {
+  if (r.trailId == null) return null;
+  return (
+    <p className="mt-1 text-xs text-muted">
+      Revoked {r.timesRevoked} time{r.timesRevoked === 1 ? "" : "s"} · sent again {r.timesResent} time{r.timesResent === 1 ? "" : "s"}{" "}
+      <button type="button" onClick={onOpen} className="font-medium text-brand underline-offset-2 hover:underline">
+        View trail<span className="sr-only"> for {r.name}</span>
+      </button>
+    </p>
+  );
+}
 
 export default function HodConsolePage() {
   const [data, setData] = useState<HodConsole | null>(null);
@@ -27,6 +54,8 @@ export default function HodConsolePage() {
   const [selected, setSelected] = useState<Selection>(NOTHING);
   const [exporting, setExporting] = useState<"xlsx" | "csv" | null>(null);
   const [exportNotice, setExportNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [trail, setTrail] = useState<{ id: number; name: string } | null>(null);
+  const justRevoked = useSearchParams().get("revoked") === "1";
   const [loadedAt, stamp] = useLoadedAt();
 
   const load = useCallback(async () => {
@@ -74,6 +103,7 @@ export default function HodConsolePage() {
       setExporting(null);
     }
   };
+  const pdfs = usePdfZip("/api/hod/appraisals/pdfs", data?.year?.id);
   const narrowed = view !== "" || dept !== "" || cadre !== "" || query.trim() !== "";
   const clearFilters = () => {
     setView("");
@@ -127,6 +157,12 @@ export default function HodConsolePage() {
         <Alert tone="warn" title="No department assigned">An administrator needs to assign your department before faculty appraisals can reach you.</Alert>
       ) : (
         <>
+          {justRevoked && (
+            <Alert tone="ok" title="The appraisal was revoked">
+              It has gone back to the faculty member with your remarks, and your revocation is on the trail below.
+            </Alert>
+          )}
+
           {needsAction > 0 ? (
             <Alert
               tone="warn"
@@ -243,7 +279,23 @@ export default function HodConsolePage() {
               <Button variant="secondary" size="sm" loading={exporting === "csv"} disabled={exporting !== null} onClick={() => void exportSelected("csv")}>
                 Download CSV
               </Button>
+              <Button variant="secondary" size="sm" loading={pdfs.busy === "selected"} disabled={pdfs.busy !== null}
+                onClick={() => void pdfs.download({ facultyIds: [...selected] })}>
+                Download PDFs (zip)
+              </Button>
             </SelectionToolbar>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button variant="secondary" size="sm" loading={pdfs.busy === "all"} disabled={pdfs.busy !== null}
+                onClick={() => void pdfs.download({ all: true })}>
+                Download all PDFs (zip)
+              </Button>
+              <p className="text-xs text-muted">Every submitted appraisal of {data.year?.name ?? "the year"} in your department, as one zip file. Tick faculty above to download only theirs.</p>
+            </div>
+            {pdfs.notice && (
+              <Alert tone={pdfs.notice.tone === "ok" ? "ok" : "error"} title={pdfs.notice.tone === "ok" ? "Downloaded" : "Could not download"}>
+                {pdfs.notice.text}
+              </Alert>
+            )}
             {exportNotice && (
               <Alert tone={exportNotice.tone === "ok" ? "ok" : "error"} title={exportNotice.tone === "ok" ? "Downloaded" : "Could not export"}>
                 {exportNotice.text}
@@ -258,7 +310,7 @@ export default function HodConsolePage() {
                 <SelectAllCheckbox state={headerState} onChange={() => setSelected(toggleShown(selected, shownIds))} label={`Select all ${shown.length} faculty shown`} />
                 Select all {shown.length} shown
               </label>
-              <ul className="grid gap-3 sm:hidden" aria-label="Faculty of your department and where each appraisal stands">
+              <ul className="grid gap-3 sm:hidden" aria-label="Faculty of your department and the status of each appraisal">
                 {shown.map((r) => (
                   <li key={r.employeeId} className={`rounded-xl border bg-surface p-4 shadow-[var(--shadow-paper)] ${selected.has(r.facultyId) ? "border-brand bg-brand-soft/40" : "border-line"}`}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -269,28 +321,30 @@ export default function HodConsolePage() {
                           <p className="text-xs text-muted">{r.employeeId}</p>
                         </div>
                       </div>
-                      {r.status ? <StatusBadge status={r.status} queryRaised={r.queryRaised} /> : <Badge>Not submitted</Badge>}
+                      <RosterStatus r={r} />
                     </div>
                     {r.stage === "NEEDS_HOD" && !r.queryRaised && <p className="mt-3"><Badge tone="warn">Needs your action</Badge></p>}
                     {r.queryRaised && <p className="mt-3"><Badge>Awaiting the faculty member</Badge></p>}
+                    <TrailSummary r={r} onOpen={() => setTrail({ id: r.trailId as number, name: r.name })} />
                     <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-line pt-3 text-sm">
                       <div><dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Department</dt><dd className="mt-0.5">{r.department}</dd></div>
                       <div><dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Cadre</dt><dd className="mt-0.5">{r.cadre}</dd></div>
                       <div className="col-span-2"><dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Submitted</dt><dd className="mt-0.5">{r.submittedAt ? formatDateTime(r.submittedAt) : "—"}</dd></div>
+                      {r.forwardedAt && <div className="col-span-2"><dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Submitted to Principal / Technical Director</dt><dd className="mt-0.5">{formatDateTime(r.forwardedAt)}</dd></div>}
                     </dl>
                     {r.appraisalId != null && <Link href={`/appraisals/${r.appraisalId}`} className={`${linkButton("secondary")} mt-4 w-full`}>Open appraisal<span className="sr-only"> for {r.name}</span></Link>}
                   </li>
                 ))}
               </ul>
               <div className="hidden overflow-x-auto rounded-xl border border-line bg-surface shadow-[var(--shadow-paper)] sm:block">
-                <table className="w-full min-w-[46rem] border-collapse text-left text-sm">
-                  <caption className="sr-only">Faculty of your department and where each appraisal stands</caption>
+                <table className="w-full min-w-[56rem] border-collapse text-left text-sm">
+                  <caption className="sr-only">Faculty of your department and the status of each appraisal</caption>
                   <thead>
                     <tr className="bg-brand-soft text-navy">
                       <th scope="col" className="w-10 px-4 py-2.5">
                         <SelectAllCheckbox state={headerState} onChange={() => setSelected(toggleShown(selected, shownIds))} label={`Select all ${shown.length} faculty shown`} />
                       </th>
-                      {["Faculty", "Department", "Cadre", "Where it stands", "Submitted", ""].map((h, i) => (
+                      {["Faculty", "Department", "Cadre", "Status", "Submitted", "Submitted to Principal / Technical Director", ""].map((h, i) => (
                         <th key={i} scope="col" className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em]">{h || <span className="sr-only">Open</span>}</th>
                       ))}
                     </tr>
@@ -309,12 +363,14 @@ export default function HodConsolePage() {
                         <td className="px-4 py-2.5">{r.cadre}</td>
                         <td className="px-4 py-2.5">
                           <div className="flex flex-wrap items-center gap-2">
-                            {r.status ? <StatusBadge status={r.status} queryRaised={r.queryRaised} /> : <span className="text-muted">Not yet submitted</span>}
+                            <RosterStatus r={r} />
                             {r.stage === "NEEDS_HOD" && !r.queryRaised && <Badge tone="warn">Needs your action</Badge>}
                             {r.queryRaised && <Badge>Awaiting the faculty member</Badge>}
                           </div>
+                          <TrailSummary r={r} onOpen={() => setTrail({ id: r.trailId as number, name: r.name })} />
                         </td>
                         <td className="px-4 py-2.5 text-muted">{r.submittedAt ? formatDateTime(r.submittedAt) : "—"}</td>
+                        <td className="px-4 py-2.5 text-muted">{r.forwardedAt ? formatDateTime(r.forwardedAt) : "—"}</td>
                         <td className="px-4 py-2.5 text-right">
                           {r.appraisalId != null && (
                             <Link href={`/appraisals/${r.appraisalId}`} className="font-medium text-brand hover:underline">Open<span className="sr-only"> {r.name}</span></Link>
@@ -334,6 +390,10 @@ export default function HodConsolePage() {
           </section>
         </>
       )}
+
+      <Dialog open={trail !== null} onClose={() => setTrail(null)} title={trail ? `Revocations: ${trail.name}` : ""} wide>
+        {trail && <RevocationTrailCard appraisalId={trail.id} heading="Revoked and sent again" />}
+      </Dialog>
     </div>
   );
 }

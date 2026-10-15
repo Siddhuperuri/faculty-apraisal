@@ -9,6 +9,7 @@ import edu.svec.fams.report.AppraisalExportService;
 import edu.svec.fams.report.Downloads;
 import edu.svec.fams.report.ExportFile;
 import edu.svec.fams.report.ExportRequest;
+import edu.svec.fams.report.PdfBundleService;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -50,11 +51,13 @@ public class AdminController {
     private final AdminBulkService bulk;
     private final AppraisalExportService exports;
     private final UserDeletionService deletion;
+    private final PdfBundleService pdfs;
 
     public AdminController(AdminUserService users, AccountImportService imports, ImportHistoryService importHistory,
                            AdminSetupService setup, AuditQueryService audit, ConsoleService console,
                            AdminAnalyticsService analytics, AdminBulkService bulk, AppraisalExportService exports,
-                           UserDeletionService deletion) {
+                           UserDeletionService deletion, PdfBundleService pdfs) {
+        this.pdfs = pdfs;
         this.deletion = deletion;
         this.analytics = analytics;
         this.bulk = bulk;
@@ -172,6 +175,15 @@ public class AdminController {
     }
 
     /**
+     * Body {@code {"ids": [..]}}: resets the password of each selected account to the standard one (each user must replace
+     * it at next sign-in). The answer lists who was reset and who was left alone, and shows the standard password once.
+     */
+    @PostMapping("/users/reset-passwords")
+    public AdminUserService.BulkReset resetPasswords(@AuthenticationPrincipal FamsUserPrincipal me, @RequestBody Map<String, Object> body) {
+        return users.resetPasswords(me, ExportRequest.ids(body, "ids", AdminUserService.MAX_BULK_RESET));
+    }
+
+    /**
      * Body {@code {"ids": [..]}}: sends each active user a one-time, expiring link to choose a new password (never a
      * password). The answer counts what was sent, skipped and failed, with the reason for each user not sent.
      */
@@ -196,6 +208,17 @@ public class AdminController {
                                                     @RequestParam(required = false) Long cadreId,
                                                     @RequestParam(required = false) String status) {
         return console.exportRoster(academicYearId, departmentId, cadreId, status);
+    }
+
+    /**
+     * The printed forms of the submitted appraisals of the chosen faculty (or of everyone's, with {@code "all": true}) as one
+     * zip file. Body {@code {"facultyIds": [..], "academicYearId": n}} or {@code {"all": true, "academicYearId": n}}. A draft
+     * is private and never included; the reviewers' remarks are not printed.
+     */
+    @PostMapping("/appraisals/pdfs")
+    public ResponseEntity<byte[]> pdfBundle(@AuthenticationPrincipal FamsUserPrincipal me, @RequestBody Map<String, Object> body) {
+        PdfBundleService.Bundle b = pdfs.bundle(me, body);
+        return Downloads.zip(b.fileName(), b.bytes(), b.included(), b.skipped());
     }
 
     /** Body {@code {"facultyIds": [..], "academicYearId": n, "format": "xlsx"|"csv"}}: the appraisal details as a download. */

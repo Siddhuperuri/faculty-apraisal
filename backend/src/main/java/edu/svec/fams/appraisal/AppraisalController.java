@@ -71,12 +71,21 @@ public class AppraisalController {
         return act(id, user, WorkflowAction.Verb.APPROVE, body == null ? null : body.comment());
     }
 
-    /** Body {@code {"reason": "..."}}. The Head of the Department recalls the appraisal before final approval. */
+    /**
+     * Body {@code {"reason": "..."}}: the remarks are required. The Head of the Department returns the appraisal to the
+     * faculty member; the Principal or the Director Technical returns it to the Head of the Department.
+     */
     @PostMapping("/{id}/review/revoke")
     public Map<String, String> revoke(@PathVariable long id, @AuthenticationPrincipal FamsUserPrincipal user,
                                       @RequestBody(required = false) Map<String, Object> body) {
         Object reason = body == null ? null : body.get("reason");
         return Map.of("status", service.revoke(id, user, reason instanceof String s ? s : null).name());
+    }
+
+    /** The HoD's trail of one appraisal: each submission, resubmission and revocation, with the remarks given. */
+    @GetMapping("/{id}/revocations")
+    public AppraisalService.RevocationTrail revocations(@PathVariable long id, @AuthenticationPrincipal FamsUserPrincipal user) {
+        return service.revocationTrail(id, user);
     }
 
     // ---- messages from the Head of the Department to the faculty member ----

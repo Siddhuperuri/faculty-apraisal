@@ -53,8 +53,9 @@ class SectionSchemaTest {
         Map<String, Map<String, Object>> m = new LinkedHashMap<>();
         m.put("general-information", rec("contactNo", "9876543210", "qualificationSpecialization", "M.Tech, Software Engineering",
                 "phdStatus", "PURSUING", "joiningDateInstitution", "2018-06-15", "joiningDateDesignation", "2022-07-01",
-                "teachingExperienceYears", 8.5, "industryExperienceYears", 1, "researchExperienceYears", 3.5,
-                "researchIds", "ORCID 0000-0001-2345-6789"));
+                "teachingExperienceYears", 8, "teachingExperienceMonths", 6, "industryExperienceYears", 1,
+                "researchExperienceYears", 3.5, "researchIds", "ORCID 0000-0001-2345-6789"));
+        m.put("research-profiles", rec("platform", "ORCID", "profileId", "0000-0001-2345-6789"));
         m.put("teaching-courses", rec("courseCode", "CS101", "courseName", "Course CS101",
                 "courseRole", "INSTRUCTOR", "courseType", "THEORY", "program", "B_TECH", "branch", "CSE", "semester", 3,
                 "section", "B", "hoursPerWeek", 4, "passPercentage", 92.5, "phase1Feedback", 80, "phase2Feedback", 85));
@@ -106,7 +107,7 @@ class SectionSchemaTest {
     @Test
     void everyTablePartOfPartBHasADefinition() {
         // The 20 Part A/B tables created in V3 (general_information and 19 Part B), institutional roles, and the action plan.
-        assertEquals(22, Sections.all().size());
+        assertEquals(23, Sections.all().size());
         assertEquals(Sections.all().keySet(), samples().keySet(), "every section needs a sample in this test");
     }
 

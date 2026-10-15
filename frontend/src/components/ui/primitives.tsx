@@ -113,8 +113,9 @@ export function Badge({ tone = "neutral", children }: { tone?: "neutral" | "info
  * The appraisal's status as a {@link Badge}. With `queryRaised` (the HoD has messaged the faculty member during the
  * review) it reads "Query raised": the appraisal is still with the HoD, but waiting for the faculty member.
  */
-export function StatusBadge({ status, queryRaised = false }: { status: Status; queryRaised?: boolean }) {
+export function StatusBadge({ status, queryRaised = false, revoked = false }: { status: Status; queryRaised?: boolean; revoked?: boolean }) {
   if (status === "HOD_REVIEW" && queryRaised) return <Badge tone="warn">Query raised</Badge>;
+  if (status === "DRAFT" && revoked) return <Badge tone="warn">Revoked</Badge>;
   const info = STATUS_INFO[status];
   return <Badge tone={info.tone}>{info.label}</Badge>;
 }

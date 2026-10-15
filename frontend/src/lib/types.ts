@@ -27,6 +27,33 @@ export interface ListItem {
   updatedAt: string;
   /** The HoD is reviewing it and has sent the faculty member a message: it is waiting for them. */
   queryRaised: boolean;
+  /** A draft again because the HoD revoked it: the faculty member is to correct it and send it again. */
+  revoked: boolean;
+  /** The faculty member's record: what the HoD's spreadsheet export is asked about. */
+  facultyId: number;
+}
+
+/** A revocation as the reader may see it: who revoked it, the remarks given and when. */
+export interface RevokeNotice {
+  byRole: Role;
+  remarks: string | null;
+  at: string;
+}
+
+/** One step of the revoke and resubmit trail the HoD reads. */
+export interface TrailEntry {
+  action: "SUBMIT" | "RESUBMIT" | "HOD_REVOKE" | "PRINCIPAL_REVOKE" | "DIRECTOR_REVOKE";
+  actorRole: Role;
+  actorName: string | null;
+  remarks: string | null;
+  at: string;
+}
+
+export interface RevocationTrail {
+  appraisalId: number;
+  timesRevoked: number;
+  timesResent: number;
+  entries: TrailEntry[];
 }
 
 /** One part of a criterion's maximum for the cadre, in the college's wording. */
@@ -97,6 +124,16 @@ export interface AppraisalView {
   academicYearEnd: string;
   /** What the cadre teaches (courses a year and a semester, marks a course, workload maximum); null under the older rule. */
   courseLoad?: CourseLoad | null;
+  /**
+   * Why it came back to this reader: for the faculty member, the HoD's remarks while it is a draft again after being
+   * revoked; for the HoD, the remarks of the Principal or Director Technical who sent it back. Absent otherwise.
+   */
+  returnedNotice?: RevokeNotice;
+  /** The faculty member only: every time the HoD revoked it, with the remarks. */
+  revocations?: RevokeNotice[];
+  /** The HoD only: how many times it has been revoked, and how many times the faculty member has sent it again. */
+  timesRevoked?: number;
+  timesResent?: number;
 }
 
 export interface CourseLoad {
@@ -404,6 +441,15 @@ export interface RosterRow {
   updatedAt: string | null;
   /** The HoD has sent the faculty member a message about it and the review is still open. */
   queryRaised: boolean;
+  /** The HoD revoked it and it is with the faculty member as a draft again. */
+  revoked: boolean;
+  /** How many times it has been revoked (by anyone), and how many times the faculty member has sent it again. */
+  timesRevoked: number;
+  timesResent: number;
+  /** When the HoD approved it and so submitted it to the Principal or Director Technical; null until then. */
+  forwardedAt: string | null;
+  /** The appraisal whose revoke and resubmit trail may be opened; null when it has none. */
+  trailId: number | null;
 }
 
 export interface HodConsole {
@@ -610,6 +656,26 @@ export interface Analytics {
   departments: DepartmentFigures[];
   users: { role: string; active: number; disabled: number }[];
   neverSignedIn: number;
+  /** Accounts counted by role, state, department and designation; the user pie chart is drawn from it. */
+  userGroups: UserGroup[];
+}
+
+export interface UserGroup {
+  role: string;
+  status: string;
+  department: string | null;
+  designation: string | null;
+  count: number;
+}
+
+/** The result of resetting several users' passwords at once (Admin > Users > select > Reset passwords). */
+export interface BulkResetResult {
+  requested: number;
+  resetCount: number;
+  /** The standard password every reset account now has; shown once. */
+  temporaryPassword: string;
+  reset: { id: number; email: string; role: Role }[];
+  skipped: { id: number; email: string; reason: string }[];
 }
 
 export interface RoleMarks {

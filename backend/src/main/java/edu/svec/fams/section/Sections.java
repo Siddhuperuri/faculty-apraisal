@@ -41,10 +41,18 @@ public final class Sections {
                 listed("phdStatus", "phd_status", "Ph.D. status", true, "PHD_STATUS"),
                 date("joiningDateInstitution", "joining_date_institution", "Date of joining (institution)", false).forSubmission(),
                 date("joiningDateDesignation", "joining_date_designation", "Date of promotion", false),
-                decimal("teachingExperienceYears", "teaching_experience_years", "Teaching experience (years)", 0, 1000, 1, true),
+                integer("teachingExperienceYears", "teaching_experience_years", "Teaching experience (years)", 0, 40, true),
+                integer("teachingExperienceMonths", "teaching_experience_months", "Teaching experience (months)", 0, 11, false),
                 decimal("industryExperienceYears", "industry_experience_years", "Industry experience (years)", 0, 80, 1, false),
                 decimal("researchExperienceYears", "research_experience_years", "Research experience (years)", 0, 80, 1, false),
                 text("researchIds", "research_ids", "ORCID / Scopus / Google Scholar / Vidwan ID", 300, false)));
+
+        // Part A: research profile IDs, added one at a time (each kind once), each with its own ID or link
+        add(SectionSpec.list("research-profiles", "research_profiles",
+                listed("platform", "platform", "Profile", true, "RESEARCH_PROFILE"),
+                text("profileId", "profile_id", "Profile ID or link", 120, true))
+                .uniqueBy("platform")
+                .maxRecords(4, "research profiles"));
 
         // Part B, 1. Teaching & Learning
         add(SectionSpec.list("teaching-courses", "teaching_courses",
@@ -92,6 +100,7 @@ public final class Sections {
                 listed("mode", "mode", "Mode", true, "FDP_MODE"),
                 text("institutionVenue", "institution_venue", "Organizing institution or venue", 200, true),
                 integer("days", "days", "Duration (in days)", 1, 366, true)));
+        // A program earns marks only when it lasted at least FDP_MIN_DAYS days (see ScoringRules)
         add(SectionSpec.list("certifications", "certifications",
                 listed("platform", "platform", "Platform", true, "CERT_PLATFORM"),
                 text("platformOther", "platform_other", "Name of the platform", 100, false),

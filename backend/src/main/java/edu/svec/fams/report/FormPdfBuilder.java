@@ -229,12 +229,12 @@ final class FormPdfBuilder {
         pair(t, "Date of Promotion", date(g == null ? null : g.get("joiningDateDesignation")));
 
         t.addCell(labelCell("Total Experience (Years)"));
-        t.addCell(spanned(new Phrase(pdf("Teaching: " + blank(number(g == null ? null : g.get("teachingExperienceYears")))
+        t.addCell(spanned(new Phrase(pdf("Teaching: " + teachingExperience(g)
                 + "        Industry: " + blank(number(g == null ? null : g.get("industryExperienceYears")))
                 + "        Research: " + blank(number(g == null ? null : g.get("researchExperienceYears")))), BODY), 3));
 
         pair(t, "E-mail ID", v.email());
-        pair(t, "ORCID / Scopus / Google Scholar / Vidwan ID", str(g, "researchIds"));
+        pair(t, "ORCID / Scopus / Google Scholar / Vidwan ID", researchProfiles(g));
         doc.add(t);
     }
 
@@ -987,6 +987,23 @@ final class FormPdfBuilder {
     private static String dash(String s) { return s == null || s.isEmpty() ? "—" : s; }
 
     private static String blank(String s) { return s == null || s.isEmpty() ? "____" : s; }
+
+    /** "6 years 6 months", or the blank line when no teaching experience was given. */
+    private static String teachingExperience(Map<String, Object> g) {
+        Object years = g == null ? null : g.get("teachingExperienceYears");
+        Object months = g == null ? null : g.get("teachingExperienceMonths");
+        if (years == null && months == null) return "____";
+        return number(years == null ? 0 : years) + " yr " + number(months == null ? 0 : months) + " mo";
+    }
+
+    /** The research profile IDs added, "ORCID: ...; Scopus: ..."; an older appraisal's single text when it has no rows. */
+    private String researchProfiles(Map<String, Object> g) {
+        List<String> parts = new ArrayList<>();
+        for (Map<String, Object> r : rows("research-profiles")) {
+            parts.add(label(r.get("platform")) + ": " + str(r, "profileId"));
+        }
+        return parts.isEmpty() ? str(g, "researchIds") : String.join("; ", parts);
+    }
 
     // ====================================================================================================
     // Header, footer and the draft watermark

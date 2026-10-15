@@ -705,8 +705,10 @@ class BulkExportsIntegrationTest {
         for (int i = 1; i <= 201; i++) tooMany.add(i);
         http.post(adminSession, "/api/admin/users/send-reset-links", Map.of("ids", tooMany)).andExpect(status().isBadRequest());
         http.post(hodSession, "/api/admin/users/send-reset-links", Map.of("ids", List.of(withContent.id()))).andExpect(status().isForbidden());
-        // the old way of setting many passwords back at once is gone
-        http.post(adminSession, "/api/admin/users/reset-passwords", Map.of("ids", List.of(withContent.id()))).andExpect(status().is4xxClientError());
+        // setting many passwords back at once is the administrator's alone and needs a choice of users
+        http.post(hodSession, "/api/admin/users/reset-passwords", Map.of("ids", List.of(withContent.id()))).andExpect(status().isForbidden());
+        http.post(adminSession, "/api/admin/users/reset-passwords", Map.of()).andExpect(status().isBadRequest());
+        http.post(adminSession, "/api/admin/users/reset-passwords", Map.of("ids", List.of())).andExpect(status().isBadRequest());
         verify(mailer, never()).send(any(), any(), any());
     }
 

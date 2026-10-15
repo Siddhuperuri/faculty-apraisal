@@ -18,7 +18,6 @@ import edu.svec.fams.appraisal.AppraisalService;
 import edu.svec.fams.auth.FamsUserPrincipal;
 import edu.svec.fams.section.FieldSpec;
 import edu.svec.fams.section.Sections;
-import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,24 +91,34 @@ class ConsoleCleanupIntegrationTest {
     }
 
     @Test
-    void teachingExperienceIsRequiredAndMustBeBetweenZeroAndOneThousand() throws Exception {
+    void teachingExperienceIsWholeYearsFromZeroToFortyAndWholeMonthsFromZeroToEleven() throws Exception {
         assertTrue(meta("general-information", "teachingExperienceYears").get("required").asBoolean());
+        assertEquals(40, meta("general-information", "teachingExperienceYears").get("max").asInt());
+        assertEquals(11, meta("general-information", "teachingExperienceMonths").get("max").asInt());
         save("general-information", general(null)).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors['records[0].teachingExperienceYears']").value("Teaching experience (years) is required."));
         save("general-information", general("")).andExpect(status().isBadRequest());
-        save("general-information", general("abc")).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.fieldErrors['records[0].teachingExperienceYears']").value("Teaching experience (years) must be a number."));
+        save("general-information", general("abc")).andExpect(status().isBadRequest());
         save("general-information", general(-1)).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors['records[0].teachingExperienceYears']")
-                        .value("Teaching experience (years) must be between 0 and 1000."));
-        save("general-information", general(1000.5)).andExpect(status().isBadRequest());
-        save("general-information", general(1001)).andExpect(status().isBadRequest());
+                        .value("Teaching experience (years) must be between 0 and 40."));
+        save("general-information", general(41)).andExpect(status().isBadRequest());
+        save("general-information", general(6.5)).andExpect(status().isBadRequest());     // whole years only
+
+        save("general-information", rec("phdStatus", "NOT_APPLICABLE", "teachingExperienceYears", 5, "teachingExperienceMonths", 12))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors['records[0].teachingExperienceMonths']")
+                        .value("Teaching experience (months) must be between 0 and 11."));
+        save("general-information", rec("phdStatus", "NOT_APPLICABLE", "teachingExperienceYears", 5, "teachingExperienceMonths", -1))
+                .andExpect(status().isBadRequest());
 
         save("general-information", general(0)).andExpect(status().isOk());
-        save("general-information", general(1000)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.records[0].teachingExperienceYears").value(1000.0));
-        assertEquals(0, new BigDecimal("1000.0").compareTo(jdbc.sql("SELECT teaching_experience_years FROM general_information WHERE appraisal_id = ?")
-                .param(id).query(BigDecimal.class).single()));
+        save("general-information", rec("phdStatus", "NOT_APPLICABLE", "teachingExperienceYears", 40, "teachingExperienceMonths", 11))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.records[0].teachingExperienceYears").value(40))
+                .andExpect(jsonPath("$.records[0].teachingExperienceMonths").value(11));
+        assertEquals(40, jdbc.sql("SELECT teaching_experience_years FROM general_information WHERE appraisal_id = ?")
+                .param(id).query(Integer.class).single());
     }
 
     @Test

@@ -378,3 +378,25 @@ sign-in, and its appraisals open for nobody; the person's e-mail address and emp
 issued official PDF reports are stored files whose checksums are on record and are not rewritten, so they still carry the name as it
 was issued. The audit entry (`USER_DELETED`) names the account by number and role with counts, and holds neither e-mail nor name; the
 earlier `USER_CREATED` entry, being append-only, still holds the address it was created with.
+
+**ADR-044: Revoke goes one level back with remarks; trail, analytics, PDF bundles and Part A changes (2026-10-14).**
+(1) **Revoking is one level back, with remarks, for every reviewer.** The HoD's revoke returns an appraisal to the faculty member
+(from any stage before final approval, including one already forwarded, which used to come back to the HoD); the Principal's
+or the Director Technical's returns it to the HoD, who reviews it again. This supersedes ADR-035's "no return" for the final
+level: the Director Technical still stands at the Principal's level and no status was added (`HOD_REVIEW` is where a Principal
+revoke lands). Remarks are written for the level the appraisal goes back to: the faculty member is shown the HoD's, the HoD the
+Principal's and Director Technical's, and nobody else. (2) **Each reader is shown only their part of the history**: the HoD's
+view drops the Principal's and Director Technical's approval comments, theirs drops the HoD's revoke steps; the printed form
+follows (the HoD's copy leaves out the Principal's remarks, the faculty member's leaves out all). The HoD also has a revoke and
+resubmit trail per appraisal that works while it is a draft again (it carries no appraisal content). (3) **Bulk PDFs**: the HoD,
+Principal, Director Technical and administrator can download the printed forms of the selected appraisals, or all they may open
+that year, as one zip of at most 300 (`PdfBundleService`). It calls the same report code as one form, so access and remarks are
+unchanged; an administrator may read only submitted appraisals and only through this download, never a draft. (4) **Part A**:
+teaching experience is whole years 0-40 and months 0-11 (V39 splits and, above 40 years, caps stored values); research profile IDs
+(ORCID, Scopus, Google Scholar, Vidwan) are a list added one at a time, each kind once, replacing the single text box (the old text
+stays in the database and is printed only when an appraisal has no profile rows). (5) **FDP**: a program earns 2.5 marks only if
+it lasted at least 5 days (`ScoringRules.FDP_MIN_DAYS`), the part is capped at 5 and shorter programs are recorded and earn
+nothing. This restores a minimum that ADR-043 had removed. No policy version is published: the marks are worked out on read.
+(6) **Admin**: several users' passwords can be reset at once (the standard password, each must change it; the administrator's
+own account is never reset). The analytics page drops the users-by-role bars and the repeated charts, and draws a pie of the
+accounts grouped by role, status, department or designation and narrowed by filters, from counts only.

@@ -40,6 +40,25 @@ public class AppraisalAccess {
     /** The statuses at which the Principal or the Director Technical may open an appraisal. */
     public static Set<AppraisalStatus> finalLevelVisible() { return FINAL_LEVEL_VISIBLE; }
 
+    /**
+     * Set only while the administrator's PDF download runs on this thread (see {@link #asAdminExport}): the one time an
+     * administrator may read an appraisal, and then only a submitted one, never a draft.
+     */
+    private static final ThreadLocal<Boolean> ADMIN_EXPORT = new ThreadLocal<>();
+
+    /**
+     * Runs {@code body} with an administrator allowed to read submitted appraisals, so the printed form can be produced for
+     * the administrator's bulk PDF download. The caller must already have checked that the user is an administrator.
+     */
+    public static <T> T asAdminExport(java.util.function.Supplier<T> body) {
+        ADMIN_EXPORT.set(Boolean.TRUE);
+        try {
+            return body.get();
+        } finally {
+            ADMIN_EXPORT.remove();
+        }
+    }
+
     private final JdbcClient jdbc;
 
     public AppraisalAccess(JdbcClient jdbc) { this.jdbc = jdbc; }
@@ -85,7 +104,7 @@ public class AppraisalAccess {
             case PRINCIPAL, DIRECTOR -> FINAL_LEVEL_VISIBLE.contains(core.status());
             // An administrator manages configuration and may export appraisal details (AppraisalExportService), but never
             // opens or edits an appraisal: this is the one place that says who may read or change one.
-            case ADMIN -> false;
+            case ADMIN -> !lock && ADMIN_EXPORT.get() != null && core.status() != AppraisalStatus.DRAFT;
         };
         if (!visible) throw ApiException.notFound();
         return core;

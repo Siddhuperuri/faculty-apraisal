@@ -79,7 +79,7 @@ and ignored. The per-entry marks are in code (`ScoringRules`), because they are 
 | B2 | students mentored: 6 marks if the total is more than 0, otherwise 0 | 6 once | 6 |
 | | student project guided | 2 | 4 |
 | | student achievement | 1 | 5 |
-| B3 | workshop, FDP, seminar or training attended (any length): **2.5 each**, so two earn all 5 and more add nothing (2026-10-13) | 2.5 | 5 |
+| B3 | workshop, FDP, seminar or training attended, **of 5 days or more**: **2.5 each**, so two earn all 5 and more add nothing; a shorter one earns nothing (2026-10-14; the minimum is `ScoringRules.FDP_MIN_DAYS`) | 2.5 | 5 |
 | | certification (a duration in whole weeks is given): one valid certification earns all 10 | 10 once | 10 |
 | B4 | department-level role | 2 | 4 |
 | | institute-level role | 1.5 | 3 |

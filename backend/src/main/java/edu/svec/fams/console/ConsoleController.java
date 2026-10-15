@@ -5,6 +5,7 @@ import edu.svec.fams.report.AppraisalExportService;
 import edu.svec.fams.report.Downloads;
 import edu.svec.fams.report.ExportFile;
 import edu.svec.fams.report.ExportRequest;
+import edu.svec.fams.report.PdfBundleService;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,10 +27,23 @@ public class ConsoleController {
 
     private final ConsoleService service;
     private final AppraisalExportService exports;
+    private final PdfBundleService pdfs;
 
-    public ConsoleController(ConsoleService service, AppraisalExportService exports) {
+    public ConsoleController(ConsoleService service, AppraisalExportService exports, PdfBundleService pdfs) {
         this.service = service;
         this.exports = exports;
+        this.pdfs = pdfs;
+    }
+
+    /**
+     * The printed forms of the chosen appraisals (or of all the caller may open that year) as one zip file. Body
+     * {@code {"appraisalIds": [..]}}, {@code {"facultyIds": [..], "academicYearId": n}} or {@code {"all": true,
+     * "academicYearId": n}}. What each reviewer may read, and which remarks are printed for whom, is as for one form.
+     */
+    @PostMapping({"/hod/appraisals/pdfs", "/principal/appraisals/pdfs", "/director/appraisals/pdfs"})
+    public ResponseEntity<byte[]> pdfBundle(@AuthenticationPrincipal FamsUserPrincipal user, @RequestBody Map<String, Object> body) {
+        PdfBundleService.Bundle b = pdfs.bundle(user, body);
+        return Downloads.zip(b.fileName(), b.bytes(), b.included(), b.skipped());
     }
 
     @GetMapping("/hod/console")

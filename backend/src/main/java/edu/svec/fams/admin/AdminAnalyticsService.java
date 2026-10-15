@@ -30,8 +30,16 @@ public class AdminAnalyticsService {
     public record Totals(int faculty, int started, int notStarted, int submitted, int approved, double submissionRate,
                          double approvalRate) {}
 
+    /**
+     * How many accounts there are with one combination of role, state, department and designation: the table the page's
+     * user pie chart is drawn from, filtered and grouped in the browser. Only counts: no name or e-mail address. A Head of
+     * the Department is placed in the first of their departments; an account with no department or designation has none.
+     */
+    public record UserGroup(String role, String status, String department, String designation, int count) {}
+
     public record Analytics(YearRef year, List<YearRef> years, Totals totals, Map<String, Integer> byStatus,
-                            List<DepartmentFigures> departments, List<RoleCount> users, int neverSignedIn) {}
+                            List<DepartmentFigures> departments, List<RoleCount> users, int neverSignedIn,
+                            List<UserGroup> userGroups) {}
 
     /** The workflow statuses in the order of the chain. */
     static final List<String> STATUSES = List.of("DRAFT", "SUBMITTED", "HOD_REVIEW", "HOD_APPROVED", "PRINCIPAL_REVIEW", "APPROVED");
@@ -100,7 +108,20 @@ public class AdminAnalyticsService {
                 .query((rs, n) -> new RoleCount(rs.getString(1), rs.getInt(2), rs.getInt(3))).list();
         int never = jdbc.sql("SELECT COUNT(*) FROM users WHERE status = 'ACTIVE' AND last_login_at IS NULL")
                 .query(Integer.class).single();
-        return new Analytics(year, years, totals, overall, departments, users, never);
+        List<UserGroup> groups = jdbc.sql("""
+                SELECT u.role, u.status, COALESCE(d.code, hd.code) AS dept, c.name AS cadre, COUNT(*)
+                FROM users u
+                LEFT JOIN faculty_profiles fp ON fp.user_id = u.id
+                LEFT JOIN departments d ON d.id = fp.department_id
+                LEFT JOIN cadres c ON c.id = fp.cadre_id
+                LEFT JOIN (SELECT h.user_id, MIN(d2.code) AS code FROM hod_assignments h
+                           JOIN departments d2 ON d2.id = h.department_id GROUP BY h.user_id) hd ON hd.user_id = u.id
+                WHERE u.deleted_at IS NULL AND u.role IN ('FACULTY', 'HOD', 'PRINCIPAL', 'DIRECTOR', 'ADMIN')
+                GROUP BY u.role, u.status, COALESCE(d.code, hd.code), c.name
+                ORDER BY u.role, dept, cadre""")
+                .query((rs, n) -> new UserGroup(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getInt(5)))
+                .list();
+        return new Analytics(year, years, totals, overall, departments, users, never, groups);
     }
 
     private static Map<String, Integer> zeroes() {
