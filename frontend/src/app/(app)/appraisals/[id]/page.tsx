@@ -4,6 +4,7 @@ import { HistoryTimeline } from "@/components/appraisal/HistoryTimeline";
 import { MessageComposer, MessagesFromHod } from "@/components/appraisal/Messages";
 import { useAppraisal } from "@/components/appraisal/AppraisalProvider";
 import { ReportDownload } from "@/components/appraisal/ReportDownload";
+import { RevocationTrailCard, RevocationsForFaculty } from "@/components/appraisal/RevocationNotices";
 import { FocusOnArrival, RequirementsSummary } from "@/components/appraisal/RequirementsSummary";
 import { ReviewPanel } from "@/components/appraisal/ReviewPanel";
 import { ScoreSheet } from "@/components/appraisal/ScoreSheet";
@@ -44,7 +45,7 @@ export default function ScoreAndReview() {
 
       <Card className="space-y-3 p-4 sm:p-5">
         <RuledHeading>Where this appraisal stands</RuledHeading>
-        <p className="font-display text-xl leading-snug">{statusLine(appraisal.status, appraisal.queryRaised, isFaculty)}</p>
+        <p className="font-display text-xl leading-snug">{statusLine(appraisal.status, appraisal.queryRaised, isFaculty, appraisal.returnedNotice != null && appraisal.status === "DRAFT")}</p>
         <dl className="grid gap-3 text-sm sm:grid-cols-3">
           <div><dt className="text-muted">Submitted</dt><dd className="font-medium">{appraisal.submittedAt ? formatDateTime(appraisal.submittedAt) : "Not yet"}</dd></div>
           <div><dt className="text-muted">Declaration</dt><dd className="font-medium">{appraisal.declaredAt ? formatDateTime(appraisal.declaredAt) : "Not yet made"}</dd></div>
@@ -53,6 +54,7 @@ export default function ScoreAndReview() {
       </Card>
 
       {isFaculty && <MessagesFromHod appraisalId={appraisal.id} prominent />}
+      {isFaculty && <RevocationsForFaculty appraisal={appraisal} />}
 
       <Card className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
         <div className="max-w-xl">
@@ -88,6 +90,8 @@ export default function ScoreAndReview() {
       )}
 
       {user.role === "HOD" && <MessageComposer appraisalId={appraisal.id} status={appraisal.status} />}
+
+      {user.role === "HOD" && <RevocationTrailCard appraisalId={appraisal.id} />}
 
       {!isFaculty && (
         <Card className="space-y-3 p-4 sm:p-5">

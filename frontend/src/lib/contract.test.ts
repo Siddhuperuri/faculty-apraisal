@@ -167,10 +167,21 @@ describe("form structure vs server definitions", () => {
     for (const p of PAGES) expect(p.sections.every((s) => byKey.has(s.key)), p.slug).toBe(true);
   });
 
-  it("teaching experience is required, between 0 and 1000", () => {
-    const f = byKey.get("general-information")!.fields.find((x) => x.name === "teachingExperienceYears")!;
-    expect(f.required).toBe(true);
-    expect([f.min, f.max]).toEqual([0, 1000]);
+  it("teaching experience is whole years from 0 to 40 (required) and whole months from 0 to 11", () => {
+    const years = byKey.get("general-information")!.fields.find((x) => x.name === "teachingExperienceYears")!;
+    expect(years.required).toBe(true);
+    expect([years.min, years.max]).toEqual([0, 40]);
+    const months = byKey.get("general-information")!.fields.find((x) => x.name === "teachingExperienceMonths")!;
+    expect([months.min, months.max]).toEqual([0, 11]);
+  });
+
+  it("research profile IDs are added one at a time, each kind once, and the older single text box is not shown", () => {
+    const general = PAGES.find((p) => p.slug === "general")!;
+    expect(general.sections.map((x) => x.key)).toEqual(["general-information", "research-profiles"]);
+    expect(general.sections[0].hiddenFields).toEqual(["researchIds"]);
+    const platform = byKey.get("research-profiles")!.fields.find((x) => x.name === "platform")!;
+    expect(platform.allowed).toEqual(expect.arrayContaining(["ORCID", "SCOPUS", "GOOGLE_SCHOLAR"]));
+    expect(byKey.get("research-profiles")!.uniqueField).toBe("platform");
   });
 
   it("a journal paper needs a DOI or ISSN", () => {

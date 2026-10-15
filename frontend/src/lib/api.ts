@@ -120,7 +120,7 @@ export function fileNameFrom(disposition: string | null, fallback = "download"):
 }
 
 /** A POST whose answer is a file (a spreadsheet or CSV): the bytes and the name the server gave them. */
-export async function postDownload(path: string, body: unknown): Promise<{ blob: Blob; fileName: string }> {
+export async function postDownload(path: string, body: unknown): Promise<{ blob: Blob; fileName: string; headers: Headers }> {
   let res: Response;
   try {
     res = await fetch(path, {
@@ -141,7 +141,7 @@ export async function postDownload(path: string, body: unknown): Promise<{ blob:
     }
     throw failure(res.status, payload, path);
   }
-  return { blob: await res.blob(), fileName: fileNameFrom(res.headers.get("Content-Disposition")) };
+  return { blob: await res.blob(), fileName: fileNameFrom(res.headers.get("Content-Disposition")), headers: res.headers };
 }
 
 /** Hands a file to the browser's download. */

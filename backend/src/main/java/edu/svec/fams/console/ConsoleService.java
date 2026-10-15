@@ -1,5 +1,6 @@
 package edu.svec.fams.console;
 
+import edu.svec.fams.appraisal.AppraisalService;
 import edu.svec.fams.audit.AuditQueryService;
 import edu.svec.fams.appraisal.AppraisalStatus;
 import edu.svec.fams.auth.AccountStatus;
@@ -42,10 +43,21 @@ public class ConsoleService {
 
     // ---- HoD ----
     public record DepartmentSummary(long id, String code, String name, int faculty, Map<String, Integer> counts) {}
-    /** @param queryRaised the HoD is reviewing it and has sent the faculty member a message, so it is waiting for them */
+    /**
+     * @param queryRaised the HoD is reviewing it and has sent the faculty member a message, so it is waiting for them
+     * @param revoked the HoD revoked it and it is a draft again with the faculty member (a draft is otherwise shown as not
+     *                submitted)
+     * @param timesRevoked how many times it has been revoked, by the HoD or by the Principal or Director Technical
+     * @param timesResent how many times the faculty member has sent it again
+     * @param forwardedAt when the HoD approved it and so submitted it to the Principal or Director Technical; null until then, and
+     *                    while it is back with the HoD or the faculty member
+     * @param trailId the appraisal whose revoke and resubmit trail the HoD may open; null when it has none (a draft's own
+     *                content is never opened through it)
+     */
     public record RosterRow(long facultyId, Long appraisalId, String name, String employeeId, String department, String cadre,
                             String status, String stage, OffsetDateTime submittedAt, OffsetDateTime updatedAt,
-                            boolean queryRaised) {}
+                            boolean queryRaised, boolean revoked, int timesRevoked, int timesResent, OffsetDateTime forwardedAt,
+                            Long trailId) {}
     public record HodConsole(YearRef year, List<YearRef> years, List<DepartmentSummary> departments,
                              Map<String, Integer> totals, List<RosterRow> roster) {}
 
@@ -121,16 +133,23 @@ public class ConsoleService {
     /** One row per faculty member of the department(s), with this year's appraisal if there is one. */
     private record Person(long facultyId, long departmentId, String departmentCode, String departmentName, String name,
                           String employeeId, long cadreId, String cadre, Long appraisalId, String status, OffsetDateTime submittedAt,
-                          OffsetDateTime updatedAt, boolean queryRaised) {}
+                          OffsetDateTime updatedAt, boolean queryRaised, boolean revoked, int timesRevoked, int timesResent,
+                          OffsetDateTime forwardedAt) {}
 
     private List<Person> people(Long yearId, String departmentFilterSql, List<Object> filterParams, int limit) {
         List<Object> params = new ArrayList<>();
         params.add(yearId);
         params.addAll(filterParams);
-        return jdbc.sql("""
-                SELECT d.id, d.code, d.name AS dept, fp.id AS fid, fp.name, fp.employee_id, c.id AS cadre_id, c.name AS cadre, a.id AS aid, a.status,
-                       a.submitted_at, a.updated_at,
-                       (a.status = 'HOD_REVIEW' AND EXISTS (SELECT 1 FROM appraisal_messages m WHERE m.appraisal_id = a.id AND m.answered_at IS NULL)) AS query_raised
+        String select = "SELECT d.id, d.code, d.name AS dept, fp.id AS fid, fp.name, fp.employee_id, c.id AS cadre_id, c.name AS cadre, "
+                + "a.id AS aid, a.status, a.submitted_at, a.updated_at, "
+                + "(a.status = 'HOD_REVIEW' AND EXISTS (SELECT 1 FROM appraisal_messages m WHERE m.appraisal_id = a.id AND m.answered_at IS NULL)) AS query_raised, "
+                + AppraisalService.REVOKED_SQL + " AS revoked, "
+                + "(SELECT COUNT(*) FROM review_actions r WHERE r.appraisal_id = a.id "
+                + "AND r.action IN ('HOD_REVOKE','PRINCIPAL_REVOKE','DIRECTOR_REVOKE')) AS n_revoked, "
+                + "GREATEST((SELECT COUNT(*) FROM review_actions r WHERE r.appraisal_id = a.id AND r.action = 'SUBMIT') - 1, 0) "
+                + "+ (SELECT COUNT(*) FROM review_actions r WHERE r.appraisal_id = a.id AND r.action = 'RESUBMIT') AS n_resent, "
+                + "(SELECT MAX(r.created_at) FROM review_actions r WHERE r.appraisal_id = a.id AND r.action = 'HOD_APPROVE') AS forwarded_at ";
+        return jdbc.sql(select + """
                 FROM faculty_profiles fp
                 JOIN users u ON u.id = fp.user_id
                 JOIN departments d ON d.id = fp.department_id
@@ -142,7 +161,8 @@ public class ConsoleService {
                 .query((rs, n) -> new Person(rs.getLong("fid"), rs.getLong("id"), rs.getString("code"), rs.getString("dept"), rs.getString("name"),
                         rs.getString("employee_id"), rs.getLong("cadre_id"), rs.getString("cadre"), rs.getObject("aid", Long.class), rs.getString("status"),
                         rs.getObject("submitted_at", OffsetDateTime.class), rs.getObject("updated_at", OffsetDateTime.class),
-                        rs.getBoolean("query_raised")))
+                        rs.getBoolean("query_raised"), rs.getBoolean("revoked"), rs.getInt("n_revoked"), rs.getInt("n_resent"),
+                        rs.getObject("forwarded_at", OffsetDateTime.class)))
                 .list();
     }
 
@@ -175,9 +195,12 @@ public class ConsoleService {
         // A draft is private to its author: it is listed as "not yet submitted", with no appraisal to open.
         List<RosterRow> roster = people.stream().map(p -> {
             boolean visible = p.status() != null && !p.status().equals(AppraisalStatus.DRAFT.name());
+            boolean onward = visible && p.forwardedAt() != null && stage(p.status()) != Stage.NEEDS_HOD;
+            boolean hasTrail = p.appraisalId() != null && (p.timesRevoked() > 0 || p.timesResent() > 0);
             return new RosterRow(p.facultyId(), visible ? p.appraisalId() : null, p.name(), p.employeeId(), p.departmentCode(), p.cadre(),
                     visible ? p.status() : null, stage(p.status()).name(), visible ? p.submittedAt() : null,
-                    visible ? p.updatedAt() : null, visible && p.queryRaised());
+                    visible ? p.updatedAt() : null, visible && p.queryRaised(), p.revoked(), p.timesRevoked(), p.timesResent(),
+                    onward ? p.forwardedAt() : null, hasTrail ? p.appraisalId() : null);
         }).sorted(Comparator
                 .comparing((RosterRow r) -> !r.stage().equals(Stage.NEEDS_HOD.name()))
                 .thenComparing(RosterRow::department).thenComparing(RosterRow::name)).toList();

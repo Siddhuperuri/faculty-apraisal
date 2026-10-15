@@ -58,16 +58,19 @@ public class ReportService {
     public Report report(long appraisalId, FamsUserPrincipal user) {
         AppraisalView view = appraisals.get(appraisalId, user); // 404 unless this user may open the appraisal
         String fileName = fileName(view);
-        // The reviewers' remarks are not shown to the faculty member, so their copy is printed without them.
-        boolean withoutRemarks = user.role() == Role.FACULTY;
+        // The reviewers' remarks are not shown to the faculty member, so their copy is printed without them; the Head of the
+        // Department is not shown what the Principal or the Director Technical wrote, so theirs is printed without that.
+        Role reader = user.role();
 
         if (!"APPROVED".equals(view.status())) {
-            return new Report(fileName, build(view, user, false, withoutRemarks), false);
+            return new Report(fileName, build(view, user, false, reader), false);
         }
 
-        // The official copy always carries the remarks, whoever asks first; the faculty member is then given a copy without them.
+        // The official copy always carries all the remarks, whoever asks first; the faculty member and the HoD are then
+        // given a copy without the remarks that are not theirs to read.
         Report official = officialCopy(appraisalId, view, user, fileName);
-        return withoutRemarks ? new Report(fileName, build(view, user, true, true), true) : official;
+        return reader == Role.FACULTY || reader == Role.HOD || reader == Role.ADMIN
+                ? new Report(fileName, build(view, user, true, reader), true) : official;
     }
 
     private Report officialCopy(long appraisalId, AppraisalView view, FamsUserPrincipal user, String fileName) {
@@ -75,7 +78,7 @@ public class ReportService {
         if (stored.isPresent()) return new Report(fileName, read(stored.get()), true);
 
         // First request after approval: generate, keep, and serve exactly what was kept.
-        byte[] bytes = build(view, user, true, false);
+        byte[] bytes = build(view, user, true, Role.PRINCIPAL);
         try {
             DocumentStorage.Stored s = storage.store(new ByteArrayInputStream(bytes), Long.MAX_VALUE);
             try {
@@ -99,7 +102,10 @@ public class ReportService {
 
     // ---- assembling the data ----
 
-    private byte[] build(AppraisalView view, FamsUserPrincipal user, boolean approved, boolean withoutRemarks) {
+    private byte[] build(AppraisalView view, FamsUserPrincipal user, boolean approved, Role reader) {
+        // faculty: none of the reviewers' remarks; HoD: not the Principal's or the Director Technical's; the others: all
+        boolean withoutHodRemarks = reader == Role.FACULTY || reader == Role.ADMIN;
+        boolean withoutFinalRemarks = reader == Role.FACULTY || reader == Role.HOD || reader == Role.ADMIN;
         Map<String, SectionService.SectionView> data = sections.readAll(view.id(), user);
 
         var ids = jdbc.sql("""
@@ -124,11 +130,11 @@ public class ReportService {
         FormPdfBuilder.Data input = new FormPdfBuilder.Data(
                 view, ids[0], view.department(), ids[1], data,
                 annexure(Long.parseLong(ids[2]), ids[1], view),
-                remarks(hod, withoutRemarks), hod == null ? null : hod.at(),
-                remarks(dean, withoutRemarks), dean == null ? null : dean.at(),
-                remarks(vp, withoutRemarks), vp == null ? null : vp.at(),
-                remarks(principal, withoutRemarks), principal == null ? null : principal.at(),
-                remarks(director, withoutRemarks), director == null ? null : director.at(),
+                remarks(hod, withoutHodRemarks), hod == null ? null : hod.at(),
+                remarks(dean, withoutFinalRemarks), dean == null ? null : dean.at(),
+                remarks(vp, withoutFinalRemarks), vp == null ? null : vp.at(),
+                remarks(principal, withoutFinalRemarks), principal == null ? null : principal.at(),
+                remarks(director, withoutFinalRemarks), director == null ? null : director.at(),
                 approved, ReportLabels.statusLabel(view.status()), OffsetDateTime.now());
         return new FormPdfBuilder(input).build();
     }

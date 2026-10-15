@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AppraisalProvider, useAppraisal } from "@/components/appraisal/AppraisalProvider";
 import { SaveStatus } from "@/components/appraisal/SaveStatus";
+import { ReturnedNotice } from "@/components/appraisal/RevocationNotices";
 import { SectionNav } from "@/components/appraisal/SectionNav";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Alert, PageRuler, Skeleton, StatusBadge } from "@/components/ui/primitives";
@@ -59,6 +60,8 @@ function Shell({ children }: { children: React.ReactNode }) {
         </div>
         <PageRuler counts={counts} className="mt-3 max-w-md" />
       </div>
+
+      <ReturnedNotice appraisal={appraisal} role={user?.role} />
 
       {!appraisal.editable && (
         <Alert tone="info" title={isFaculty ? `Read-only: ${STATUS_INFO[appraisal.status].label}` : "Read-only review view"}>

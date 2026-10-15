@@ -126,6 +126,10 @@ public class UserDeletionService {
                     WHERE appraisal_id IN (SELECT a.id FROM appraisals a JOIN faculty_profiles fp ON fp.id = a.faculty_id WHERE fp.user_id = ?)""")
                     .param(id).update();
             jdbc.sql("""
+                    DELETE FROM research_profiles
+                    WHERE appraisal_id IN (SELECT a.id FROM appraisals a JOIN faculty_profiles fp ON fp.id = a.faculty_id WHERE fp.user_id = ?)""")
+                    .param(id).update();
+            jdbc.sql("""
                     UPDATE faculty_profiles SET name = 'Deleted user', employee_id = CONCAT('DELETED-', user_id), contact_no = NULL,
                            qualification = NULL, specialization = NULL, phd_status = 'NOT_APPLICABLE',
                            joining_date_institution = NULL, joining_date_designation = NULL,

@@ -57,7 +57,12 @@ export const STATUS_INFO: Record<Status, { label: string; tone: "neutral" | "inf
  * shown as having a query raised: it is still with the HoD (the workflow status does not change), but it is waiting for
  * the faculty member to come and talk, not for the HoD.
  */
-export function statusLine(status: Status, queryRaised: boolean, forFaculty: boolean): string {
+export function statusLine(status: Status, queryRaised: boolean, forFaculty: boolean, revoked = false): string {
+  if (status === "DRAFT" && revoked) {
+    return forFaculty
+      ? "Your HoD has revoked your appraisal. Read their remarks, correct it as asked and submit it again."
+      : "Revoked and returned to the faculty member to correct and send again.";
+  }
   if (status === "HOD_REVIEW" && queryRaised) {
     return forFaculty
       ? "Your HoD has sent you a message about your appraisal. Please arrange to meet them. Until they approve it you may correct your appraisal and send it again."
@@ -94,7 +99,9 @@ export const ACTION_LABEL: Record<string, string> = {
   RESUBMIT: "Corrected and sent again by faculty",
   START_HOD_REVIEW: "HoD began the review",
   HOD_APPROVE: "HoD approved it and forwarded it to the Principal or Director Technical",
-  HOD_REVOKE: "HoD revoked it",
+  HOD_REVOKE: "HoD revoked it and returned it to the faculty member",
+  PRINCIPAL_REVOKE: "Principal revoked it and returned it to the HoD",
+  DIRECTOR_REVOKE: "Director Technical revoked it and returned it to the HoD",
   EXPORT_APPRAISALS: "Appraisal details exported",
   EXPORT_USERS: "Users exported",
   PASSWORD_RESET_LINK_SENT: "Password reset link sent",

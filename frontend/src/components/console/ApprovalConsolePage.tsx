@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ConsoleHeader, STAGE_COLOUR, StageBar, StatTile, YearPicker } from "@/components/console/parts";
+import { usePdfZip } from "@/components/console/PdfZip";
 import { RefreshButton, useLoadedAt } from "@/components/ui/RefreshButton";
 import { Alert, Button, Card, EmptyState, RuledHeading, Skeleton, StatusBadge, linkButton } from "@/components/ui/primitives";
 import { get } from "@/lib/api";
@@ -23,6 +24,7 @@ export function ApprovalConsolePage({ role }: { role: "PRINCIPAL" | "DIRECTOR" }
   const [error, setError] = useState<string | null>(null);
   const [yearId, setYearId] = useState<number | null>(null);
   const [loadedAt, stamp] = useLoadedAt();
+  const pdfs = usePdfZip(`/api${level.base}/appraisals/pdfs`, data?.year?.id);
 
   const load = useCallback(async () => {
     try {
@@ -81,6 +83,21 @@ export function ApprovalConsolePage({ role }: { role: "PRINCIPAL" | "DIRECTOR" }
         >
           Every appraisal forwarded to you has been decided.
           {t.notYetWithYou > 0 && ` ${t.notYetWithYou} ${t.notYetWithYou === 1 ? "is" : "are"} still with a ${below.title} or not submitted; they reach you once approved.`}
+        </Alert>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button variant="secondary" size="sm" loading={pdfs.busy === "all"} disabled={pdfs.busy !== null} onClick={() => void pdfs.download({ all: true })}>
+          Download all PDFs (zip)
+        </Button>
+        <p className="text-xs text-muted">
+          The printed form of every appraisal forwarded to you for {data.year?.name ?? "the year"}, as one zip file.{" "}
+          <Link href="/review" className="font-medium text-brand hover:underline">Open the review queue</Link> to tick only some.
+        </p>
+      </div>
+      {pdfs.notice && (
+        <Alert tone={pdfs.notice.tone === "ok" ? "ok" : "error"} title={pdfs.notice.tone === "ok" ? "Downloaded" : "Could not download"}>
+          {pdfs.notice.text}
         </Alert>
       )}
 

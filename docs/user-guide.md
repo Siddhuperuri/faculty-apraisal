@@ -144,10 +144,21 @@ one header row and one line per faculty member, with several records in one cell
 `HOD_Appraisal_Export_2025-26_CSE.xlsx` and `.csv`. A dash "—" means there is nothing to show (not submitted, or nothing entered).
 
 **Revoke** takes an appraisal back at any stage before the Principal's or Director Technical's final approval, even one you have
-already forwarded. Use the *Revoke this appraisal* button under the review box and give the reason. A submitted appraisal (or one
-you are reviewing) goes back to the faculty member as a draft to correct and send again; one you forwarded comes back to you
-for review, and the Principal does not need to agree. Every revocation is recorded with you, the time, the reason and the
-statuses. A finally approved appraisal cannot be revoked.
+already forwarded. Use the *Revoke this appraisal* button under the review box and give your remarks (they are required). The
+appraisal goes back to the faculty member as a draft to correct and send again, and **they are shown your remarks**; the
+Principal and the Director Technical are not. If the Principal or the Director Technical revokes one you forwarded, it comes back
+to you with their remarks on the appraisal page; you can review it again and forward it, or revoke it to the faculty member.
+Every revocation is recorded with who, the time, the remarks and the statuses. A finally approved appraisal cannot be revoked.
+
+**Revoked and sent again.** Each faculty member's row on your console shows how many times the appraisal has been revoked and
+sent again, with *View trail* to read every step and what was written. It works even while the appraisal is a draft with the
+faculty member. The *Status* column reads *Submitted to Principal / Technical Director* once you have forwarded it, and the column
+after *Submitted* gives the date you did.
+
+**Download PDFs.** Tick faculty and choose *Download PDFs (zip)*, or choose *Download all PDFs (zip)* for every submitted
+appraisal of the year in your department. The Principal and the Director Technical have the same on their console and review
+queue, and the administrator on the *Appraisal export* page. A draft is private and never included. Your copy of a form leaves out
+what the Principal and the Director Technical wrote with their approval.
 
 If another HoD of the same department starts at the same moment, only one of you succeeds and the other sees a conflict
 message; refresh and carry on. If the console says *No department assigned*, ask an administrator.
@@ -184,7 +195,8 @@ Technical; the one who did not act on that appraisal is left empty.
 - **Signing out**: after 30 minutes without activity you are signed out; two minutes before, you are asked whether to stay signed
   in. What you had typed into an open form is kept in the browser tab and offered again after you sign in.
 - **Forgot your password?** Use the link on the sign-in page; you are e-mailed a one-time link to choose your own password.
-- **HoDs can revoke** an appraisal before final approval, with a reason (see below).
+- **Your HoD can revoke** your appraisal before final approval. It comes back to you as a draft, marked *Revoked*, with your HoD's
+  remarks at the top of the page. Correct it as asked and submit it again. Every earlier revocation stays listed on your page.
 
 ## Administrator
 
@@ -333,8 +345,11 @@ sign in, change the password, create the real accounts, then remove both variabl
   appears (it is required only then).
 - **No review history for you.** Where your appraisal stands is shown on your page and on Declaration and Submit, and the Head of
   the Department's messages are still shown to you; the list of steps and the reviewers' remarks are for the reviewers.
-- **FDPs**: each Workshop / FDP / Seminar / Training program earns **2.5 marks**, whatever its length. Two earn the full 5; more can
-  be recorded but add nothing.
+- **FDPs**: a Workshop / FDP / Seminar / Training program of **five days or more** earns **2.5 marks**. The total is limited to 5
+  marks, however many are entered; a program of fewer than five days is recorded but earns no marks.
+- **Teaching experience** is given as whole years (0 to 40) and whole months (0 to 11).
+- **Research profile IDs**: choose ORCID, Scopus, Google Scholar or Vidwan, enter the ID or link and add them one at a time; each
+  can be added once.
 
 ### Delete a user permanently (administrators)
 

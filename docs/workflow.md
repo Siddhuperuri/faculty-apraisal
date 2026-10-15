@@ -5,10 +5,11 @@ States and transitions are defined in `AppraisalStatus` and enforced on the back
 The approval chain is **faculty -> Head of the Department -> Principal or Director Technical**. A faculty member submits to
 the HoD of their department. The HoD begins the review, may write a comment, and approves, which forwards the appraisal to
 the Principal and the Director Technical. They stand at the same level (see below): either one's approval is final.
-**Nothing moves backwards, with one exception.** There is no return or revert step by a reviewer, and a submitted appraisal is locked. The exception is
-the faculty member's own: while the HoD is reviewing and has sent them a message (a query), they may correct the appraisal and send it again
-(`RESUBMIT`), which puts it back at SUBMITTED for the HoD to begin the review afresh. The HoD can also **revoke** an appraisal at
-any stage before the Principal's or Director Technical's final approval (see "Revoke" below). Once it is finally approved, it is locked for good.
+**A submitted appraisal is locked, and moves backwards in two ways only.** While the HoD is reviewing and has sent the faculty
+member a message (a query), the faculty member may correct the appraisal and send it again (`RESUBMIT`), which puts it back at
+SUBMITTED for the HoD to begin the review afresh. And any reviewer can **revoke** it, one level back and with remarks, at any stage
+before the final approval (see "Revoke" below): the HoD's revoke goes to the faculty member, the Principal's or Director
+Technical's to the HoD. Once it is finally approved, it is locked for good.
 
 ```mermaid
 stateDiagram-v2
@@ -43,20 +44,40 @@ The comments reviewers write with an approval are **not shown to the faculty mem
 history the faculty member receives, and the PDF the faculty member downloads leaves them out (the official copy stored at
 approval has them). A message from the HoD is the one thing in words the faculty member is shown during the review.
 
-## Revoke (HoD)
+## Revoke (HoD, Principal, Director Technical)
 
-The assigned Head of the Department can take an appraisal back at any stage **before the final approval**, including one already
-forwarded to the Principal or Director Technical, **without anyone's consent** (`POST /api/appraisals/{id}/review/revoke`, body
-`{"reason": "..."}`; a reason is required):
+A reviewer can send an appraisal **one level back** at any stage **before the final approval**, **without anyone's consent**
+(`POST /api/appraisals/{id}/review/revoke`, body `{"reason": "..."}`; the remarks are required, at most 2000 characters). Where it
+goes depends on who revokes:
 
-| From | To | Why there |
-|---|---|---|
-| SUBMITTED, HOD_REVIEW | DRAFT | it is with the HoD: it goes back to the faculty member to correct and send again |
-| HOD_APPROVED, PRINCIPAL_REVIEW | HOD_REVIEW | it was forwarded: it leaves the Principal's queue and the HoD reviews it again |
-| APPROVED | not possible | final approval is final (409) |
+| Who | From | To | Why there |
+|---|---|---|---|
+| Assigned HoD | SUBMITTED, HOD_REVIEW, HOD_APPROVED, PRINCIPAL_REVIEW | DRAFT | it goes back to the faculty member, with the HoD's remarks, to correct and send again (including one already forwarded) |
+| Principal | HOD_APPROVED, PRINCIPAL_REVIEW | HOD_REVIEW | it goes back to the HoD, with the Principal's remarks, to review again; the HoD can then forward it again or revoke it to the faculty member |
+| Director Technical | HOD_APPROVED, PRINCIPAL_REVIEW | HOD_REVIEW | the same, with the Director Technical's remarks |
+| anyone | APPROVED | not possible | final approval is final (409) |
 
-Every revoke is a review-history row (`HOD_REVOKE`, with the reason as its comment) and an audit entry `APPRAISAL_REVOKED` carrying
-the HoD, the time, the reason and the previous and new statuses. Open questions to the faculty member are closed with it.
+The Principal and the Director Technical see only what the HoD has forwarded, so they cannot revoke anything earlier (404). Every
+revoke is a review-history row (`HOD_REVOKE`, `PRINCIPAL_REVOKE` or `DIRECTOR_REVOKE`, with the remarks as its comment) and an audit
+entry `APPRAISAL_REVOKED` carrying who revoked (`revokedBy`, `revokerId`), the time, the remarks and the previous and new statuses.
+Open questions to the faculty member are closed with it.
+
+**Who is shown which remarks.** The remarks are written for the level the appraisal goes back to, and for no one else:
+
+| Reader | Sees |
+|---|---|
+| Faculty member | the HoD's revoke remarks (`returnedNotice` while it is a draft again after a revoke, and `revocations` for every earlier one). Never the review history, an approval comment, or the Principal's or Director Technical's remarks. After a Principal or Director revoke it only reads "With HoD" |
+| HoD | the whole review history, with the Principal's and Director Technical's **approval** comments removed (their feedback is not the HoD's to read); the remarks of a Principal or Director **revoke** (`returnedNotice`); and the revoke and resubmit trail below |
+| Principal, Director Technical | only the HoD's forwarding (with its recommendation) and their own level's steps. The HoD's revoke steps and remarks are not sent to them |
+
+The printed form follows the same rule: the faculty member's copy leaves out every reviewer's remarks, the HoD's leaves out
+the Principal's and the Director Technical's, and the official copy stored at approval keeps all of them.
+
+**Revoke and resubmit trail (HoD).** `GET /api/appraisals/{id}/revocations` gives the HoD of the faculty member's department the
+number of times the appraisal has been revoked (by anyone) and sent again by the faculty member, and every submission,
+resubmission and revocation with who, when and what they wrote. It works while the appraisal is a draft again, which the HoD
+cannot open (it carries no appraisal content). The HoD console shows the counts on each faculty member's row, with a way to open
+the trail, and marks a revoked appraisal that is with the faculty member as "Revoked, with the faculty member".
 
 ## Visibility
 

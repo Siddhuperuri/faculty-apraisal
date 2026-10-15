@@ -41,6 +41,8 @@ export interface SectionUi {
   emptyText?: string;
   /** Rendered as a fixed grid of rows (one per allowed value of this field) instead of an add/remove list. */
   fixedBy?: string;
+  /** Fields of a single-record section that are kept but not shown (an older free-text field replaced by a list). */
+  hiddenFields?: string[];
   /** Single-record section shown only while this condition on another section holds. */
   gate?: { section: string; field: string; equals: string; message: string };
 }
@@ -68,7 +70,19 @@ export const PAGES: PageUi[] = [
     formRef: "Part A",
     description: "Confirm your details for this academic year. They start from your profile and can be corrected here.",
     identity: true,
-    sections: [{ key: "general-information", title: "Your details" }],
+    sections: [
+      { key: "general-information", title: "Your details", hiddenFields: ["researchIds"] },
+      {
+        key: "research-profiles",
+        title: "Research profile IDs",
+        addLabel: "Add profile",
+        columns: ["platform", "profileId"],
+        headers: { platform: "Profile", profileId: "ID or link" },
+        hint: "Choose ORCID, Scopus, Google Scholar or Vidwan, enter your ID or link, and add the profiles one at a time. Each profile can be added once.",
+        maxRecords: 4,
+        emptyText: "No research profile has been added yet.",
+      },
+    ],
   },
   {
     slug: "teaching",
@@ -161,9 +175,14 @@ export const PAGES: PageUi[] = [
         key: "fdps",
         title: "Workshops / FDPs / Seminars / Training programs attended",
         addLabel: "Add program",
-        columns: ["title", "mode", "institutionVenue", "days"],
-        headers: { title: "Title of the Program", mode: "Mode", institutionVenue: "Organizing Institution / Venue", days: "Duration (No. of Days)" },
-        hint: "Each program earns 2.5 marks, whatever its length. Two earn the full 5; further programs are recorded but add no marks.",
+        columns: [
+          "title",
+          "mode",
+          "institutionVenue",
+          { header: "Duration (No. of Days)", render: (r) => (Number(r.days) >= 5 ? s(r.days) : `${s(r.days)} (fewer than 5 days: no marks)`) },
+        ],
+        headers: { title: "Title of the Program", mode: "Mode", institutionVenue: "Organizing Institution / Venue" },
+        hint: "A workshop, FDP, seminar or training program of five days or more earns 2.5 marks. The total for this part is limited to 5 marks, however many programs are entered. A program of fewer than five days is recorded but earns no marks.",
         emptyText: "No programs added yet.",
       },
       {

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { MessagesFromHod } from "@/components/appraisal/Messages";
 import { ReportDownload } from "@/components/appraisal/ReportDownload";
+import { ReturnedNotice } from "@/components/appraisal/RevocationNotices";
 import { StatTile } from "@/components/console/parts";
 import { RefreshButton, useLoadedAt } from "@/components/ui/RefreshButton";
 import { Alert, Button, Card, PageRuler, RuledHeading, Skeleton, StatusBadge, linkButton } from "@/components/ui/primitives";
@@ -137,6 +138,12 @@ export default function FacultyDashboard() {
         </div>
       )}
 
+      {current && view && current.revoked && (
+        <div className="rise" style={delay(1)}>
+          <ReturnedNotice appraisal={view} role="FACULTY" />
+        </div>
+      )}
+
       {!current ? (
         <Card className="rise max-w-3xl p-7" >
           <div style={delay(1)}>
@@ -170,9 +177,9 @@ export default function FacultyDashboard() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">Your appraisal</p>
-                <p className="mt-1 max-w-md font-display text-xl leading-snug text-ink">{statusLine(current.status, current.queryRaised, true)}</p>
+                <p className="mt-1 max-w-md font-display text-xl leading-snug text-ink">{statusLine(current.status, current.queryRaised, true, current.revoked)}</p>
               </div>
-              <StatusBadge status={current.status} queryRaised={current.queryRaised} />
+              <StatusBadge status={current.status} queryRaised={current.queryRaised} revoked={current.revoked} />
             </div>
 
             <PageRuler counts={counts} />

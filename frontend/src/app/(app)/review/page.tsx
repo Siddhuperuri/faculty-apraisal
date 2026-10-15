@@ -5,9 +5,12 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { ReviewerTabs } from "@/components/console/parts";
+import { usePdfZip } from "@/components/console/PdfZip";
 import { RefreshButton, useLoadedAt } from "@/components/ui/RefreshButton";
+import { RowCheckbox, SelectAllCheckbox, SelectionToolbar } from "@/components/ui/Selection";
+import { NOTHING, checkState, hiddenCount, keepOnly, toggle, toggleShown, type Selection } from "@/lib/selection";
 import { Alert, Badge, Button, EmptyState, Skeleton, StatusBadge, linkButton } from "@/components/ui/primitives";
-import { get } from "@/lib/api";
+import { get, postDownload, saveFile } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { STATUS_INFO } from "@/lib/labels";
 import { LEVELS, type ReviewerRole } from "@/lib/hierarchy";
@@ -22,11 +25,17 @@ export default function ReviewQueue() {
   const [query, setQuery] = useState("");
   // The department progress cards on the console link here with ?department=Name.
   const [department, setDepartment] = useState(useSearchParams().get("department") ?? "");
+  const [selected, setSelected] = useState<Selection>(NOTHING);
   const [loadedAt, stamp] = useLoadedAt();
+  const [sheetBusy, setSheetBusy] = useState<string | null>(null);
+  const [sheetNotice, setSheetNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const pdfs = usePdfZip(`/api/${role === "HOD" ? "hod" : role === "DIRECTOR" ? "director" : "principal"}/appraisals/pdfs`);
 
   const load = useCallback(async () => {
     try {
-      setItems(await get<ListItem[]>("/api/appraisals"));
+      const list = await get<ListItem[]>("/api/appraisals");
+      setItems(list);
+      setSelected((sel) => keepOnly(sel, list.map((i) => i.id)));
       setError(null);
       stamp();
     } catch (e) {
@@ -52,6 +61,28 @@ export default function ReviewQueue() {
       .filter((i) => (q ? `${i.facultyName} ${i.employeeId} ${i.department}`.toLowerCase().includes(q) : true))
       .sort((a, b) => Number(needsAction(b)) - Number(needsAction(a)));
   }, [items, status, department, query, needsAction]);
+
+  const shownIds = shown.map((i) => i.id);
+  // The spreadsheet and CSV export is the HoD's own (the Principal and the Director Technical have no such file).
+  const downloadSheet = async (format: "xlsx" | "csv", which: "selected" | "shown") => {
+    const ids = which === "selected"
+      ? (items ?? []).filter((i) => selected.has(i.id)).map((i) => i.facultyId)
+      : shown.map((i) => i.facultyId);
+    setSheetBusy(`${which}-${format}`);
+    setSheetNotice(null);
+    try {
+      const file = await postDownload("/api/hod/appraisals/export", { facultyIds: [...new Set(ids)], format });
+      saveFile(file.blob, file.fileName);
+      setSheetNotice({ tone: "ok", text: `${file.fileName} was downloaded (${new Set(ids).size} faculty).` });
+    } catch (e) {
+      setSheetNotice({ tone: "error", text: (e as Error).message });
+    } finally {
+      setSheetBusy(null);
+    }
+  };
+  const busy = pdfs.busy !== null || sheetBusy !== null;
+  const headerState = checkState(selected, shownIds);
+  const hiddenSelected = hiddenCount(selected, shownIds);
 
   if (error) {
     return <Alert tone="error" title="Could not load the review queue" action={<Button variant="secondary" size="sm" onClick={() => void load()}>Try again</Button>}>{error}</Alert>;
@@ -101,6 +132,52 @@ export default function ReviewQueue() {
         )}
       </div>
 
+      <SelectionToolbar selection={selected} hidden={hiddenSelected} singular="appraisal" plural="appraisals" onClear={() => setSelected(NOTHING)}>
+        {role === "HOD" && (
+          <>
+            <Button size="sm" loading={sheetBusy === "selected-xlsx"} disabled={busy} onClick={() => void downloadSheet("xlsx", "selected")}>
+              Download Excel (.xlsx)
+            </Button>
+            <Button variant="secondary" size="sm" loading={sheetBusy === "selected-csv"} disabled={busy} onClick={() => void downloadSheet("csv", "selected")}>
+              Download CSV
+            </Button>
+          </>
+        )}
+        <Button variant={role === "HOD" ? "secondary" : "primary"} size="sm" loading={pdfs.busy === "selected"} disabled={busy}
+          onClick={() => void pdfs.download({ appraisalIds: [...selected] })}>
+          Download PDFs (zip)
+        </Button>
+      </SelectionToolbar>
+      {items.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3">
+          {role === "HOD" && (
+            <>
+              <Button variant="secondary" size="sm" loading={sheetBusy === "shown-xlsx"} disabled={busy} onClick={() => void downloadSheet("xlsx", "shown")}>
+                Download all {shown.length} shown (.xlsx)
+              </Button>
+              <Button variant="secondary" size="sm" loading={sheetBusy === "shown-csv"} disabled={busy} onClick={() => void downloadSheet("csv", "shown")}>
+                Download all {shown.length} shown (CSV)
+              </Button>
+            </>
+          )}
+          <Button variant="secondary" size="sm" loading={pdfs.busy === "all"} disabled={busy}
+            onClick={() => void pdfs.download({ appraisalIds: shownIds })}>
+            Download all {shown.length} shown as PDFs (zip)
+          </Button>
+          <p className="text-xs text-muted">Everything this list shows; narrow the list first to download a group, or tick rows to download only those.</p>
+        </div>
+      )}
+      {sheetNotice && (
+        <Alert tone={sheetNotice.tone === "ok" ? "ok" : "error"} title={sheetNotice.tone === "ok" ? "Downloaded" : "Could not export"}>
+          {sheetNotice.text}
+        </Alert>
+      )}
+      {pdfs.notice && (
+        <Alert tone={pdfs.notice.tone === "ok" ? "ok" : "error"} title={pdfs.notice.tone === "ok" ? "Downloaded" : "Could not download"}>
+          {pdfs.notice.text}
+        </Alert>
+      )}
+
       {shown.length === 0 ? (
         <EmptyState action={items.length > 0 ? <Button variant="secondary" onClick={() => { setQuery(""); setStatus(""); setDepartment(""); }}>Clear filters</Button> : undefined}>
           {items.length === 0 ? "No appraisals have been submitted to you yet." : "No appraisals match your search."}
@@ -109,11 +186,14 @@ export default function ReviewQueue() {
         <>
         <ul className="rise grid gap-3 sm:hidden" style={{ "--i": 2 } as React.CSSProperties} aria-label="Appraisals for review">
           {shown.map((i) => (
-            <li key={i.id} className="rounded-xl border border-line bg-surface p-4 shadow-[var(--shadow-paper)]">
+            <li key={i.id} className={`rounded-xl border bg-surface p-4 shadow-[var(--shadow-paper)] ${selected.has(i.id) ? "border-brand bg-brand-soft/40" : "border-line"}`}>
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-display text-lg font-medium leading-snug text-navy">{i.facultyName}</p>
-                  <p className="text-xs text-muted">{i.employeeId}</p>
+                <div className="flex min-w-0 items-start gap-3">
+                  <RowCheckbox checked={selected.has(i.id)} onChange={() => setSelected(toggle(selected, i.id))} label={`Select ${i.facultyName}`} />
+                  <div className="min-w-0">
+                    <p className="font-display text-lg font-medium leading-snug text-navy">{i.facultyName}</p>
+                    <p className="text-xs text-muted">{i.employeeId}</p>
+                  </div>
                 </div>
                 <StatusBadge status={i.status} queryRaised={i.queryRaised} />
               </div>
@@ -133,6 +213,9 @@ export default function ReviewQueue() {
             <caption className="sr-only">Appraisals for review</caption>
             <thead>
               <tr className="bg-brand-soft text-navy">
+                <th scope="col" className="w-10 px-4 py-2.5">
+                  <SelectAllCheckbox state={headerState} onChange={() => setSelected(toggleShown(selected, shownIds))} label={`Select all ${shown.length} appraisals shown`} />
+                </th>
                 <th scope="col" className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em]">Faculty</th>
                 <th scope="col" className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em]">Department</th>
                 <th scope="col" className="px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em]">Year</th>
@@ -143,7 +226,10 @@ export default function ReviewQueue() {
             </thead>
             <tbody>
               {shown.map((i) => (
-                <tr key={i.id} className="border-t border-line transition-colors hover:bg-warm/40">
+                <tr key={i.id} aria-selected={selected.has(i.id)} className={`border-t border-line transition-colors hover:bg-warm/40 ${selected.has(i.id) ? "bg-brand-soft/50" : ""}`}>
+                  <td className="px-4 py-2.5">
+                    <RowCheckbox checked={selected.has(i.id)} onChange={() => setSelected(toggle(selected, i.id))} label={`Select ${i.facultyName}`} />
+                  </td>
                   <td className="px-4 py-2.5">
                     <span className="font-display text-base font-medium">{i.facultyName}</span>
                     <span className="block text-xs text-muted">{i.employeeId}</span>

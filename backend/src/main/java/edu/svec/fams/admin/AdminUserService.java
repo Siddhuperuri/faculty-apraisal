@@ -48,6 +48,19 @@ public class AdminUserService {
 
     public record IssuedPassword(long id, String email, String role, String temporaryPassword) {}
 
+    /** One account a bulk reset left alone, and why. */
+    public record ResetSkipped(long id, String email, String reason) {}
+
+    /**
+     * The result of resetting several passwords at once: every account that was reset (the standard password, which each
+     * must replace at next sign-in) and every account that was left alone with the reason.
+     */
+    public record BulkReset(int requested, int resetCount, String temporaryPassword, List<IssuedPassword> reset,
+                            List<ResetSkipped> skipped) {}
+
+    /** More than any single selection needs; a longer list is refused rather than half done. */
+    public static final int MAX_BULK_RESET = 200;
+
     /** The faculty record's free-form fields, validated with the same rules as the appraisal form. */
     private static final List<FieldSpec> PROFILE = List.of(
             FieldSpec.text("name", "name", "Name", 120, false),
@@ -392,6 +405,44 @@ public class AdminUserService {
                 WHERE id = ?""").params(encoder.encode(defaultPassword.value()), id).update();
         audit.recordDetails(actor.id(), "PASSWORD_RESET", "USER", id, Map.of("email", u.email()));
         return new IssuedPassword(id, u.email(), u.role(), defaultPassword.value());
+    }
+
+    /**
+     * Resets the password of every selected account to the standard one, as {@link #resetPassword} does for one: the user
+     * must replace it at next sign-in and all their sessions end. The administrator's own account, a closed account (a
+     * withdrawn role or a deleted user) and an id that is not a user are left alone and reported. Each reset is audited.
+     */
+    @Transactional
+    public BulkReset resetPasswords(FamsUserPrincipal actor, List<Long> ids) {
+        if (ids == null || ids.isEmpty()) throw new ValidationException(Map.of("ids", "Select at least one user."));
+        if (ids.size() > MAX_BULK_RESET) {
+            throw new ValidationException(Map.of("ids", "At most " + MAX_BULK_RESET + " users at a time."));
+        }
+        String password = defaultPassword.value();
+        String hash = encoder.encode(password);
+        List<IssuedPassword> reset = new ArrayList<>();
+        List<ResetSkipped> skipped = new ArrayList<>();
+        for (Long id : ids) {
+            var found = jdbc.sql("SELECT email, role FROM users WHERE id = ? AND deleted_at IS NULL").param(id)
+                    .query((rs, n) -> new String[] {rs.getString(1), rs.getString(2)}).optional();
+            if (found.isEmpty()) {
+                skipped.add(new ResetSkipped(id, "", "No such user."));
+            } else if (id.longValue() == actor.id()) {
+                skipped.add(new ResetSkipped(id, found.get()[0], "Your own account: use Account > Change password."));
+            } else if (Role.find(found.get()[1]).isEmpty()) {
+                skipped.add(new ResetSkipped(id, found.get()[0], "The account is closed (its role was withdrawn)."));
+            } else {
+                jdbc.sql("""
+                        UPDATE users SET password_hash = ?, must_change_password = TRUE,
+                               session_version = session_version + 1, password_changed_at = CURRENT_TIMESTAMP
+                        WHERE id = ?""").params(hash, id).update();
+                audit.recordDetails(actor.id(), "PASSWORD_RESET", "USER", id, Map.of("email", found.get()[0], "bulk", true));
+                reset.add(new IssuedPassword(id, found.get()[0], found.get()[1], null));
+            }
+        }
+        audit.recordDetails(actor.id(), "PASSWORD_RESET_BULK", "USER", null,
+                Map.of("requested", ids.size(), "reset", reset.size(), "skipped", skipped.size()));
+        return new BulkReset(ids.size(), reset.size(), password, reset, skipped);
     }
 
     /**

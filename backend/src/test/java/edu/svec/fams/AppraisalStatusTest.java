@@ -111,6 +111,26 @@ class AppraisalStatusTest {
     }
 
     @Test
+    void aRevokeAlwaysGoesOneLevelBackAndNeverFromAFinalApprovalOrADraft() {
+        for (AppraisalStatus st : List.of(AppraisalStatus.SUBMITTED, AppraisalStatus.HOD_REVIEW, AppraisalStatus.HOD_APPROVED,
+                AppraisalStatus.PRINCIPAL_REVIEW)) {
+            assertEquals(AppraisalStatus.DRAFT, st.revokeTarget(Role.HOD), "the HoD's revoke goes to the faculty member from " + st);
+        }
+        for (AppraisalStatus st : List.of(AppraisalStatus.HOD_APPROVED, AppraisalStatus.PRINCIPAL_REVIEW)) {
+            assertEquals(AppraisalStatus.HOD_REVIEW, st.revokeTarget(Role.PRINCIPAL), "the Principal's revoke goes to the HoD from " + st);
+            assertEquals(AppraisalStatus.HOD_REVIEW, st.revokeTarget(Role.DIRECTOR), "the Director's revoke goes to the HoD from " + st);
+        }
+        for (Role r : Role.values()) {
+            assertEquals(null, AppraisalStatus.APPROVED.revokeTarget(r), "an approved appraisal is final for " + r);
+            assertEquals(null, AppraisalStatus.DRAFT.revokeTarget(r), "a draft was never sent, for " + r);
+        }
+        assertEquals(null, AppraisalStatus.SUBMITTED.revokeTarget(Role.PRINCIPAL), "the Principal never sees what the HoD has not forwarded");
+        assertEquals(null, AppraisalStatus.HOD_REVIEW.revokeTarget(Role.DIRECTOR));
+        assertEquals(null, AppraisalStatus.SUBMITTED.revokeTarget(Role.FACULTY));
+        assertEquals(null, AppraisalStatus.SUBMITTED.revokeTarget(Role.ADMIN));
+    }
+
+    @Test
     void namesFitTheDatabaseColumns() {
         for (WorkflowAction a : WorkflowAction.values()) {
             assertTrue(a.name().length() <= 24, a + " is too long for review_actions.action");

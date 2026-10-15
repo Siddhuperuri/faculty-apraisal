@@ -88,7 +88,8 @@ public class TestDb {
     /** Fills in the least an appraisal needs before it may be submitted through the API (see AppraisalService.submitBlockers). */
     public void complete(long appraisalId) {
         jdbc.sql("UPDATE general_information SET contact_no = '9000000000', qualification_specialization = 'M.Tech', "
-                + "joining_date_institution = '2015-06-01', joining_date_designation = '2020-06-01', teaching_experience_years = 8.5 WHERE appraisal_id = ?")
+                + "joining_date_institution = '2015-06-01', joining_date_designation = '2020-06-01', "
+                + "teaching_experience_years = 8, teaching_experience_months = 6 WHERE appraisal_id = ?")
                 .param(appraisalId).update();
         jdbc.sql("INSERT INTO action_plan (appraisal_id, plan_text) VALUES (?, 'Strengthen teaching, research and outreach over the next two years.') "
                 + "ON DUPLICATE KEY UPDATE plan_text = VALUES(plan_text)").param(appraisalId).update();

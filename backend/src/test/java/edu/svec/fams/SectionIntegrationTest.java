@@ -383,7 +383,7 @@ class SectionIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.['teaching-courses']").value(2))
                 .andExpect(jsonPath("$.['fdps']").value(0))
-                .andExpect(jsonPath("$.length()").value(22));
+                .andExpect(jsonPath("$.length()").value(23));
     }
 
     @Test
@@ -413,8 +413,14 @@ class SectionIntegrationTest {
                 .andExpect(jsonPath("$.records[0].qualificationSpecialization").value("Ph.D., Thermal Engineering"))
                 .andExpect(jsonPath("$.records[0].phdStatus").value("AWARDED"))
                 .andExpect(jsonPath("$.records[0].joiningDateInstitution").value("2010-06-01"))
-                .andExpect(jsonPath("$.records[0].teachingExperienceYears").value(15.5))
-                .andExpect(jsonPath("$.records[0].researchIds").value("0000-0001-2345-6789 / 5711111111"));
+                .andExpect(jsonPath("$.records[0].teachingExperienceYears").value(15))
+                .andExpect(jsonPath("$.records[0].teachingExperienceMonths").value(6));
+        // the profile's research IDs become one row each, to be corrected or added to one by one
+        read(fresh, mine, "research-profiles").andExpect(status().isOk())
+                .andExpect(jsonPath("$.records.length()").value(2))
+                .andExpect(jsonPath("$.records[0].platform").value("ORCID"))
+                .andExpect(jsonPath("$.records[0].profileId").value("0000-0001-2345-6789"))
+                .andExpect(jsonPath("$.records[1].platform").value("SCOPUS"));
 
         // Correcting it changes the appraisal's copy only; the profile (and other years) stay as they were.
         String idOfRecord = read(fresh, mine, "general-information").andReturn().getResponse().getContentAsString();

@@ -32,17 +32,28 @@ public enum AppraisalStatus {
     }
 
     /**
-     * Where an appraisal goes when the Head of the Department revokes it, which needs no one's consent and is possible at
-     * any stage before the Principal's final approval: one that is with the HoD (submitted or in review) goes back to the
-     * faculty member as a draft to correct and send again; one the HoD has forwarded (to the Principal or Director
-     * Technical, not yet approved) comes back to the HoD, who is then reviewing it again. Null when it cannot be revoked
-     * (a draft was never sent; an approved one is final).
+     * Where an appraisal goes when it is revoked, which needs no one's consent and is possible at any stage before the
+     * final approval. A revoke always moves it one level back, with the reviewer's remarks:
+     * <ul>
+     *   <li>the Head of the Department's revoke goes to the faculty member, as a draft to correct and send again, whether it
+     *       was still with the HoD or already forwarded;</li>
+     *   <li>the Principal's or the Director Technical's revoke of an appraisal the HoD forwarded goes back to the HoD, who is
+     *       then reviewing it again.</li>
+     * </ul>
+     * Null when that role cannot revoke it from here (a draft was never sent; an approved one is final; the Principal and
+     * the Director Technical never see anything the HoD has not forwarded).
      */
-    public AppraisalStatus revokeTarget() {
-        return switch (this) {
-            case SUBMITTED, HOD_REVIEW -> DRAFT;
-            case HOD_APPROVED, PRINCIPAL_REVIEW -> HOD_REVIEW;
-            case DRAFT, APPROVED -> null;
+    public AppraisalStatus revokeTarget(edu.svec.fams.auth.Role by) {
+        return switch (by) {
+            case HOD -> switch (this) {
+                case SUBMITTED, HOD_REVIEW, HOD_APPROVED, PRINCIPAL_REVIEW -> DRAFT;
+                case DRAFT, APPROVED -> null;
+            };
+            case PRINCIPAL, DIRECTOR -> switch (this) {
+                case HOD_APPROVED, PRINCIPAL_REVIEW -> HOD_REVIEW;
+                case DRAFT, SUBMITTED, HOD_REVIEW, APPROVED -> null;
+            };
+            case FACULTY, ADMIN -> null;
         };
     }
 
