@@ -1,5 +1,6 @@
 /** Plain-language names for audit-trail actions. Unknown actions fall back to a readable form of the code. */
 export const AUDIT_ACTION_LABEL: Record<string, string> = {
+  USER_EMAIL_CHANGED: "E-mail address changed",
   USER_CREATED: "Account created",
   USERS_IMPORTED: "Accounts created from a file",
   RESTORE_TEST_RECORDED: "Restore test recorded",

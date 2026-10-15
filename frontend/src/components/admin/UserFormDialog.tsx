@@ -54,8 +54,9 @@ function toValues(d: AdminUserDetail): Values {
 }
 
 /**
- * Create a user, or edit a person's details. A role never changes after creation (make a new user instead), and
- * neither does the e-mail address, which is the sign-in name. A new user starts with the standard password.
+ * Create a user, or edit a person's details. A role never changes after creation (make a new user instead). The e-mail
+ * address, which is the sign-in name, may be corrected: the person is then signed out and uses the new address. A new user
+ * starts with the standard password.
  */
 export function UserFormDialog({
   open,
@@ -96,6 +97,7 @@ function Form({
   const editing = userId !== undefined;
   const [role, setRole] = useState<Role>("FACULTY");
   const [email, setEmail] = useState("");
+  const [originalEmail, setOriginalEmail] = useState("");
   const [values, setValues] = useState<Values>({});
   const [hodIds, setHodIds] = useState<number[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -112,6 +114,7 @@ function Form({
         // Users of a withdrawn role have no Edit button; the server refuses to change them in any case.
         if (!isWithdrawnRole(d.row.role)) setRole(d.row.role);
         setEmail(d.row.email);
+        setOriginalEmail(d.row.email);
         setValues(toValues(d));
         setHodIds(d.hodDepartmentIds);
         setLoading(false);
@@ -148,6 +151,8 @@ function Form({
     if (!editing) {
       body.role = role;
       body.email = email.trim();
+    } else if (email.trim() !== originalEmail) {
+      body.email = email.trim();   // the sign-in name; the server signs the person out and checks it is not taken
     }
     if (role === "FACULTY") {
       for (const f of PROFILE_FIELDS) body[f.name] = (values[f.name] ?? "").trim();
@@ -197,9 +202,13 @@ function Form({
       <div className="grid gap-4 sm:grid-cols-2">
         {editing ? (
           <div>
-            <p className="mb-1 text-[13px] font-semibold tracking-wide">College e-mail address</p>
-            <p className="rounded-sm border border-line bg-canvas px-3 py-2 text-[15px]">{email}</p>
-            <p className="mt-1 text-xs text-muted">The e-mail address is the sign-in name and cannot be changed.</p>
+            <FieldInput meta={EMAIL} value={email} onChange={setEmail} error={errors.email} />
+            {email.trim() !== originalEmail && (
+              <p className="mt-1 text-xs text-muted">
+                The e-mail address is the sign-in name. Once saved, this person is signed out and signs in with the new address; the
+                password stays the same.
+              </p>
+            )}
           </div>
         ) : (
           <FieldInput meta={EMAIL} value={email} onChange={setEmail} error={errors.email} autoFocus />

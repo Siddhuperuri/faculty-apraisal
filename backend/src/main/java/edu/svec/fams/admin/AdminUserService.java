@@ -307,6 +307,24 @@ public class AdminUserService {
             hodDepartments = validateDepartments(body, errors, existing.hodDepartmentIds());
         }
 
+        // The e-mail address is the sign-in name. It may be corrected here; the person is then signed out and signs in with the
+        // new address (the password is unchanged). A request without "email" leaves it as it is.
+        String newEmail = null;
+        if (body.containsKey("email")) {
+            Object value = FieldSpec.text("email", "email", "E-mail address", 190, true).normalize(body.get("email"), "email", errors);
+            if (value != null && !errors.containsKey("email")) {
+                String candidate = ((String) value).toLowerCase(Locale.ROOT);
+                if (!EmailAddress.isValid(candidate)) {
+                    errors.put("email", "E-mail address must be a valid e-mail address.");
+                } else if (!candidate.equals(current.email().toLowerCase(Locale.ROOT))) {
+                    boolean taken = jdbc.sql("SELECT COUNT(*) FROM users WHERE email = ? AND id <> ?").params(candidate, id)
+                            .query(Integer.class).single() > 0;
+                    if (taken) errors.put("email", "An account with this e-mail address already exists.");
+                    else newEmail = candidate;
+                }
+            }
+        }
+
         AccountStatus status = null;
         Object s = body.get("status");
         if (s != null) {
@@ -319,6 +337,17 @@ public class AdminUserService {
         if (!errors.isEmpty()) throw new ValidationException(errors);
         if (status == AccountStatus.DISABLED && id == actor.id()) {
             throw ApiException.conflict("You cannot disable your own account.");
+        }
+        if (newEmail != null && id == actor.id()) {
+            throw ApiException.conflict("Another administrator needs to change your own e-mail address: a mistyped one would lock you out.");
+        }
+        if (newEmail != null) {
+            try {
+                jdbc.sql("UPDATE users SET email = ?, session_version = session_version + 1 WHERE id = ?").params(newEmail, id).update();
+            } catch (DuplicateKeyException e) {
+                throw new ValidationException(Map.of("email", "An account with this e-mail address already exists."));
+            }
+            audit.recordDetails(actor.id(), "USER_EMAIL_CHANGED", "USER", id, Map.of("from", current.email(), "to", newEmail));
         }
 
         if (role == Role.FACULTY) updateProfile(id, profile);
@@ -337,6 +366,7 @@ public class AdminUserService {
         // who was assigned where is part of what the audit trail must show
         Map<String, Object> changes = new LinkedHashMap<>();
         changes.put("email", current.email());
+        if (newEmail != null) changes.put("emailAfter", newEmail);
         changes.put("role", current.role());
         if (role == Role.HOD && body.containsKey("hodDepartmentIds")) {
             changes.put("hodDepartmentIdsBefore", existing.hodDepartmentIds());
