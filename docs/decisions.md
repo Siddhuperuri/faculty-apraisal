@@ -95,7 +95,8 @@ the earlier gap where role and disable changes applied only at the next login.
 An administrator creates each account (faculty with their record, HoDs with their departments, the Principal, other
 administrators) with the old password (ADR-033); only a BCrypt hash is stored, and
 passwords are never logged, audited or listed. The user must replace it at first sign-in. A role never changes after
-creation (a new account is made instead), e-mail is the sign-in name and is immutable, an administrator cannot disable or
+creation (a new account is made instead), e-mail is the sign-in name and an administrator may correct it later (2026-10-15: the person is signed out, the
+change is audited as USER_EMAIL_CHANGED, and an administrator cannot change their own address), an administrator cannot disable or
 reset their own account, and an administrator can read no appraisal: the audit view they get leaves out file names and
 checksums of appraisal entries. The first administrator on a fresh installation comes from `FAMS_BOOTSTRAP_ADMIN_EMAIL`
 and `FAMS_BOOTSTRAP_ADMIN_PASSWORD`, used only when no administrator exists. Departments, academic years and scoring

@@ -285,7 +285,6 @@ class AdminIntegrationTest {
         body.put("departmentId", ece);
         body.put("cadreId", professor);
         body.put("role", "ADMIN");                          // must be ignored
-        body.put("email", "changed@test.edu");              // e-mail is the sign-in name; not changed here
         http.put(admin, "/api/admin/users/" + f.id(), body).andExpect(status().isOk())
                 .andExpect(jsonPath("$.row.name").value("Dr. Renamed")).andExpect(jsonPath("$.row.role").value("FACULTY"))
                 .andExpect(jsonPath("$.departmentId").value(ece)).andExpect(jsonPath("$.cadreId").value(professor));
